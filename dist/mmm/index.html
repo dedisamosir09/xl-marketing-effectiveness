@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="XL Marketing Effectiveness dashboard for campaign performance, MTA, MMM, and geo intelligence.">
+    <meta name="theme-color" content="#172a91">
+    <title>Marketing Mix Modeling (MMM) | XL Marketing Effectiveness</title>
+    <link rel="icon" type="image/svg+xml" href="/static/img/favicon.svg">
+    <link rel="stylesheet" href="/static/css/app.css">
+<link rel="stylesheet" href="/static/css/mmm.css">
+  </head>
+  <body class="mmm-page">
+    <div class="app-shell">
+      <div class="sidebar-overlay" data-sidebar-overlay hidden></div>
+
+      <aside class="sidebar" id="dashboard-sidebar" aria-label="Primary navigation">
+        <div class="brand-block">
+          <a class="brand" href="/" aria-label="XL Smart home">
+            <img class="brand-mark" src="/static/img/xl-smart-mark.svg" alt="">
+            <span class="brand-name">XL SMART</span>
+          </a>
+          <p class="brand-tagline">Bersama,<br>Melaju Tanpa Batas</p>
+        </div>
+
+        <div class="product-context">
+          <span class="product-accent" aria-hidden="true"></span>
+          <p class="product-name">Marketing Effectiveness</p>
+          <p class="product-subtitle">App Growth Intelligence</p>
+        </div>
+
+        <nav class="primary-nav">
+          <p class="nav-section-label">Analytics</p>
+          <ul class="nav-list"><li><a class="nav-link" href="/campaign-performance/"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 19v-4m5 4V9m5 10v-7m5 7V5M3 10l5-4 4 3 7-6"/></svg></span><span>Marketing Campaign Performance</span></a></li><li><a class="nav-link" href="/mta/"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.3"/><circle cx="18" cy="18" r="2.3"/><path d="M8.3 6H15a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h6.7"/></svg></span><span>Multi Touch Attribution (MTA)</span></a></li><li><a class="nav-link active" href="/mmm/" aria-current="page"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 9h18M5 9V6l7-3 7 3v3M5 20v-8m5 8v-8m4 8v-8m5 8v-8M3 21h18"/></svg></span><span>Marketing Mix Modeling (MMM)</span></a></li><li><a class="nav-link" href="/geo-intelligence/"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M11 4v3m0 8v3m-7-7h3m8 0h3m-4.2 2.8L20 20m-9-9 4-4"/></svg></span><span>Geo Intelligence</span></a></li></ul>
+        </nav>
+
+        <div class="sidebar-footer">
+          <span class="status-dot" aria-hidden="true"></span>
+          XL Marketing Analytics
+        </div>
+      </aside>
+
+      <main class="main-area">
+        <header class="topbar">
+          <button class="menu-button" type="button" aria-label="Open navigation" aria-controls="dashboard-sidebar" aria-expanded="false" data-menu-button>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          </button>
+          <div class="breadcrumb">
+            <span>Marketing Effectiveness</span>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5 5 5-5 5"/></svg>
+            <strong>Marketing Mix Modeling</strong>
+          </div>
+          <div class="topbar-meta">
+            <span class="environment-pill">Interactive demo</span>
+            <span class="avatar" aria-label="XL workspace">XL</span>
+          </div>
+        </header>
+
+        <section class="workspace" aria-labelledby="page-title">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">Analytics module</p>
+              <h1 id="page-title">Marketing Mix Modeling (MMM)</h1>
+              <p class="page-description">Incremental business impact and channel effectiveness measurement.</p>
+            </div>
+            <div class="page-heading-meta"><span class="demo-badge"><span></span> Demo MMM model</span><span class="freshness">Model data through 24 Aug 2026</span></div>
+          </div>
+
+          <div class="mmm-dashboard" data-mmm-dashboard>
+  <div class="mmm-status" data-mmm-status>
+    <span class="mmm-status-pulse" aria-hidden="true"></span>
+    Preparing marketing mix model…
+  </div>
+
+  <section class="mmm-panel mmm-filter-panel" aria-labelledby="mmm-filter-title">
+    <div class="mmm-panel-heading mmm-filter-heading">
+      <div>
+        <p class="mmm-kicker">Model scope</p>
+        <h2 id="mmm-filter-title">Marketing Impact Filters</h2>
+        <p>Set the business period and outcome evaluated by the MMM model.</p>
+      </div>
+      <button class="mmm-button ghost" type="button" data-mmm-reset>Reset filters</button>
+    </div>
+    <div class="mmm-filter-grid">
+      <label class="mmm-field"><span>Analysis From</span><input type="date" data-mmm-filter="dateStart"></label>
+      <label class="mmm-field"><span>Analysis To</span><input type="date" data-mmm-filter="dateEnd"></label>
+      <label class="mmm-field"><span>Product</span><select data-mmm-filter="product"><option>Prepaid</option></select></label>
+      <label class="mmm-field"><span>Business KPI / Outcome</span><select data-mmm-filter="kpi"><option>Revenue</option></select></label>
+    </div>
+    <div class="mmm-scope-row">
+      <span class="mmm-scope-pill"><i></i>Model estimate · Channel × Time</span>
+      <span data-mmm-scope-copy>Revenue impact for Prepaid</span>
+    </div>
+  </section>
+
+  <section aria-labelledby="impact-overview-title">
+    <div class="mmm-section-heading">
+      <div>
+        <p class="mmm-kicker">01 · Marketing Impact Overview</p>
+        <h2 id="impact-overview-title">How much business outcome did marketing create?</h2>
+        <p>Separate baseline demand from modeled incremental marketing impact and other business drivers.</p>
+      </div>
+    </div>
+    <div class="mmm-scorecards" data-mmm-scorecards aria-label="Marketing impact summary"></div>
+    <div class="mmm-impact-grid">
+      <article class="mmm-panel mmm-chart-panel">
+        <div class="mmm-panel-heading compact">
+          <div>
+            <p class="mmm-kicker">Model fit over time</p>
+            <h3>Actual vs Predicted Business KPI</h3>
+            <p>Weekly view of observed revenue and the model estimate.</p>
+          </div>
+          <div class="mmm-chart-legend">
+            <span><i class="actual"></i>Actual</span>
+            <span><i class="predicted"></i>Predicted</span>
+          </div>
+        </div>
+        <div class="mmm-chart" data-mmm-trend></div>
+      </article>
+      <article class="mmm-panel mmm-chart-panel">
+        <div class="mmm-panel-heading compact">
+          <div>
+            <p class="mmm-kicker">Outcome bridge</p>
+            <h3>Business Outcome Decomposition</h3>
+            <p>Modeled sources of the selected outcome.</p>
+          </div>
+        </div>
+        <div class="mmm-decomposition" data-mmm-decomposition></div>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="channel-effectiveness-title">
+    <div class="mmm-section-heading">
+      <div>
+        <p class="mmm-kicker">02 · Channel Effectiveness &amp; Scalability</p>
+        <h2 id="channel-effectiveness-title">Where is each channel creating incremental value?</h2>
+        <p>Read average return together with the return expected from the next unit of spend.</p>
+      </div>
+    </div>
+    <div class="mmm-channel-grid">
+      <article class="mmm-panel mmm-chart-panel">
+        <div class="mmm-panel-heading compact">
+          <div>
+            <p class="mmm-kicker">Return portfolio</p>
+            <h3>iROAS vs Marginal ROI</h3>
+            <p>Bubble size represents spend. Select a channel to inspect its response curve.</p>
+          </div>
+        </div>
+        <div class="mmm-chart" data-mmm-channel-matrix></div>
+      </article>
+      <article class="mmm-panel mmm-table-panel">
+        <div class="mmm-panel-heading compact">
+          <div>
+            <p class="mmm-kicker">Decision table</p>
+            <h3>Channel Investment Signals</h3>
+            <p>Modeled contribution, scalability, and recommended posture.</p>
+          </div>
+        </div>
+        <div class="mmm-table-wrap">
+          <table>
+            <thead><tr><th>Channel</th><th class="numeric">Spend</th><th class="numeric">Incremental Revenue</th><th class="numeric">Contribution</th><th class="numeric">iROAS</th><th class="numeric">mROI</th><th class="numeric">Headroom</th><th>Decision</th></tr></thead>
+            <tbody data-mmm-channel-table></tbody>
+          </table>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="planner-title">
+    <div class="mmm-section-heading">
+      <div>
+        <p class="mmm-kicker">03 · Business Planner</p>
+        <h2 id="planner-title">Decide how much to invest—and when to keep media active</h2>
+        <p>Response curves guide budget allocation. Carryover guides campaign continuity, pause duration, and recovery timing.</p>
+      </div>
+    </div>
+    <div class="mmm-planner-layout" data-planner-workspace>
+      <article class="mmm-panel mmm-planner-inputs">
+        <div class="mmm-panel-heading compact">
+          <div><p class="mmm-kicker">Scenario setup</p><h3>Planning Objective</h3><p>Select the question you want the model to answer. Results update live.</p></div>
+          <span class="mmm-live-badge"><i></i>Live scenario</span>
+        </div>
+        <div class="mmm-mode-tabs" role="tablist" aria-label="Planning objective">
+          <button type="button" class="active" role="tab" aria-selected="true" data-planner-mode="budget"><strong>Available Budget</strong><small>How should a fixed budget be allocated?</small></button>
+          <button type="button" role="tab" aria-selected="false" data-planner-mode="target"><strong>Target KPI</strong><small>How much budget is needed for a KPI target?</small></button>
+          <button type="button" role="tab" aria-selected="false" data-planner-mode="roi"><strong>Target ROI</strong><small>How much can we spend while protecting ROI?</small></button>
+          <button type="button" role="tab" aria-selected="false" data-planner-mode="manual"><strong>Manual What-If</strong><small>What happens under my own allocation?</small></button>
+        </div>
+        <div class="mmm-planner-active-summary" data-planner-active-summary aria-live="polite"></div>
+        <div class="mmm-period-setup">
+          <div class="mmm-period-heading">
+            <div><strong>Planning Period</strong><span>Set when the scenario starts and how long the investment will run.</span></div>
+            <div class="mmm-period-unit-tabs" role="radiogroup" aria-label="Planning period unit">
+              <button type="button" role="radio" aria-checked="false" data-planning-unit="week">Week</button>
+              <button type="button" class="active" role="radio" aria-checked="true" data-planning-unit="month">Month</button>
+              <button type="button" role="radio" aria-checked="false" data-planning-unit="year">Year</button>
+            </div>
+          </div>
+          <div class="mmm-period-grid">
+            <label class="mmm-field"><span>Scenario Start Date</span><input type="date" data-planning-start></label>
+            <label class="mmm-field"><span>Duration</span><div class="mmm-input-unit"><input type="number" min="1" max="24" step="1" value="3" data-planning-periods><span data-planning-period-suffix>months</span></div></label>
+            <div class="mmm-period-end"><span>Calculated End Date</span><strong data-planning-end-date>24 Nov 2026</strong></div>
+          </div>
+          <div class="mmm-period-summary" data-planning-period-summary aria-live="polite"></div>
+        </div>
+        <div class="mmm-planner-controls">
+          <label class="mmm-field"><span data-planner-primary-label>Available Media Budget</span><div class="mmm-input-unit"><span data-planner-primary-prefix>Rp</span><input type="number" min="0" step="0.1" data-planner-primary><span data-planner-primary-suffix>B</span></div></label>
+          <label class="mmm-range-field"><span>Maximum channel reduction <strong data-max-decrease-output>30%</strong></span><input type="range" min="0" max="70" step="5" value="30" data-max-decrease></label>
+          <label class="mmm-range-field"><span>Maximum channel increase <strong data-max-increase-output>60%</strong></span><input type="range" min="0" max="150" step="5" value="60" data-max-increase></label>
+        </div>
+        <div class="mmm-budget-presets" data-planner-presets>
+          <span>Quick budget scenario</span>
+          <button type="button" data-budget-multiplier="0.85">−15%</button>
+          <button type="button" data-budget-multiplier="1">Current</button>
+          <button type="button" class="active" data-budget-multiplier="1.15">+15%</button>
+          <button type="button" data-budget-multiplier="1.30">+30%</button>
+        </div>
+        <div class="mmm-constraint-heading"><strong>Channel constraints</strong><span>Lock a channel to preserve its current budget.</span></div>
+        <div class="mmm-constraint-list" data-planner-constraints></div>
+        <div class="mmm-manual-inputs" data-manual-inputs hidden></div>
+        <button class="mmm-button primary wide" type="button" data-run-scenario>Recalculate Scenario</button>
+      </article>
+
+      <article class="mmm-panel mmm-planner-output">
+        <div class="mmm-panel-heading compact planner-result-heading">
+          <div><p class="mmm-kicker">Scenario output</p><h3>Recommended Investment Plan</h3><p data-planner-result-copy>Optimized against the modeled channel response curves.</p></div>
+          <button class="mmm-button ghost" type="button" data-save-scenario disabled>Save scenario</button>
+        </div>
+        <div class="mmm-planner-results" data-planner-results aria-live="polite"></div>
+        <div class="mmm-allocation" data-planner-allocation></div>
+        <div class="mmm-planner-recommendation" data-planner-recommendation></div>
+      </article>
+    </div>
+
+    <div class="mmm-planner-subsection-heading with-control">
+      <div>
+        <p class="mmm-kicker">Allocation evidence</p>
+        <h3>Why does the planner change this channel’s budget?</h3>
+        <p>Select a channel—or click its allocation row—to compare the current and scenario positions on its response curve.</p>
+      </div>
+      <label class="mmm-field mmm-channel-select"><span>Channel</span><select data-mmm-response-channel></select></label>
+    </div>
+    <div class="mmm-response-summary" data-mmm-response-summary></div>
+    <article class="mmm-panel mmm-chart-panel mmm-response-evidence-panel">
+      <div class="mmm-panel-heading compact">
+        <div><p class="mmm-kicker">Diminishing return</p><h3>Channel Response Curve</h3><p>Current and simulated spend are shown on the same modeled curve.</p></div>
+        <span class="mmm-linked-badge">Linked to allocation</span>
+      </div>
+      <div class="mmm-chart" data-mmm-response-curve></div>
+      <div class="mmm-visible-chart-labels" data-response-labels></div>
+      <div class="mmm-chart-purpose"><div><span>Planner connection</span><strong data-response-usage>The selected scenario budget is evaluated on this response curve.</strong></div></div>
+    </article>
+
+    <div class="mmm-planner-subsection-heading">
+      <div>
+        <p class="mmm-kicker">Timing &amp; continuity planner</p>
+        <h3>How long can media pause before KPI risk becomes unacceptable?</h3>
+        <p>Carryover is not a separate budget optimizer. It is a planning input that translates the selected channel’s decay pattern into a safe hiatus window.</p>
+      </div>
+    </div>
+    <div class="mmm-timing-grid">
+      <article class="mmm-panel mmm-chart-panel">
+        <div class="mmm-panel-heading compact">
+          <div><p class="mmm-kicker">Adstock input</p><h3>Carryover Decay</h3><p>The selected pause from Hiatus Simulator is marked directly on this curve.</p></div>
+          <span class="mmm-linked-badge">Linked to hiatus</span>
+        </div>
+        <div class="mmm-chart" data-mmm-carryover-curve></div>
+        <div class="mmm-visible-chart-labels" data-carryover-labels></div>
+        <div class="mmm-chart-purpose"><div><span>Hiatus connection</span><strong data-carryover-usage>The channel half-life determines how quickly KPI protection decays during a pause.</strong></div></div>
+      </article>
+
+      <article class="mmm-panel mmm-hiatus-panel" data-hiatus-panel>
+        <div class="mmm-panel-heading compact">
+          <div><p class="mmm-kicker">Planning diagnostic</p><h3>Hiatus Simulator</h3><p>Compare the modeled decline with the maximum decline the business is willing to accept.</p></div>
+          <span class="mmm-live-badge"><i></i>Live calculation</span>
+        </div>
+        <div class="mmm-hiatus-presets" role="group" aria-label="Hiatus duration presets">
+          <span>Quick pause scenario</span>
+          <button type="button" data-hiatus-preset="0">No pause</button>
+          <button type="button" data-hiatus-preset="1">1 week</button>
+          <button type="button" class="active" data-hiatus-preset="2">2 weeks</button>
+          <button type="button" data-hiatus-preset="4">4 weeks</button>
+          <button type="button" data-hiatus-preset="6">6 weeks</button>
+          <button type="button" data-hiatus-preset="8">8 weeks</button>
+        </div>
+        <div class="mmm-hiatus-grid">
+          <label class="mmm-range-field"><span>Planned pause <strong data-hiatus-weeks-output>2 weeks</strong></span><input type="range" min="0" max="8" step="1" value="2" data-hiatus-weeks></label>
+          <label class="mmm-range-field"><span>Allowed KPI decline threshold <strong data-hiatus-tolerance-output>3%</strong></span><input type="range" min="1" max="10" step="1" value="3" data-hiatus-tolerance></label>
+          <div class="mmm-threshold-note">The threshold changes the safe/unsafe decision and maximum safe pause—not the model’s projected decline.</div>
+          <div class="mmm-hiatus-results" data-hiatus-results></div>
+        </div>
+        <div class="mmm-hiatus-feedback" data-hiatus-feedback aria-live="polite"></div>
+        <div class="mmm-hiatus-trajectory" data-hiatus-trajectory></div>
+      </article>
+    </div>
+
+    <article class="mmm-panel mmm-scenario-panel">
+      <div class="mmm-panel-heading compact"><div><p class="mmm-kicker">Decision workspace</p><h3>Saved Scenario Comparison</h3><p>Keep up to three alternatives for a focused decision.</p></div></div>
+      <div data-saved-scenarios></div>
+    </article>
+  </section>
+
+  <details class="mmm-panel mmm-advanced-panel">
+    <summary><span><strong>Advanced Model Details</strong><small>Methodology, validation, uncertainty, and production readiness</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg></summary>
+    <div class="mmm-advanced-content">
+      <div class="mmm-model-metrics" data-mmm-model-metrics></div>
+      <div class="mmm-model-notes">
+        <div><strong>Primary model</strong><p>Google Meridian Bayesian MMM provides contribution, response curves, carryover, uncertainty, and scenario planning.</p></div>
+        <div><strong>Challenger check</strong><p>Ridge regression is used as a stability and directional hypothesis check—not as a second source of truth in the UI.</p></div>
+        <div><strong>Calibration path</strong><p>Production deployment should incorporate experiment priors, business controls, holdouts, and recurring model refreshes.</p></div>
+      </div>
+      <div class="mmm-demo-warning"><strong>POC boundary:</strong> the current model window is 144 days. Budget and hiatus outputs remain directional until the model is calibrated with production controls and experiments.</div>
+    </div>
+  </details>
+
+  <div class="mmm-methodology-note">
+    <strong>Interpretation guardrail</strong>
+    MMM estimates incremental impact at channel × time grain after accounting for baseline demand and modeled controls. Results are not platform attribution and should not be filtered to campaign, placement, or customer-journey level.
+  </div>
+</div>
+
+        </section>
+      </main>
+    </div>
+    <script src="/static/js/app.js" defer></script>
+<script src="/static/js/mmm.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="XL Marketing Effectiveness dashboard for campaign performance, MTA, MMM, and geo intelligence.">
+    <meta name="theme-color" content="#172a91">
+    <title>Multi Touch Attribution (MTA) | XL Marketing Effectiveness</title>
+    <link rel="icon" type="image/svg+xml" href="/static/img/favicon.svg">
+    <link rel="stylesheet" href="/static/css/app.css">
+<link rel="stylesheet" href="/static/css/mta.css">
+  </head>
+  <body class="mta-page">
+    <div class="app-shell">
+      <div class="sidebar-overlay" data-sidebar-overlay hidden></div>
+
+      <aside class="sidebar" id="dashboard-sidebar" aria-label="Primary navigation">
+        <div class="brand-block">
+          <a class="brand" href="/" aria-label="XL Smart home">
+            <img class="brand-mark" src="/static/img/xl-smart-mark.svg" alt="">
+            <span class="brand-name">XL SMART</span>
+          </a>
+          <p class="brand-tagline">Bersama,<br>Melaju Tanpa Batas</p>
+        </div>
+
+        <div class="product-context">
+          <span class="product-accent" aria-hidden="true"></span>
+          <p class="product-name">Marketing Effectiveness</p>
+          <p class="product-subtitle">App Growth Intelligence</p>
+        </div>
+
+        <nav class="primary-nav">
+          <p class="nav-section-label">Analytics</p>
+          <ul class="nav-list"><li><a class="nav-link" href="/campaign-performance/"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 19v-4m5 4V9m5 10v-7m5 7V5M3 10l5-4 4 3 7-6"/></svg></span><span>Marketing Campaign Performance</span></a></li><li><a class="nav-link active" href="/mta/" aria-current="page"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.3"/><circle cx="18" cy="18" r="2.3"/><path d="M8.3 6H15a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h6.7"/></svg></span><span>Multi Touch Attribution (MTA)</span></a></li><li><a class="nav-link" href="/mmm/"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 9h18M5 9V6l7-3 7 3v3M5 20v-8m5 8v-8m4 8v-8m5 8v-8M3 21h18"/></svg></span><span>Marketing Mix Modeling (MMM)</span></a></li><li><a class="nav-link" href="/geo-intelligence/"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M11 4v3m0 8v3m-7-7h3m8 0h3m-4.2 2.8L20 20m-9-9 4-4"/></svg></span><span>Geo Intelligence</span></a></li></ul>
+        </nav>
+
+        <div class="sidebar-footer">
+          <span class="status-dot" aria-hidden="true"></span>
+          XL Marketing Analytics
+        </div>
+      </aside>
+
+      <main class="main-area">
+        <header class="topbar">
+          <button class="menu-button" type="button" aria-label="Open navigation" aria-controls="dashboard-sidebar" aria-expanded="false" data-menu-button>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          </button>
+          <div class="breadcrumb">
+            <span>Marketing Effectiveness</span>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5 5 5-5 5"/></svg>
+            <strong>Multi Touch Attribution</strong>
+          </div>
+          <div class="topbar-meta">
+            <span class="environment-pill">Interactive demo</span>
+            <span class="avatar" aria-label="XL workspace">XL</span>
+          </div>
+        </header>
+
+        <section class="workspace" aria-labelledby="page-title">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">Analytics module</p>
+              <h1 id="page-title">Multi Touch Attribution (MTA)</h1>
+              <p class="page-description">Customer journey and touchpoint contribution analysis.</p>
+            </div>
+            <div class="page-heading-meta"><span class="demo-badge"><span></span> Demo journey data</span><span class="freshness">Data through 24 Aug 2026, 23:59 WIB</span></div>
+          </div>
+
+          <div class="mta-dashboard" data-mta-dashboard>
+  <div class="dashboard-status" data-mta-status>
+    <span class="status-pulse" aria-hidden="true"></span>
+    Preparing customer journey data…
+  </div>
+
+  <section class="mta-panel mta-filter-panel" aria-labelledby="mta-filter-title">
+    <div class="mta-panel-heading mta-filter-heading">
+      <div>
+        <p class="mta-kicker">Journey scope</p>
+        <h2 id="mta-filter-title">Filters &amp; Attribution Settings</h2>
+        <p>Global marketing filters plus MTA-specific journey, model, and lookback controls.</p>
+      </div>
+      <button class="mta-reset-button" type="button" data-mta-reset>Reset filters</button>
+    </div>
+    <div class="mta-filter-grid">
+      <label class="mta-filter-field"><span>Date From</span><input type="date" data-mta-filter="dateStart"></label>
+      <label class="mta-filter-field"><span>Date To</span><input type="date" data-mta-filter="dateEnd"></label>
+      <label class="mta-filter-field"><span>Product</span><select data-mta-filter="product"></select></label>
+      <label class="mta-filter-field"><span>Media Plan</span><select data-mta-filter="mediaPlan"></select></label>
+      <label class="mta-filter-field"><span>Campaign Objective</span><select data-mta-filter="objective"></select></label>
+      <div class="mta-filter-field">
+        <span class="mta-filter-label">Channel
+          <button class="mta-filter-help" type="button" aria-label="Channel definition" data-tooltip="Primary campaign channel. Other channels may appear only as the next destination in the Interaction Heatmap.">i</button>
+        </span>
+        <select data-mta-filter="channel" aria-label="Channel"></select>
+      </div>
+      <label class="mta-filter-field"><span>Placement</span><select data-mta-filter="placement"></select></label>
+      <label class="mta-filter-field"><span>Campaign Name</span><select data-mta-filter="campaign"></select></label>
+      <label class="mta-filter-field"><span>Attribution Model</span><select data-mta-control="model"></select></label>
+      <label class="mta-filter-field"><span>Journey Scope</span><select data-mta-control="scope"></select></label>
+      <label class="mta-filter-field"><span>User Type</span><select data-mta-control="userType"></select></label>
+      <label class="mta-filter-field"><span>Lookback Window</span><select data-mta-control="lookback"></select></label>
+      <label class="mta-filter-field"><span>Conversion Event</span><select data-mta-control="targetEvent"></select></label>
+    </div>
+    <div class="mta-active-filters">
+      <span class="mta-active-label">Active scope</span>
+      <div class="mta-filter-chips" data-mta-filter-chips></div>
+    </div>
+  </section>
+
+  <section class="mta-scorecard-grid" data-mta-scorecards aria-label="Journey overview"></section>
+
+  <section class="mta-panel journey-panel" aria-labelledby="journey-explorer-title">
+    <div class="mta-panel-heading journey-heading">
+      <div>
+        <p class="mta-kicker">Observed customer flow</p>
+        <h2 id="journey-explorer-title">End-to-End User Journey Explorer</h2>
+        <p data-journey-description>Explore how marketing touchpoints connect with app behavior and outcomes.</p>
+      </div>
+      <div class="journey-control-stack">
+        <div class="mta-segmented" role="tablist" aria-label="Journey type">
+          <button type="button" data-journey-type="marketing">Marketing to App</button>
+          <button type="button" data-journey-type="app">In-App Journey</button>
+          <button type="button" class="active" data-journey-type="endToEnd">End-to-End</button>
+        </div>
+        <div class="mta-segmented secondary" role="tablist" aria-label="Journey visualization">
+          <button type="button" class="active" data-journey-view="sankey">Sankey</button>
+          <button type="button" data-journey-view="paths">Top Paths</button>
+          <button type="button" data-journey-view="funnel">Journey Funnel</button>
+        </div>
+      </div>
+    </div>
+    <div class="journey-selection-row">
+      <div class="journey-legend" data-journey-legend>
+        <span><i class="google"></i>Google</span>
+        <span><i class="meta"></i>Meta</span>
+        <span><i class="tiktok"></i>TikTok</span>
+        <span><i class="x"></i>X</span>
+        <span><i class="app"></i>App event</span>
+      </div>
+      <button class="mta-clear-selection" type="button" data-clear-journey hidden>Clear journey selection</button>
+    </div>
+    <div class="journey-visual" data-journey-visual></div>
+  </section>
+
+  <div class="mta-two-column journey-health-grid">
+    <section class="mta-panel" aria-labelledby="touch-health-title">
+      <div class="mta-panel-heading compact">
+        <div>
+          <p class="mta-kicker">Journey health</p>
+          <h2 id="touch-health-title">Conversion by Touchpoints</h2>
+          <p>Observed conversion rate by marketing touch frequency.</p>
+        </div>
+      </div>
+      <div class="mta-chart-body" data-touchpoint-health></div>
+    </section>
+
+    <section class="mta-panel" aria-labelledby="time-health-title">
+      <div class="mta-panel-heading compact">
+        <div>
+          <p class="mta-kicker">Journey speed</p>
+          <h2 id="time-health-title">Time to Conversion</h2>
+          <p>Distribution of converted journeys by elapsed time.</p>
+        </div>
+      </div>
+      <div class="mta-chart-body" data-time-health></div>
+    </section>
+  </div>
+
+  <div class="mta-two-column attribution-grid">
+    <section class="mta-panel" aria-labelledby="channel-role-title">
+      <div class="mta-panel-heading compact">
+        <div>
+          <p class="mta-kicker">Channel behavior</p>
+          <h2 id="channel-role-title">Channel Role Analysis</h2>
+          <p>First-touch, assist, and closing roles across converting journeys.</p>
+        </div>
+      </div>
+      <div class="channel-role-chart" data-channel-role></div>
+    </section>
+
+    <section class="mta-panel" aria-labelledby="model-comparison-title">
+      <div class="mta-panel-heading compact">
+        <div>
+          <p class="mta-kicker">Credit sensitivity</p>
+          <h2 id="model-comparison-title">Attribution Model Comparison</h2>
+          <p>How channel credit changes across models. Each cell shows attributed share and nominal credited value.</p>
+        </div>
+      </div>
+      <div class="model-comparison-chart" data-model-comparison></div>
+    </section>
+  </div>
+
+  <section class="mta-panel" aria-labelledby="interaction-title">
+    <div class="mta-panel-heading compact">
+      <div>
+        <p class="mta-kicker">Observed transitions</p>
+        <h2 id="interaction-title">Channel Interaction Heatmap</h2>
+        <p>Where customers move next after each marketing touchpoint. This is an observed sequence, not causal lift.</p>
+      </div>
+    </div>
+    <div class="interaction-heatmap" data-interaction-heatmap></div>
+  </section>
+
+  <section class="mta-panel attribution-table-panel" aria-labelledby="attribution-detail-title">
+    <div class="mta-panel-heading table-heading">
+      <div>
+        <p class="mta-kicker">Tactical detail</p>
+        <h2 id="attribution-detail-title">Attribution Detail</h2>
+        <p data-attribution-description>Attributed conversions and revenue follow the selected MTA model and are not incremental.</p>
+      </div>
+      <label class="mta-table-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+        <span class="mta-sr-only">Search campaign</span>
+        <input type="search" placeholder="Search campaign…" data-attribution-search>
+      </label>
+    </div>
+    <div class="mta-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Campaign</th>
+            <th>Channel</th>
+            <th>Objective</th>
+            <th class="numeric">Journeys</th>
+            <th class="numeric">First Touch</th>
+            <th class="numeric">Assists</th>
+            <th class="numeric">Last Touch</th>
+            <th class="numeric" data-attribution-conversion-heading>Attributed Conversions</th>
+            <th class="numeric" data-attribution-value-heading>Attributed Revenue</th>
+          </tr>
+        </thead>
+        <tbody data-attribution-table></tbody>
+      </table>
+    </div>
+    <div class="mta-table-footer">
+      <span data-attribution-count></span>
+      <div class="mta-pagination" data-attribution-pagination></div>
+    </div>
+  </section>
+
+  <section class="mta-insight-panel" aria-labelledby="journey-signals-title">
+    <div>
+      <p class="mta-kicker">Observed journey signals</p>
+      <h2 id="journey-signals-title">Where should marketing investigate?</h2>
+      <p>Directional journey patterns for campaign and experience review.</p>
+    </div>
+    <div class="mta-signal-list" data-journey-signals></div>
+  </section>
+
+  <div class="mta-methodology-note">
+    <strong>Interpretation guardrail</strong>
+    Sankey width represents observed journeys. Attribution distributes conversion credit. Data-Driven (Demo) is illustrative until production transition and removal effects are applied. None of these results represents incremental impact; use MMM for causal contribution and budget allocation.
+  </div>
+</div>
+
+        </section>
+      </main>
+    </div>
+    <script src="/static/js/app.js" defer></script>
+<script src="/static/js/mta.js" defer></script>
+  </body>
+</html>

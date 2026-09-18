@@ -1,0 +1,218 @@
+<div class="dashboard-status" data-dashboard-status role="status" aria-live="polite">
+  <span class="status-pulse" aria-hidden="true"></span>
+  Preparing campaign data…
+</div>
+
+<section class="filter-panel panel" aria-labelledby="filter-heading">
+  <div class="panel-heading filter-heading-row">
+    <div>
+      <p class="section-kicker">Analysis scope</p>
+      <h2 id="filter-heading">Filters</h2>
+    </div>
+    <button class="text-button" type="button" data-reset-filters>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6M20 20v-6h-6M5.8 15a7 7 0 0 0 11.8 2M18.2 9A7 7 0 0 0 6.4 7"/></svg>
+      Reset all
+    </button>
+  </div>
+
+  <div class="filter-grid">
+    <label class="filter-field filter-date">
+      <span>Date from</span>
+      <input type="date" data-filter="dateStart" min="2026-04-03" max="2026-08-24" value="2026-04-03">
+    </label>
+    <label class="filter-field filter-date">
+      <span>Date to</span>
+      <input type="date" data-filter="dateEnd" min="2026-04-03" max="2026-08-24" value="2026-08-24">
+    </label>
+    <label class="filter-field">
+      <span>Product</span>
+      <select data-filter="product"><option value="All">All products</option></select>
+    </label>
+    <label class="filter-field">
+      <span>Media plan</span>
+      <select data-filter="mediaPlan"><option value="All">All media plans</option></select>
+    </label>
+    <label class="filter-field">
+      <span>Campaign Objective</span>
+      <select data-filter="funnel"><option value="All">All campaign objectives</option></select>
+    </label>
+    <label class="filter-field channel-filter">
+      <span>Channel</span>
+      <select data-filter="channel"><option value="All">All channels</option></select>
+    </label>
+    <label class="filter-field">
+      <span>Placement</span>
+      <select data-filter="placement"><option value="All">All placements</option></select>
+    </label>
+    <label class="filter-field campaign-filter">
+      <span>Campaign name</span>
+      <select data-filter="campaign"><option value="All">All campaigns</option></select>
+    </label>
+  </div>
+
+  <div class="active-filter-row">
+    <span class="active-filter-label">Active filters</span>
+    <div class="filter-chips" data-filter-chips><span class="empty-chip">No additional filters</span></div>
+  </div>
+</section>
+
+<section class="scorecard-grid" aria-label="Campaign performance summary" data-scorecards></section>
+
+<section class="panel trend-panel" aria-labelledby="trend-title">
+  <div class="panel-heading trend-heading">
+    <div>
+      <p class="section-kicker">Performance over time</p>
+      <h2 id="trend-title">Performance Trend Explorer</h2>
+      <p class="panel-description">All channels are combined into one trend. Select specific channels to compare separate lines.</p>
+    </div>
+    <div class="chart-controls">
+      <label class="compact-control">
+        <span>Metric</span>
+        <select data-trend-metric></select>
+      </label>
+      <label class="compact-control objective-control">
+        <span>Campaign Objective</span>
+        <select data-trend-objective><option value="All">All objectives</option></select>
+      </label>
+      <div class="channel-multiselect" data-trend-channel-control>
+        <span class="control-label">Channels</span>
+        <button class="channel-select-trigger" type="button" aria-haspopup="true" aria-expanded="false" data-trend-channel-trigger>
+          <span data-trend-channel-label>All channels</span>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg>
+        </button>
+        <div class="channel-checklist" data-trend-channel-menu hidden>
+          <label class="channel-check-row select-all-row">
+            <input type="checkbox" data-trend-channel-all checked>
+            <span class="checkmark" aria-hidden="true"></span>
+            <strong>All channels</strong>
+          </label>
+          <div class="channel-check-options" data-trend-channel-options></div>
+        </div>
+      </div>
+      <div class="segmented-control" role="group" aria-label="Time granularity">
+        <button type="button" class="active" data-granularity="daily">Daily</button>
+        <button type="button" data-granularity="monthly">Monthly</button>
+      </div>
+      <button class="compare-toggle active" type="button" aria-pressed="true" data-compare-toggle>
+        <span class="toggle-track"><span></span></span>
+        Previous period
+      </button>
+    </div>
+  </div>
+  <div class="trend-summary" data-trend-summary></div>
+  <div class="chart-wrap trend-chart-wrap" data-trend-chart>
+    <div class="chart-loading">Loading trend…</div>
+  </div>
+  <div class="chart-legend" data-trend-legend></div>
+</section>
+
+<div class="dashboard-grid two-column operational-grid">
+  <section class="panel funnel-panel" aria-labelledby="funnel-title">
+    <div class="panel-heading">
+      <div>
+        <p class="section-kicker">Customer progression</p>
+        <h2 id="funnel-title">Marketing Funnel</h2>
+      </div>
+      <span class="panel-note">Observed flow</span>
+    </div>
+    <div class="funnel-visual" data-funnel></div>
+  </section>
+
+  <section class="panel pacing-panel" aria-labelledby="pacing-title">
+    <div class="panel-heading">
+      <div>
+        <p class="section-kicker">Investment control</p>
+        <h2 id="pacing-title">Budget Pacing</h2>
+      </div>
+      <span class="panel-note">Selected period</span>
+    </div>
+    <div data-budget-pacing></div>
+  </section>
+</div>
+
+<section class="panel channel-panel" aria-labelledby="channel-title">
+  <div class="panel-heading channel-heading">
+    <div>
+      <p class="section-kicker">Cross-channel comparison</p>
+      <h2 id="channel-title">Channel Performance</h2>
+      <p class="panel-description">Compare investment, purchases, observed revenue share, efficiency movement, and channel role. Select a channel to cross-filter the page.</p>
+    </div>
+    <button class="clear-selection" type="button" data-clear-channel hidden>Clear channel</button>
+  </div>
+  <div class="channel-comparison" data-channel-comparison></div>
+</section>
+
+<section class="panel efficiency-panel" aria-labelledby="efficiency-title">
+  <div class="panel-heading efficiency-heading">
+    <div>
+      <p class="section-kicker">Post-campaign learning</p>
+      <h2 id="efficiency-title">Campaign Learning &amp; Benchmark</h2>
+      <p class="panel-description" data-learning-description>Compare completed campaign patterns within the same objective to inform the next campaign cycle.</p>
+    </div>
+    <div class="learning-controls">
+      <label class="compact-control learning-metric-control">
+        <span>Metric</span>
+        <select data-learning-metric aria-label="Campaign benchmark metric"></select>
+      </label>
+      <label class="compact-control objective-control">
+        <span>Campaign Objective</span>
+        <select data-learning-objective aria-label="Campaign benchmark objective"></select>
+      </label>
+      <div class="quadrant-legend" aria-label="Campaign learning interpretation">
+        <span><i class="legend-dot winning"></i>Winning pattern</span>
+        <span><i class="legend-dot opportunity"></i>Future opportunity</span>
+        <span><i class="legend-dot attention"></i>Efficiency review</span>
+      </div>
+    </div>
+  </div>
+  <div class="chart-wrap scatter-chart-wrap" data-efficiency-map></div>
+</section>
+
+<section class="panel table-panel" aria-labelledby="table-title">
+  <div class="panel-heading table-heading">
+    <div>
+      <p class="section-kicker">Campaign detail</p>
+      <h2 id="table-title">Campaign Performance Table</h2>
+      <p class="panel-description">Sort, search, or select a campaign to inspect its contribution across the page.</p>
+    </div>
+    <label class="table-search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+      <span class="sr-only">Search campaign</span>
+      <input type="search" placeholder="Search campaign…" data-table-search>
+    </label>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th><button type="button" data-sort="campaign">Campaign <span></span></button></th>
+          <th><button type="button" data-sort="channel">Channel <span></span></button></th>
+          <th><button type="button" data-sort="mediaPlan">Media plan <span></span></button></th>
+          <th><button type="button" data-sort="funnel">Campaign Objective <span></span></button></th>
+          <th class="numeric"><button type="button" data-sort="spend">Spend <span></span></button></th>
+          <th class="numeric"><button type="button" data-sort="impressions">Impressions <span></span></button></th>
+          <th class="numeric"><button type="button" data-sort="sessions">Sessions <span></span></button></th>
+          <th class="numeric"><button type="button" data-sort="purchases">Purchases <span></span></button></th>
+          <th class="numeric"><button type="button" data-sort="revenue">Revenue <span></span></button></th>
+          <th class="numeric"><button type="button" data-sort="ctr">CTR <span></span></button></th>
+          <th class="numeric"><button type="button" data-sort="cpa">CPA <span></span></button></th>
+          <th class="numeric"><button type="button" data-sort="roas">ROAS <span></span></button></th>
+        </tr>
+      </thead>
+      <tbody data-performance-table></tbody>
+    </table>
+  </div>
+  <div class="table-footer">
+    <span data-table-count></span>
+    <div class="pagination" data-pagination></div>
+  </div>
+</section>
+
+<section class="signal-panel" aria-labelledby="signals-title">
+  <div class="signal-intro">
+    <p class="section-kicker">Observed performance signals</p>
+    <h2 id="signals-title">Where should marketing look next?</h2>
+    <p>Directional signals based on the current filters. Incrementality and optimal budget decisions remain within MMM.</p>
+  </div>
+  <div class="signal-list" data-signals></div>
+</section>

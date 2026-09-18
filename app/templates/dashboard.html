@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="XL Marketing Effectiveness dashboard for campaign performance, MTA, MMM, and geo intelligence.">
+    <meta name="theme-color" content="#172a91">
+    <title>${page_label} | XL Marketing Effectiveness</title>
+    <link rel="icon" type="image/svg+xml" href="/static/img/favicon.svg">
+    <link rel="stylesheet" href="/static/css/app.css">
+${page_styles_html}
+  </head>
+  <body class="${body_class}">
+    <div class="app-shell">
+      <div class="sidebar-overlay" data-sidebar-overlay hidden></div>
+
+      <aside class="sidebar" id="dashboard-sidebar" aria-label="Primary navigation">
+        <div class="brand-block">
+          <a class="brand" href="/" aria-label="XL Smart home">
+            <img class="brand-mark" src="/static/img/xl-smart-mark.svg" alt="">
+            <span class="brand-name">XL SMART</span>
+          </a>
+          <p class="brand-tagline">Bersama,<br>Melaju Tanpa Batas</p>
+        </div>
+
+        <div class="product-context">
+          <span class="product-accent" aria-hidden="true"></span>
+          <p class="product-name">Marketing Effectiveness</p>
+          <p class="product-subtitle">App Growth Intelligence</p>
+        </div>
+
+        <nav class="primary-nav">
+          <p class="nav-section-label">Analytics</p>
+          <ul class="nav-list">${menu_html}</ul>
+        </nav>
+
+        <div class="sidebar-footer">
+          <span class="status-dot" aria-hidden="true"></span>
+          XL Marketing Analytics
+        </div>
+      </aside>
+
+      <main class="main-area">
+        <header class="topbar">
+          <button class="menu-button" type="button" aria-label="Open navigation" aria-controls="dashboard-sidebar" aria-expanded="false" data-menu-button>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          </button>
+          <div class="breadcrumb">
+            <span>Marketing Effectiveness</span>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5 5 5-5 5"/></svg>
+            <strong>${short_label}</strong>
+          </div>
+          <div class="topbar-meta">
+            <span class="environment-pill">${environment_label}</span>
+            <span class="avatar" aria-label="XL workspace">XL</span>
+          </div>
+        </header>
+
+        <section class="workspace" aria-labelledby="page-title">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">Analytics module</p>
+              <h1 id="page-title">${page_label}</h1>
+              <p class="page-description">${page_description}</p>
+            </div>
+            ${page_action_html}
+          </div>
+
+          ${content_html}
+        </section>
+      </main>
+    </div>
+    <script src="/static/js/app.js" defer></script>
+${page_scripts_html}
+  </body>
+</html>

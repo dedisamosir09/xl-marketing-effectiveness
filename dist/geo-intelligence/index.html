@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="XL Marketing Effectiveness dashboard for campaign performance, MTA, MMM, and geo intelligence.">
+    <meta name="theme-color" content="#172a91">
+    <title>Geo Intelligence | XL Marketing Effectiveness</title>
+    <link rel="icon" type="image/svg+xml" href="/static/img/favicon.svg">
+    <link rel="stylesheet" href="/static/css/app.css">
+<link rel="stylesheet" href="/static/css/geo.css">
+  </head>
+  <body class="geo-page">
+    <div class="app-shell">
+      <div class="sidebar-overlay" data-sidebar-overlay hidden></div>
+
+      <aside class="sidebar" id="dashboard-sidebar" aria-label="Primary navigation">
+        <div class="brand-block">
+          <a class="brand" href="/" aria-label="XL Smart home">
+            <img class="brand-mark" src="/static/img/xl-smart-mark.svg" alt="">
+            <span class="brand-name">XL SMART</span>
+          </a>
+          <p class="brand-tagline">Bersama,<br>Melaju Tanpa Batas</p>
+        </div>
+
+        <div class="product-context">
+          <span class="product-accent" aria-hidden="true"></span>
+          <p class="product-name">Marketing Effectiveness</p>
+          <p class="product-subtitle">App Growth Intelligence</p>
+        </div>
+
+        <nav class="primary-nav">
+          <p class="nav-section-label">Analytics</p>
+          <ul class="nav-list"><li><a class="nav-link" href="/campaign-performance/"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 19v-4m5 4V9m5 10v-7m5 7V5M3 10l5-4 4 3 7-6"/></svg></span><span>Marketing Campaign Performance</span></a></li><li><a class="nav-link" href="/mta/"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.3"/><circle cx="18" cy="18" r="2.3"/><path d="M8.3 6H15a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h6.7"/></svg></span><span>Multi Touch Attribution (MTA)</span></a></li><li><a class="nav-link" href="/mmm/"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 9h18M5 9V6l7-3 7 3v3M5 20v-8m5 8v-8m4 8v-8m5 8v-8M3 21h18"/></svg></span><span>Marketing Mix Modeling (MMM)</span></a></li><li><a class="nav-link active" href="/geo-intelligence/" aria-current="page"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M11 4v3m0 8v3m-7-7h3m8 0h3m-4.2 2.8L20 20m-9-9 4-4"/></svg></span><span>Geo Intelligence</span></a></li></ul>
+        </nav>
+
+        <div class="sidebar-footer">
+          <span class="status-dot" aria-hidden="true"></span>
+          XL Marketing Analytics
+        </div>
+      </aside>
+
+      <main class="main-area">
+        <header class="topbar">
+          <button class="menu-button" type="button" aria-label="Open navigation" aria-controls="dashboard-sidebar" aria-expanded="false" data-menu-button>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          </button>
+          <div class="breadcrumb">
+            <span>Marketing Effectiveness</span>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5 5 5-5 5"/></svg>
+            <strong>Geo Intelligence</strong>
+          </div>
+          <div class="topbar-meta">
+            <span class="environment-pill">Interactive demo</span>
+            <span class="avatar" aria-label="XL workspace">XL</span>
+          </div>
+        </header>
+
+        <section class="workspace" aria-labelledby="page-title">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">Analytics module</p>
+              <h1 id="page-title">Geo Intelligence</h1>
+              <p class="page-description">Geographic performance patterns and market opportunity analysis.</p>
+            </div>
+            <div class="page-heading-meta"><span class="demo-badge"><span></span> Demo geo opportunity data</span><span class="freshness">Market and media data through 24 Aug 2026</span></div>
+          </div>
+
+          <div class="geo-dashboard" data-geo-dashboard>
+  <div class="dashboard-status" data-geo-status role="status" aria-live="polite">
+    <span class="status-pulse" aria-hidden="true"></span>
+    Preparing geographic opportunity data…
+  </div>
+
+  <section class="panel geo-filter-panel" aria-labelledby="geo-filter-title">
+    <div class="panel-heading geo-filter-heading">
+      <div>
+        <p class="section-kicker">Analysis scope</p>
+        <h2 id="geo-filter-title">Market &amp; Media Filters</h2>
+        <p class="panel-description">Market-base metrics stay geography-level; media metrics respond to the selected campaign scope.</p>
+      </div>
+      <button class="geo-text-button" type="button" data-geo-reset>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v6h6M20 20v-6h-6M5.8 15a7 7 0 0 0 11.8 2M18.2 9A7 7 0 0 0 6.4 7"/></svg>
+        Reset all
+      </button>
+    </div>
+    <div class="geo-filter-grid">
+      <label class="geo-filter-field"><span>Date from</span><input type="date" data-geo-filter="dateStart"></label>
+      <label class="geo-filter-field"><span>Date to</span><input type="date" data-geo-filter="dateEnd"></label>
+      <label class="geo-filter-field"><span>Product</span><select data-geo-filter="product"><option value="All">All products</option></select></label>
+      <label class="geo-filter-field"><span>Province</span><select data-geo-filter="province"><option value="All">All provinces</option></select></label>
+      <label class="geo-filter-field"><span>City</span><select data-geo-filter="city"><option value="All">All cities</option></select></label>
+      <label class="geo-filter-field"><span>Media Plan</span><select data-geo-filter="mediaPlan"><option value="All">All media plans</option></select></label>
+      <label class="geo-filter-field"><span>Campaign Objective</span><select data-geo-filter="objective"><option value="All">All objectives</option></select></label>
+      <label class="geo-filter-field"><span>Channel</span><select data-geo-filter="channel"><option value="All">All channels</option></select></label>
+      <label class="geo-filter-field"><span>Placement</span><select data-geo-filter="placement"><option value="All">All placements</option></select></label>
+      <label class="geo-filter-field"><span>Campaign Name</span><select data-geo-filter="campaign"><option value="All">All campaigns</option></select></label>
+    </div>
+    <div class="geo-active-filter-row">
+      <span>Active filters</span>
+      <div class="geo-filter-chips" data-geo-filter-chips><span class="geo-empty-chip">No additional filters</span></div>
+    </div>
+  </section>
+
+  <section class="panel geo-map-panel" aria-labelledby="geo-map-title">
+    <div class="panel-heading geo-map-heading">
+      <div>
+        <p class="section-kicker">Discover opportunity</p>
+        <h2 id="geo-map-title">Indonesia Market Opportunity Map</h2>
+        <p class="panel-description" data-geo-map-description>Potential leads across Indonesia, adjusted by adoption gap, demand signal, growth, value, and network readiness.</p>
+      </div>
+      <div class="geo-map-controls">
+        <div class="geo-lens-tabs" role="tablist" aria-label="Market lens">
+          <button class="active" type="button" role="tab" aria-selected="true" data-geo-lens="demand">Demand</button>
+          <button type="button" role="tab" aria-selected="false" data-geo-lens="adoption">Adoption</button>
+          <button type="button" role="tab" aria-selected="false" data-geo-lens="value">Value</button>
+          <button type="button" role="tab" aria-selected="false" data-geo-lens="growth">Growth</button>
+        </div>
+        <label class="geo-compact-control"><span>Map metric</span><select data-geo-map-metric></select></label>
+        <div class="geo-level-control" role="group" aria-label="Geographic level">
+          <button type="button" data-geo-level="province">Province</button>
+          <button class="active" type="button" data-geo-level="city">City</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="geo-map-layout">
+      <div class="geo-map-canvas" data-geo-map-canvas>
+        <svg viewBox="0 0 1875 750" role="img" aria-label="Interactive geographic map of market opportunity across the Indonesian archipelago">
+          <defs>
+            <linearGradient id="geoSea" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f8f9ff"/><stop offset="1" stop-color="#eef2fb"/></linearGradient>
+            <filter id="geoShadow" x="-10%" y="-20%" width="120%" height="140%"><feDropShadow dx="0" dy="7" stdDeviation="9" flood-color="#25346d" flood-opacity=".12"/></filter>
+            <filter id="geoHeatBlur" x="-20%" y="-25%" width="140%" height="150%"><feGaussianBlur stdDeviation="34"/></filter>
+            <mask id="geoLandMask" maskUnits="userSpaceOnUse" x="0" y="0" width="1875" height="750" style="mask-type:alpha">
+              <image href="/static/img/indonesia-provinces-2026.svg" x="0" y="0" width="1875" height="750" preserveAspectRatio="xMidYMid meet"/>
+            </mask>
+          </defs>
+          <rect width="1875" height="750" rx="28" fill="url(#geoSea)"/>
+          <g class="geo-grid-lines" aria-hidden="true">
+            <path d="M70 188H1805M70 375H1805M70 562H1805M375 40V705M750 40V705M1125 40V705M1500 40V705"/>
+          </g>
+          <image class="geo-map-shape" href="/static/img/indonesia-provinces-2026.svg" x="0" y="0" width="1875" height="750" preserveAspectRatio="xMidYMid meet" aria-hidden="true"/>
+          <g class="geo-map-heat" data-geo-map-heat mask="url(#geoLandMask)" filter="url(#geoHeatBlur)" aria-hidden="true"></g>
+          <g class="geo-region-labels" aria-hidden="true">
+            <text x="230" y="345">SUMATRA</text><text x="660" y="650">JAVA</text><text x="760" y="315">KALIMANTAN</text>
+            <text x="1110" y="360">SULAWESI</text><text x="1370" y="410">MALUKU</text><text x="1660" y="420">PAPUA</text>
+          </g>
+          <g data-geo-map-bubbles></g>
+        </svg>
+        <div class="geo-map-legend" data-geo-map-legend></div>
+        <div class="geo-map-source">Map: <a href="https://commons.wikimedia.org/wiki/File:Indonesian_provinces_blank.svg" target="_blank" rel="noreferrer">RXerself et al.</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a> · colors adapted</div>
+        <div class="geo-map-hint">Select a bubble to cross-filter every section</div>
+      </div>
+      <aside class="geo-market-summary" data-geo-market-summary aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <section class="geo-scorecard-grid" data-geo-scorecards aria-label="Geographic market summary"></section>
+
+  <section class="panel geo-matrix-panel" aria-labelledby="geo-matrix-title">
+    <div class="panel-heading geo-matrix-heading">
+      <div>
+        <p class="section-kicker">Diagnose investment alignment</p>
+        <h2 id="geo-matrix-title"><span data-geo-grain-label>City</span> Market Opportunity Matrix</h2>
+        <p class="panel-description">Actual median thresholds determine each segment; points are display-spread inside their quadrant for readability. Hover for exact indices.</p>
+      </div>
+      <button class="geo-text-button" type="button" data-geo-clear-selection hidden>Clear market selection</button>
+    </div>
+    <div class="geo-matrix-layout">
+      <div class="geo-matrix-chart" data-geo-matrix></div>
+      <div class="geo-cluster-list" data-geo-clusters></div>
+    </div>
+  </section>
+
+  <div class="geo-decision-grid">
+    <section class="panel geo-alignment-panel" aria-labelledby="geo-alignment-title">
+      <div class="panel-heading">
+        <div>
+          <p class="section-kicker">Prioritize opportunity</p>
+          <h2 id="geo-alignment-title">Demand–Investment Gap</h2>
+          <p class="panel-description">Positive gaps indicate demand share is higher than media-spend share.</p>
+        </div>
+        <span class="geo-observed-badge">Observed signal</span>
+      </div>
+      <div class="geo-alignment-list" data-geo-alignment></div>
+    </section>
+
+    <section class="panel geo-action-panel" aria-labelledby="geo-action-title">
+      <div class="panel-heading">
+        <div>
+          <p class="section-kicker">Translate insight into action</p>
+          <h2 id="geo-action-title">Recommended Market Action</h2>
+          <p class="panel-description">Directional guidance with network readiness as a scaling guardrail.</p>
+        </div>
+      </div>
+      <div data-geo-action></div>
+    </section>
+  </div>
+
+  <section class="panel geo-table-panel" aria-labelledby="geo-table-title">
+    <div class="panel-heading geo-table-heading">
+      <div>
+        <p class="section-kicker">Prioritize markets</p>
+        <h2 id="geo-table-title"><span data-geo-table-grain>City</span> Opportunity Leaderboard</h2>
+        <p class="panel-description">Ranked using transparent opportunity components; select a row to inspect and cross-filter.</p>
+      </div>
+      <label class="geo-table-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+        <span class="sr-only">Search market</span>
+        <input type="search" placeholder="Search city or province…" data-geo-search>
+      </label>
+    </div>
+    <div class="geo-table-wrap">
+      <table>
+        <thead><tr>
+          <th>Rank</th><th>Market</th><th class="numeric">Opportunity</th><th class="numeric">Potential Leads</th>
+          <th class="numeric">Adoption Gap</th><th class="numeric">Spend</th><th class="numeric">Observed ROAS</th>
+          <th class="numeric">Growth</th><th class="numeric">Readiness</th><th>Action</th>
+        </tr></thead>
+        <tbody data-geo-table></tbody>
+      </table>
+    </div>
+    <div class="geo-table-footer"><span data-geo-table-count></span><span>Potential and recommendations use demo estimates, not incremental lift.</span></div>
+  </section>
+</div>
+
+        </section>
+      </main>
+    </div>
+    <script src="/static/js/app.js" defer></script>
+<script src="/static/js/geo.js" defer></script>
+  </body>
+</html>
