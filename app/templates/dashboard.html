@@ -48,7 +48,7 @@ ${page_styles_html}
           <div class="breadcrumb">
             <span>Marketing Effectiveness</span>
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m8 5 5 5-5 5"/></svg>
-            <strong>${short_label}</strong>
+            <strong data-current-short-label>${short_label}</strong>
           </div>
           <div class="topbar-meta">
             <span class="environment-pill">${environment_label}</span>
@@ -60,10 +60,10 @@ ${page_styles_html}
           <div class="page-heading">
             <div>
               <p class="eyebrow">Analytics module</p>
-              <h1 id="page-title">${page_label}</h1>
-              <p class="page-description">${page_description}</p>
+              <h1 id="page-title" data-current-page-label>${page_label}</h1>
+              <p class="page-description" data-current-page-description>${page_description}</p>
             </div>
-            ${page_action_html}
+            <div data-page-action-slot>${page_action_html}</div>
           </div>
 
           ${content_html}

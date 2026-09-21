@@ -10,7 +10,7 @@ from .data.geo import generate_geo_dataset
 from .data.mmm import generate_mmm_dataset
 from .data.mta import generate_mta_dataset
 from .navigation import MENU_ITEMS
-from .renderer import render_page
+from .renderer import render_streamlit_page
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -76,11 +76,11 @@ def _embed_images(html: str) -> str:
 def _rewrite_navigation(html: str) -> str:
     for item in MENU_ITEMS:
         original = f'href="{item["path"]}"'
-        replacement = f'href="?module={item["key"]}" target="_top"'
+        replacement = f'href="?module={item["key"]}"'
         html = html.replace(original, replacement)
     return html.replace(
         'href="/" aria-label="XL Smart home"',
-        'href="?module=campaign-performance" target="_top" aria-label="XL Smart home"',
+        'href="?module=campaign-performance" data-module-link="campaign-performance" aria-label="XL Smart home"',
     )
 
 
@@ -90,19 +90,21 @@ def build_embedded_page(page_key: str) -> str:
     if page_key not in PAGE_ASSETS:
         raise ValueError(f"Unsupported dashboard module: {page_key}")
 
-    assets = PAGE_ASSETS[page_key]
-    html = render_page(page_key)
+    html = render_streamlit_page(page_key)
     html = _inline_style(html, "app.css")
-    html = _inline_style(html, assets["css"])
 
-    dataset = assets["generator"]()
-    data_json = json.dumps(dataset, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-    data_url = _data_uri(data_json, "application/json")
-    page_script = _read_text(STATIC_ROOT / "js" / assets["js"])
-    page_script = page_script.replace(f'/static/data/{assets["data"]}', data_url)
+    for page_assets in PAGE_ASSETS.values():
+        html = _inline_style(html, page_assets["css"])
 
     html = _inline_script(html, "app.js")
-    html = _inline_script(html, assets["js"], page_script)
+    for page_assets in PAGE_ASSETS.values():
+        dataset = page_assets["generator"]()
+        data_json = json.dumps(dataset, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        data_url = _data_uri(data_json, "application/json")
+        page_script = _read_text(STATIC_ROOT / "js" / page_assets["js"])
+        page_script = page_script.replace(f'/static/data/{page_assets["data"]}', data_url)
+        html = _inline_script(html, page_assets["js"], page_script)
+
     html = _embed_images(html)
     html = _rewrite_navigation(html)
     return html

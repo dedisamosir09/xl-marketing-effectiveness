@@ -26,17 +26,17 @@ def render_navigation(active_key):
         active_class = " active" if is_active else ""
         current = ' aria-current="page"' if is_active else ""
         links.append(
-            f'<li><a class="nav-link{active_class}" href="{escape(item["path"])}"{current}>'
+            f'<li><a class="nav-link{active_class}" href="{escape(item["path"])}" '
+            f'data-module-link="{escape(item["key"])}"{current}>'
             f'<span class="nav-icon" aria-hidden="true">{ICONS[item["icon"]]}</span>'
             f'<span>{escape(item["label"])}</span></a></li>'
         )
     return "".join(links)
 
 
-def render_page(key):
+def get_page_context(key):
     active_page = get_menu_item(key)
     page_index = MENU_ITEMS.index(active_page) + 1
-    template = Template(TEMPLATE_PATH.read_text(encoding="utf-8"))
 
     if key == "campaign-performance":
         content_html = CAMPAIGN_TEMPLATE_PATH.read_text(encoding="utf-8")
@@ -110,15 +110,77 @@ def render_page(key):
         page_styles_html = ""
         page_scripts_html = ""
 
+    return {
+        "key": key,
+        "active_page": active_page,
+        "content_html": content_html,
+        "page_action_html": page_action_html,
+        "body_class": body_class,
+        "environment_label": environment_label,
+        "page_styles_html": page_styles_html,
+        "page_scripts_html": page_scripts_html,
+    }
+
+
+def render_page(key):
+    context = get_page_context(key)
+    active_page = context["active_page"]
+    template = Template(TEMPLATE_PATH.read_text(encoding="utf-8"))
+
     return template.substitute(
         page_label=escape(active_page["label"]),
         short_label=escape(active_page["short_label"]),
         page_description=escape(active_page["description"]),
         menu_html=render_navigation(key),
-        content_html=content_html,
-        page_action_html=page_action_html,
-        body_class=body_class,
-        environment_label=environment_label,
-        page_styles_html=page_styles_html,
-        page_scripts_html=page_scripts_html,
+        content_html=context["content_html"],
+        page_action_html=context["page_action_html"],
+        body_class=context["body_class"],
+        environment_label=context["environment_label"],
+        page_styles_html=context["page_styles_html"],
+        page_scripts_html=context["page_scripts_html"],
+    )
+
+
+def render_streamlit_page(key):
+    active_context = get_page_context(key)
+    active_page = active_context["active_page"]
+    template = Template(TEMPLATE_PATH.read_text(encoding="utf-8"))
+
+    panels = []
+    action_templates = []
+    style_links = []
+    script_links = []
+
+    for item in MENU_ITEMS:
+        context = get_page_context(item["key"])
+        panel_hidden = "" if item["key"] == key else " hidden"
+        panel_active = " active" if item["key"] == key else ""
+        panels.append(
+            f'<div class="module-panel{panel_active}" data-module-panel="{escape(item["key"])}" '
+            f'data-body-class="{escape(context["body_class"])}" '
+            f'data-page-label="{escape(item["label"])}" '
+            f'data-short-label="{escape(item["short_label"])}" '
+            f'data-page-description="{escape(item["description"])}"{panel_hidden}>'
+            f'{context["content_html"]}</div>'
+        )
+        action_templates.append(
+            f'<template data-page-action-template="{escape(item["key"])}">'
+            f'{context["page_action_html"]}</template>'
+        )
+        if context["page_styles_html"] not in style_links:
+            style_links.append(context["page_styles_html"])
+        if context["page_scripts_html"] not in script_links:
+            script_links.append(context["page_scripts_html"])
+
+    return template.substitute(
+        page_label=escape(active_page["label"]),
+        short_label=escape(active_page["short_label"]),
+        page_description=escape(active_page["description"]),
+        menu_html=render_navigation(key),
+        content_html="".join(panels + action_templates),
+        page_action_html=active_context["page_action_html"],
+        body_class=active_context["body_class"],
+        environment_label=active_context["environment_label"],
+        page_styles_html="".join(style_links),
+        page_scripts_html="".join(script_links),
     )
