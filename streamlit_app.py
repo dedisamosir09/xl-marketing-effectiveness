@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from app.streamlit_adapter import PAGE_ASSETS, build_embedded_page
+from app.streamlit_adapter import PAGE_ASSETS, build_streamlit_dashboard
 
 
 DEFAULT_MODULE = "campaign-performance"
@@ -25,8 +25,17 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-      #MainMenu, footer, [data-testid="stToolbar"], [data-testid="stDecoration"] { display: none !important; }
-      header[data-testid="stHeader"] { height: 0 !important; background: transparent !important; }
+      #MainMenu, footer, [data-testid="stToolbar"], [data-testid="stDecoration"] {
+        display: none !important;
+        pointer-events: none !important;
+      }
+      header[data-testid="stHeader"] {
+        height: 0 !important;
+        min-height: 0 !important;
+        background: transparent !important;
+        pointer-events: none !important;
+      }
+      header[data-testid="stHeader"] * { pointer-events: none !important; }
       [data-testid="stAppViewBlockContainer"], .block-container {
         max-width: 100% !important;
         padding: 0 !important;
@@ -38,4 +47,4 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.iframe(build_embedded_page(selected_module()), height=1000)
+st.iframe(build_streamlit_dashboard(selected_module()), height=1000)

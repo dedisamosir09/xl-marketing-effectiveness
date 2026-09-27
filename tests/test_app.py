@@ -3,7 +3,7 @@ from pathlib import Path
 
 from app.navigation import MENU_ITEMS
 from app.renderer import render_page
-from app.streamlit_adapter import build_embedded_page
+from app.streamlit_adapter import build_embedded_page, build_streamlit_dashboard
 from app.data.campaign_performance import DEFAULT_END, DEFAULT_START, generate_campaign_dataset
 from app.data.mta import generate_mta_dataset
 from app.data.mmm import generate_mmm_dataset
@@ -19,6 +19,18 @@ class DashboardRendererTest(unittest.TestCase):
             self.assertNotIn('src="/static/', page)
             self.assertNotIn('href="/static/', page)
             self.assertNotIn(f'/static/data/', page)
+
+    def test_streamlit_dashboard_routes_inside_iframe_sandbox(self):
+        page = build_streamlit_dashboard("campaign-performance")
+        self.assertIn("XL SMART", page)
+        self.assertNotIn('target="_top"', page)
+        self.assertNotIn('href="/static/', page)
+        self.assertNotIn('src="/static/', page)
+        self.assertNotIn('/static/data/', page)
+        for item in MENU_ITEMS:
+            self.assertIn(f'data-dashboard-page="{item["key"]}"', page)
+            self.assertIn(f'data-dashboard-route="{item["key"]}"', page)
+            self.assertIn(item["label"], page)
 
     def test_all_dashboard_pages_render(self):
         for item in MENU_ITEMS:
