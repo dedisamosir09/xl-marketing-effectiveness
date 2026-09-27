@@ -4,6 +4,7 @@ from base64 import b64encode
 from functools import lru_cache
 import json
 from pathlib import Path
+from typing import Optional, Tuple
 
 from .data.campaign_performance import generate_campaign_dataset
 from .data.geo import generate_geo_dataset
@@ -59,7 +60,7 @@ def _inline_style(html: str, filename: str) -> str:
     return html.replace(marker, f"<style>\n{stylesheet}\n</style>")
 
 
-def _inline_script(html: str, filename: str, script: str | None = None) -> str:
+def _inline_script(html: str, filename: str, script: Optional[str] = None) -> str:
     marker = f'<script src="/static/js/{filename}" defer></script>'
     script = script if script is not None else _read_text(STATIC_ROOT / "js" / filename)
     safe_script = script.replace("</script", "<\\/script")
@@ -118,7 +119,7 @@ def _page_script_with_embedded_data(page_key: str) -> str:
     return page_script.replace(f'/static/data/{assets["data"]}', data_url)
 
 
-def _extract_body_fragment(html: str) -> tuple[str, str]:
+def _extract_body_fragment(html: str) -> Tuple[str, str]:
     body_marker = '<body class="'
     body_start = html.index(body_marker)
     class_start = body_start + len(body_marker)

@@ -1,6 +1,13 @@
 """Streamlit Community Cloud entrypoint for XL Marketing Effectiveness."""
 
+from pathlib import Path
+import sys
+
 import streamlit as st
+
+ROOT = Path(__file__).resolve().parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from app.streamlit_adapter import PAGE_ASSETS, build_streamlit_dashboard
 
