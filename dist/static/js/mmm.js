@@ -309,6 +309,7 @@
   }
 
   function renderScorecards(summary) {
+    if (!elements.scorecards) return;
     const contribution = safeDivide(summary.totalMedia, summary.predicted) * 100;
     const iROAS = safeDivide(summary.totalMedia, summary.totalSpend);
     elements.scorecards.innerHTML = [
@@ -337,6 +338,7 @@
   }
 
   function renderTrend(rows) {
+    if (!elements.trend) return;
     const groups = aggregateWeeks(rows);
     if (!groups.length) {
       elements.trend.innerHTML = '<div class="mmm-empty-chart">No model output for this period.</div>';
@@ -367,6 +369,7 @@
   }
 
   function renderDecomposition(summary) {
+    if (!elements.decomposition) return;
     const items = [
       ["Baseline / Organic", summary.baseline, "#172a91"],
       ["Marketing", summary.totalMedia, "#ec0a68"],
@@ -393,6 +396,7 @@
   }
 
   function renderChannelMatrix(metrics) {
+    if (!elements.channelMatrix) return;
     const width = 520;
     const height = 320;
     const margin = { left: 52, right: 22, top: 24, bottom: 46 };
@@ -422,6 +426,7 @@
   }
 
   function renderChannelTable(metrics) {
+    if (!elements.channelTable) return;
     elements.channelTable.innerHTML = metrics.map((item) => `<tr data-channel-row="${item.name}" class="${item.name === state.responseChannel ? "selected" : ""}" tabindex="0" data-tooltip-text="${tooltipText([`${item.name} · ${item.action}`, item.reason, `Average iROAS: ${formatRatio(item.iROAS)}`, `Next-spend mROI: ${formatRatio(item.mROI)}`, `Directional headroom: ${formatPercent(item.headroom, 0)}`])}"><td><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${item.color}"></i>${item.name}</span></td><td class="numeric">${formatCurrency(item.spend)}</td><td class="numeric">${formatCurrency(item.incremental)}</td><td class="numeric">${formatPercent(item.contribution)}</td><td class="numeric">${formatRatio(item.iROAS)}</td><td class="numeric">${formatRatio(item.mROI)}</td><td class="numeric">${formatPercent(item.headroom, 0)}</td><td><span class="mmm-action-badge ${item.action.toLowerCase()}">${item.action}</span></td></tr>`).join("");
     elements.channelTable.querySelectorAll("[data-channel-row]").forEach((row) => {
       row.addEventListener("click", () => selectResponseChannel(row.dataset.channelRow));
@@ -1305,6 +1310,7 @@
   }
 
   function renderModelMetrics() {
+    if (!elements.modelMetrics) return;
     const meta = dataset.meta;
     const metrics = [
       ["Model Version", meta.modelVersion],

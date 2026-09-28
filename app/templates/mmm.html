@@ -25,84 +25,10 @@
     </div>
   </section>
 
-  <section aria-labelledby="impact-overview-title">
-    <div class="mmm-section-heading">
-      <div>
-        <p class="mmm-kicker">01 · Marketing Impact Overview</p>
-        <h2 id="impact-overview-title">How much business outcome did marketing create?</h2>
-        <p>Separate baseline demand from modeled incremental marketing impact and other business drivers.</p>
-      </div>
-    </div>
-    <div class="mmm-scorecards" data-mmm-scorecards aria-label="Marketing impact summary"></div>
-    <div class="mmm-impact-grid">
-      <article class="mmm-panel mmm-chart-panel">
-        <div class="mmm-panel-heading compact">
-          <div>
-            <p class="mmm-kicker">Model fit over time</p>
-            <h3>Actual vs Predicted Business KPI</h3>
-            <p>Weekly view of observed revenue and the model estimate.</p>
-          </div>
-          <div class="mmm-chart-legend">
-            <span><i class="actual"></i>Actual</span>
-            <span><i class="predicted"></i>Predicted</span>
-          </div>
-        </div>
-        <div class="mmm-chart" data-mmm-trend></div>
-      </article>
-      <article class="mmm-panel mmm-chart-panel">
-        <div class="mmm-panel-heading compact">
-          <div>
-            <p class="mmm-kicker">Outcome bridge</p>
-            <h3>Business Outcome Decomposition</h3>
-            <p>Modeled sources of the selected outcome.</p>
-          </div>
-        </div>
-        <div class="mmm-decomposition" data-mmm-decomposition></div>
-      </article>
-    </div>
-  </section>
-
-  <section aria-labelledby="channel-effectiveness-title">
-    <div class="mmm-section-heading">
-      <div>
-        <p class="mmm-kicker">02 · Channel Effectiveness &amp; Scalability</p>
-        <h2 id="channel-effectiveness-title">Where is each channel creating incremental value?</h2>
-        <p>Read average return together with the return expected from the next unit of spend.</p>
-      </div>
-    </div>
-    <div class="mmm-channel-grid">
-      <article class="mmm-panel mmm-chart-panel">
-        <div class="mmm-panel-heading compact">
-          <div>
-            <p class="mmm-kicker">Return portfolio</p>
-            <h3>iROAS vs Marginal ROI</h3>
-            <p>Bubble size represents spend. Select a channel to inspect its response curve.</p>
-          </div>
-        </div>
-        <div class="mmm-chart" data-mmm-channel-matrix></div>
-      </article>
-      <article class="mmm-panel mmm-table-panel">
-        <div class="mmm-panel-heading compact">
-          <div>
-            <p class="mmm-kicker">Decision table</p>
-            <h3>Channel Investment Signals</h3>
-            <p>Modeled contribution, scalability, and recommended posture.</p>
-          </div>
-        </div>
-        <div class="mmm-table-wrap">
-          <table>
-            <thead><tr><th>Channel</th><th class="numeric">Spend</th><th class="numeric">Incremental Revenue</th><th class="numeric">Contribution</th><th class="numeric">iROAS</th><th class="numeric">mROI</th><th class="numeric">Headroom</th><th>Decision</th></tr></thead>
-            <tbody data-mmm-channel-table></tbody>
-          </table>
-        </div>
-      </article>
-    </div>
-  </section>
-
   <section aria-labelledby="planner-title">
     <div class="mmm-section-heading">
       <div>
-        <p class="mmm-kicker">03 · Business Planner</p>
+        <p class="mmm-kicker">01 · Business Planner</p>
         <h2 id="planner-title">Decide how much to invest—and when to keep media active</h2>
         <p>Response curves guide budget allocation. Carryover guides campaign continuity, pause duration, and recovery timing.</p>
       </div>
@@ -251,21 +177,4 @@
     </article>
   </section>
 
-  <details class="mmm-panel mmm-advanced-panel">
-    <summary><span><strong>Advanced Model Details</strong><small>Methodology, validation, uncertainty, and production readiness</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg></summary>
-    <div class="mmm-advanced-content">
-      <div class="mmm-model-metrics" data-mmm-model-metrics></div>
-      <div class="mmm-model-notes">
-        <div><strong>Primary model</strong><p>Google Meridian Bayesian MMM provides contribution, response curves, carryover, uncertainty, and scenario planning.</p></div>
-        <div><strong>Challenger check</strong><p>Ridge regression is used as a stability and directional hypothesis check—not as a second source of truth in the UI.</p></div>
-        <div><strong>Calibration path</strong><p>Production deployment should incorporate experiment priors, business controls, holdouts, and recurring model refreshes.</p></div>
-      </div>
-      <div class="mmm-demo-warning"><strong>POC boundary:</strong> the current model window is 144 days. Budget and hiatus outputs remain directional until the model is calibrated with production controls and experiments.</div>
-    </div>
-  </details>
-
-  <div class="mmm-methodology-note">
-    <strong>Interpretation guardrail</strong>
-    MMM estimates incremental impact at channel × time grain after accounting for baseline demand and modeled controls. Results are not platform attribution and should not be filtered to campaign, placement, or customer-journey level.
-  </div>
 </div>
