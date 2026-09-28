@@ -13,6 +13,7 @@ from app.streamlit_adapter import PAGE_ASSETS, build_streamlit_dashboard
 
 
 DEFAULT_MODULE = "campaign-performance"
+DEPLOY_MARKER = "mmm-evidence-sync-2026-09-28"
 
 
 def selected_module() -> str:
@@ -28,6 +29,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+st.markdown(f"<!-- deploy:{DEPLOY_MARKER} -->", unsafe_allow_html=True)
 
 st.markdown(
     """
