@@ -49,6 +49,9 @@ class DashboardRendererTest(unittest.TestCase):
         self.assertIn("End-to-End User Journey Explorer", page)
         self.assertIn("Channel Role Analysis", page)
         self.assertIn("Attribution Model Comparison", page)
+        self.assertNotIn("Observed transitions", page)
+        self.assertNotIn("Channel Interaction Heatmap", page)
+        self.assertNotIn("data-interaction-heatmap", page)
         self.assertNotIn("Measurement reliability", page)
         self.assertNotIn("MTA Data Quality", page)
 

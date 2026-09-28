@@ -77,7 +77,6 @@
     timeHealth: root.querySelector("[data-time-health]"),
     channelRole: root.querySelector("[data-channel-role]"),
     modelComparison: root.querySelector("[data-model-comparison]"),
-    interactionHeatmap: root.querySelector("[data-interaction-heatmap]"),
     attributionSearch: root.querySelector("[data-attribution-search]"),
     attributionDescription: root.querySelector("[data-attribution-description]"),
     attributionConversionHeading: root.querySelector("[data-attribution-conversion-heading]"),
@@ -935,33 +934,6 @@
     </div>`;
   }
 
-  function renderInteractionHeatmap() {
-    const sourceChannels = visibleChannels();
-    const terminalLabel = eventMetricProfile().terminalLabel;
-    const columns = [...CHANNELS, terminalLabel];
-    const matrix = Object.fromEntries(sourceChannels.map((source) => [source, Object.fromEntries(columns.map((target) => [target, 0]))]));
-    currentRows.forEach((row) => {
-      const sequence = [...row.channels];
-      if (row.conversions) sequence.push(terminalLabel);
-      for (let index = 0; index < sequence.length - 1; index += 1) {
-        const source = sequence[index];
-        const target = sequence[index + 1];
-        if (matrix[source] && target in matrix[source]) matrix[source][target] += row.journeys;
-      }
-    });
-    const percentages = {};
-    sourceChannels.forEach((source) => {
-      const total = columns.reduce((sum, target) => sum + matrix[source][target], 0) || 1;
-      percentages[source] = Object.fromEntries(columns.map((target) => [target, safeDivide(matrix[source][target], total) * 100]));
-    });
-    const max = Math.max(...sourceChannels.flatMap((source) => columns.map((target) => percentages[source][target])), 1);
-    elements.interactionHeatmap.innerHTML = `<div class="heatmap-grid"><span class="heatmap-label"></span>${columns.map((column) => `<span class="heatmap-label">Next: ${column}</span>`).join("")}${sourceChannels.map((source) => `<span class="heatmap-label heatmap-row-label">After ${source}</span>${columns.map((target) => {
-      const value = percentages[source][target];
-      const alpha = 0.06 + safeDivide(value, max) * 0.58;
-      return `<button type="button" class="heatmap-cell" data-channel-select="${source}" style="background:rgba(78,75,199,${alpha.toFixed(2)})" title="${source} to ${target}: ${formatPercent(value)}">${value ? formatPercent(value) : "—"}</button>`;
-    }).join("")}`).join("")}</div>`;
-  }
-
   function attributionDetails() {
     const grouped = new Map();
     const allowedChannels = new Set(visibleChannels());
@@ -1092,7 +1064,6 @@
     renderJourneyHealth();
     renderChannelRole();
     renderModelComparison();
-    renderInteractionHeatmap();
     renderAttributionTable();
     renderSignals();
   }
