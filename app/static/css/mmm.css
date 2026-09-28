@@ -657,8 +657,10 @@
 .mmm-scenario-table td { padding: .72rem .62rem; border-top: 1px solid #edf0f5; color: #526079; font-size: .73rem; text-align: right; white-space: nowrap; }
 .mmm-scenario-table th {
   padding: .68rem .62rem;
-  color: #5f6c84;
-  background: #f6f7fc;
+  color: #40508f;
+  background: linear-gradient(180deg, #f2f0ff, #f8f9ff);
+  border-top-color: #dedcf8;
+  border-bottom: .16rem solid rgba(115, 85, 220, .26);
   font-size: .65rem;
   line-height: 1.18;
   text-align: right;
