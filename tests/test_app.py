@@ -106,6 +106,8 @@ class DashboardRendererTest(unittest.TestCase):
         self.assertIn("iROAS guide", page)
         self.assertIn("mROI guide", page)
         self.assertIn("Saved Scenario Comparison", page)
+        self.assertIn("data-saved-scenario-panel", page)
+        self.assertIn("save-scenario", page)
         self.assertIn("channel-by-channel allocation shifts", page)
         self.assertIn("±10% budget sensitivity", page)
         self.assertIn("Carryover Decay", page)
@@ -121,6 +123,9 @@ class DashboardRendererTest(unittest.TestCase):
 
         script = Path("app/static/js/mmm.js").read_text(encoding="utf-8")
         self.assertIn("Key Allocation Shift", script)
+        self.assertIn("Saved scenario output", script)
+        self.assertIn("mmm-scenario-table-shell", script)
+        self.assertIn("data-saved-scenario-panel", script)
         self.assertIn("Baseline mix", script)
         self.assertIn("— No change", script)
         self.assertIn("buildScenarioChannelPlans", script)
