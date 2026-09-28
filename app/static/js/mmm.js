@@ -184,6 +184,10 @@
     return `Rp${compactNumber(value, digits)}`;
   }
 
+  function formatPlannerCurrency(value) {
+    return formatCurrency(value, Math.abs(value) >= 1e9 ? 3 : 2);
+  }
+
   function formatSignedCurrency(value, digits = 2) {
     const sign = value > 1 ? "+" : value < -1 ? "−" : "";
     return `${sign}${formatCurrency(Math.abs(value), digits)}`;
@@ -782,6 +786,23 @@
     return Object.fromEntries(reference.channels.map((channel) => [channel.name, buildScenarioChannelPlan(channel, budgets[channel.name], outcomes[channel.name])]));
   }
 
+  function allocationConstraintStatus(channel) {
+    if (!channel.selectedForAllocation) return { label: "Excluded from allocation pool", action: "Excluded", className: "excluded" };
+    if (state.locked.has(channel.name)) return { label: "Locked at current budget", action: "Locked", className: "locked" };
+
+    const minimumBudget = channel.currentSpend * (1 - state.maxDecrease / 100);
+    const maximumBudget = channel.currentSpend * (1 + state.maxIncrease / 100);
+    const tolerance = Math.max(channel.currentSpend * .001, 1);
+    if (channel.budgetDelta > 1 && Math.abs(channel.scenarioSpend - maximumBudget) <= tolerance) {
+      return { label: `At max +${state.maxIncrease}% channel cap`, action: "Max cap", className: "capped" };
+    }
+    if (channel.budgetDelta < -1 && Math.abs(channel.scenarioSpend - minimumBudget) <= tolerance) {
+      return { label: `At min −${state.maxDecrease}% channel cap`, action: "Min cap", className: "capped" };
+    }
+    if (Math.abs(channel.budgetChange) < .05) return { label: "No material movement", action: "No change", className: "neutral" };
+    return { label: "Optimizer reallocated this channel", action: channel.budgetChange > 0 ? "Increase" : "Decrease", className: channel.budgetChange > 0 ? "positive" : "negative" };
+  }
+
   function maximumScenarioIncreaseRatio() {
     const maximumIncrease = Number(elements.maxIncrease?.max) || 150;
     return 1 + maximumIncrease / 100;
@@ -1031,12 +1052,13 @@
       const absoluteChange = channel.budgetDelta;
       const change = channel.budgetChange;
       const excluded = !channel.selectedForAllocation;
-      const changeClass = excluded ? "excluded" : change > .05 ? "positive" : change < -.05 ? "negative" : "neutral";
-      const action = excluded ? "Excluded" : change > .05 ? "Increase" : change < -.05 ? "Decrease" : "No change";
+      const status = allocationConstraintStatus(channel);
+      const changeClass = status.className;
+      const action = status.action;
       const selected = channel.name === state.responseChannel ? " selected" : "";
       const currentWidth = clamp(safeDivide(channel.currentSpend, maxBudget) * 100, 0, 100);
       const scenarioWidth = clamp(safeDivide(scenarioBudget, maxBudget) * 100, 0, 100);
-      return `<button type="button" class="mmm-allocation-channel-card${selected}" data-allocation-channel="${channel.name}" data-current-budget="${Math.round(channel.currentSpend)}" data-scenario-budget="${Math.round(scenarioBudget)}" data-tooltip-text="${tooltipText([channel.name, `Allocation status: ${excluded ? "Excluded by user" : "Included"}`, `Current: ${formatCurrency(channel.currentSpend)}`, `Scenario: ${formatCurrency(scenarioBudget)}`, `Delta: ${formatSignedCurrency(absoluteChange)} (${change >= 0 ? "+" : ""}${formatPercent(change)})`, `Expected incremental revenue: ${formatCurrency(channel.scenarioOutcome)}`])}"><span class="mmm-allocation-card-header"><strong><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</strong><em class="${changeClass}">${action}</em></span><span class="mmm-allocation-pair"><span class="mmm-allocation-line"><small>Current</small><span class="mmm-allocation-track"><i class="current" style="width:${currentWidth}%"></i></span><b>${formatCurrency(channel.currentSpend)}</b></span><span class="mmm-allocation-line"><small>Scenario</small><span class="mmm-allocation-track"><i class="scenario" style="width:${scenarioWidth}%;background:linear-gradient(90deg,${channel.color},#7355dc)"></i></span><b>${formatCurrency(scenarioBudget)}</b></span></span><span class="mmm-allocation-delta ${changeClass}">${excluded ? "Not in allocation pool · Scenario Rp0" : `Delta ${formatSignedCurrency(absoluteChange)} · ${Math.abs(change) < .05 ? "0.0% · No change" : `${change >= 0 ? "+" : ""}${formatPercent(change)}`}`}</span></button>`;
+      return `<button type="button" class="mmm-allocation-channel-card${selected}" data-allocation-channel="${channel.name}" data-current-budget="${Math.round(channel.currentSpend)}" data-scenario-budget="${Math.round(scenarioBudget)}" data-tooltip-text="${tooltipText([channel.name, `Allocation status: ${status.label}`, `Current: ${formatPlannerCurrency(channel.currentSpend)}`, `Scenario: ${formatPlannerCurrency(scenarioBudget)}`, `Delta: ${formatSignedCurrency(absoluteChange)} (${change >= 0 ? "+" : ""}${formatPercent(change)})`, `Expected incremental revenue: ${formatCurrency(channel.scenarioOutcome)}`])}"><span class="mmm-allocation-card-header"><strong><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</strong><em class="${changeClass}">${action}</em></span><span class="mmm-allocation-pair"><span class="mmm-allocation-line"><small>Current</small><span class="mmm-allocation-track"><i class="current" style="width:${currentWidth}%"></i></span><b>${formatPlannerCurrency(channel.currentSpend)}</b></span><span class="mmm-allocation-line"><small>Scenario</small><span class="mmm-allocation-track"><i class="scenario" style="width:${scenarioWidth}%;background:linear-gradient(90deg,${channel.color},#7355dc)"></i></span><b>${formatPlannerCurrency(scenarioBudget)}</b></span></span><span class="mmm-allocation-delta ${changeClass}">${excluded ? "Not in allocation pool · Scenario Rp0" : `Delta ${formatSignedCurrency(absoluteChange)} · ${Math.abs(change) < .05 ? "0.0% · No change" : `${change >= 0 ? "+" : ""}${formatPercent(change)}`}`}</span><span class="mmm-allocation-status ${changeClass}">${status.label}</span></button>`;
     }).join("")}</div>${scenario.warnings.length ? `<div class="mmm-warning-row"><strong>Constraint note:</strong> ${scenario.warnings.map(escapeHtml).join(" ")}</div>` : ""}`;
 
     elements.allocation.querySelectorAll("[data-allocation-channel]").forEach((button) => button.addEventListener("click", () => {

@@ -544,8 +544,10 @@
 .mmm-allocation-card-header em.positive { color: #08715f; background: #e8f7f2; }
 .mmm-allocation-card-header em.negative { color: #ad3451; background: #ffedf2; }
 .mmm-allocation-card-header em.excluded { color: #6f7a8f; background: #eceff5; }
+.mmm-allocation-card-header em.capped,
+.mmm-allocation-card-header em.locked { color: #8b5a05; background: #fff5df; }
 .mmm-allocation-pair { display: grid; gap: .42rem; }
-.mmm-allocation-line { display: grid; grid-template-columns: 3.2rem minmax(3rem, 1fr) 4.9rem; gap: .48rem; align-items: center; }
+.mmm-allocation-line { display: grid; grid-template-columns: 3.2rem minmax(3rem, 1fr) 5.45rem; gap: .48rem; align-items: center; }
 .mmm-allocation-line small { color: #8791a4; font-size: .58rem; font-weight: 720; }
 .mmm-allocation-line b { color: #45516a; font-size: .62rem; text-align: right; }
 .mmm-allocation-track { height: .38rem; overflow: hidden; border-radius: 999px; background: #edf0f5; }
@@ -554,6 +556,26 @@
 .mmm-allocation-delta { color: #66728a; font-size: .61rem; font-weight: 790; }
 .mmm-allocation-delta.positive { color: #08715f; }
 .mmm-allocation-delta.negative { color: #ad3451; }
+.mmm-allocation-delta.capped,
+.mmm-allocation-delta.locked { color: #8b5a05; }
+.mmm-allocation-status {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  padding: .24rem .44rem;
+  border-radius: 999px;
+  color: #6c778d;
+  background: #f1f3f8;
+  font-size: .58rem;
+  font-weight: 820;
+  line-height: 1.2;
+}
+.mmm-allocation-status.positive { color: #08715f; background: #e8f7f2; }
+.mmm-allocation-status.negative { color: #ad3451; background: #ffedf2; }
+.mmm-allocation-status.capped,
+.mmm-allocation-status.locked { color: #8b5a05; background: #fff5df; }
+.mmm-allocation-status.excluded { color: #6f7a8f; background: #eceff5; }
 .mmm-planner-recommendation { margin: .8rem 1.2rem 0; padding: .82rem .9rem; border: 1px solid #dedaf4; border-radius: .72rem; color: #5a6680; background: linear-gradient(120deg, #f9f8ff, #f4f7ff); font-size: .72rem; line-height: 1.55; }
 .mmm-planner-recommendation strong { color: #342f79; }
 .mmm-planner-recommendation .mmm-recommendation-title { display: block; margin-bottom: .24rem; color: #7770b5; font-size: .68rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
