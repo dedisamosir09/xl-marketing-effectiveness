@@ -466,3 +466,13 @@
 @media (max-width: 760px) { .mmm-calc-formulas div { grid-template-columns: 1fr; gap: .1rem; } }
 .mmm-calc { margin-bottom: 1.1rem; }
 .mmm-calc-note { margin: .45rem 0 0; padding: .5rem .65rem; border-radius: .6rem; color: #7a4b00; background: #fff6e2; font-size: .7rem; line-height: 1.45; }
+
+/* break-even and loss zone on diminishing-return charts */
+.dr-loss { fill: #fde8ee; fill-opacity: .55; }
+.dr-be-line { stroke: #c2185b; stroke-width: 1.4; stroke-dasharray: 4 3; }
+.dr-be-label { fill: #b0174f; font-size: 10.5px; font-weight: 800; paint-order: stroke; stroke: #fff; stroke-width: 3px; }
+.dr-loss-label { fill: #c2185b; font-size: 10px; font-weight: 700; opacity: .85; }
+.mmm-dr-legend .be { width: 0; height: .9rem; border-left: 2px dashed #c2185b; }
+.mmm-dr-legend .loss { width: 1rem; height: .8rem; background: #fde8ee; border: 1px solid #f7c6d5; }
+.mmm-loss { color: #b0174f !important; }
+.mmm-gain { color: #0b7a62 !important; }

@@ -513,25 +513,35 @@
     const bx1 = x(channel.band.low);
     const bx2 = x(Math.min(channel.band.high, xMax));
     const box = `<rect x="${bx1}" y="${m.t}" width="${Math.max(0, bx2 - bx1)}" height="${ph}" class="dr-box"/><text x="${(bx1 + bx2) / 2}" y="${m.t + 12}" text-anchor="middle" class="dr-box-label">Efficient range</text>`;
+    let lossZone = "";
+    let breakEvenMark = "";
+    if (channel.breakEven && channel.breakEven < xMax) {
+      const bx = x(channel.breakEven);
+      lossZone = `<rect x="${bx}" y="${m.t}" width="${m.l + pw - bx}" height="${ph}" class="dr-loss"/>`;
+      const label = `Break-even ${rp(channel.breakEven)}`;
+      const right = bx + 8 + label.length * 6 > m.l + pw;
+      const nearBox = bx <= bx2 + 8 && bx >= bx1 - 8;
+      breakEvenMark = `<line x1="${bx}" x2="${bx}" y1="${m.t}" y2="${m.t + ph}" class="dr-be-line"/><text x="${right ? bx - 5 : bx + 5}" y="${nearBox ? m.t + 28 : m.t + 12}" text-anchor="${right ? "end" : "start"}" class="dr-be-label">${label}</text>`;
+    }
     const cx = x(channel.monthly);
     const cy = y(channel.incr);
-    const current = `<line x1="${cx}" x2="${cx}" y1="${cy}" y2="${m.t + ph}" class="dr-current-line"/><circle cx="${cx}" cy="${cy}" r="5.5" class="dr-current-dot" data-tooltip-text="${escapeHtml(`Current budget ${rp(channel.monthly)}/month\nIncremental revenue ${rp(channel.incr)}/month\niROAS ${ratio(channel.iroas)} · next Rp1 ${ratio(channel.mroi)}`)}"/><text x="${cx}" y="${m.t + ph - 6}" text-anchor="middle" class="dr-marker-label current">Current ${rp(channel.monthly)}</text>`;
+    const current = `<line x1="${cx}" x2="${cx}" y1="${cy}" y2="${m.t + ph}" class="dr-current-line"/><circle cx="${cx}" cy="${cy}" r="5.5" class="dr-current-dot" data-tooltip-text="${escapeHtml(`Current budget ${rp(channel.monthly)}/month\nIncremental revenue ${rp(channel.incr)}/month\niROAS ${ratio(channel.iroas)} · next Rp1 ${ratio(channel.mroi)}`)}"/><text x="${cx}" y="${m.t + ph - 6}" text-anchor="middle" class="dr-marker-label current">Current ${rp(channel.monthly)} · mROI ${ratio(channel.mroi)}</text>`;
     let scenarioMarker = "";
     if (plan && plan.inPool && Math.abs(plan.scenario - channel.monthly) > channel.monthly * 0.005) {
       const sx = x(plan.scenario);
       const sy = y(plan.scenarioIncr);
       const labelY = Math.max(m.t + 24, sy - 12);
-      scenarioMarker = `<line x1="${sx}" x2="${sx}" y1="${sy}" y2="${m.t + ph}" class="dr-scenario-line"/><circle cx="${sx}" cy="${sy}" r="6.5" class="dr-scenario-dot" data-tooltip-text="${escapeHtml(`Scenario budget ${rp(plan.scenario)}/month (${signedPct(plan.deltaPct)})\nIncremental revenue ${rp(plan.scenarioIncr)}/month (${signedRp(plan.incrDelta)})\niROAS ${ratio(plan.scenarioIroas)} · next Rp1 ${ratio(plan.scenarioMroi)}`)}"/><text x="${sx}" y="${labelY}" text-anchor="middle" class="dr-marker-label scenario">Scenario ${rp(plan.scenario)}</text>`;
+      scenarioMarker = `<line x1="${sx}" x2="${sx}" y1="${sy}" y2="${m.t + ph}" class="dr-scenario-line"/><circle cx="${sx}" cy="${sy}" r="6.5" class="dr-scenario-dot" data-tooltip-text="${escapeHtml(`Scenario budget ${rp(plan.scenario)}/month (${signedPct(plan.deltaPct)})\nIncremental revenue ${rp(plan.scenarioIncr)}/month (${signedRp(plan.incrDelta)})\niROAS ${ratio(plan.scenarioIroas)} · next Rp1 ${ratio(plan.scenarioMroi)}`)}"/><text x="${sx}" y="${labelY}" text-anchor="middle" class="dr-marker-label scenario">Scenario ${rp(plan.scenario)} · mROI ${ratio(plan.scenarioMroi)}</text>`;
     }
     const signalClass = SIGNAL_CLASS[channel.signal];
     return `<article class="mmm-panel mmm-dr-card" data-dr-channel="${channel.name}">
       <header><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span><span class="mmm-signal ${signalClass}">${channel.signal}</span></header>
-      <p class="mmm-dr-card-copy">Efficient range <strong>${rp(channel.band.low)}–${rp(channel.band.high)}</strong>/month · peak iROAS ${ratio(channel.band.peakIroas)}${plan && !plan.inPool ? ' · <em class="mmm-not-in-pool">not in scenario pool</em>' : ""}</p>
+      <p class="mmm-dr-card-copy">Efficient range <strong>${rp(channel.band.low)}–${rp(channel.band.high)}</strong>/month · peak iROAS ${ratio(channel.band.peakIroas)} · ${channel.band.peakIroas < 1 ? '<em class="mmm-not-in-pool">iROAS below 1x at any budget</em>' : `break-even <strong>${channel.breakEven ? rp(channel.breakEven) : "—"}</strong>`} · mROI now <strong class="${channel.mroi < 1 ? "mmm-loss" : "mmm-gain"}">${ratio(channel.mroi)}</strong>${plan && !plan.inPool ? ' · <em class="mmm-not-in-pool">not in scenario pool</em>' : ""}</p>
       <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${channel.name} incremental revenue and iROAS by monthly budget" data-dr-svg="${channel.name}" data-xmax="${xMax}" data-ymax="${yMax}">
-        ${box}${grid}${xTicks}
+        ${lossZone}${box}${grid}${xTicks}
         <path d="${incrPath}" class="dr-incr" style="stroke:${channel.color}"/>
         <path d="${roasPath}" class="dr-roas" style="stroke:${channel.color}"/>
-        ${current}${scenarioMarker}
+        ${breakEvenMark}${current}${scenarioMarker}
         <line class="dr-hover-line" x1="0" x2="0" y1="${m.t}" y2="${m.t + ph}" opacity="0"/>
         <rect class="dr-hit" x="${m.l}" y="${m.t}" width="${pw}" height="${ph}" fill="transparent"/>
         <text x="${m.l + pw / 2}" y="${H - 4}" text-anchor="middle" class="dr-axis-title">Budget per month (Rp)</text>
@@ -667,15 +677,6 @@
       <td class="numeric"><strong>${signedRp(s.mediaDelta)}</strong></td>
       <td class="numeric"><strong>${ratio(s.mroi)}</strong></td>
     </tr>`;
-    const list = (items, fmt) => items.map((plan) => `${plan.name} ${fmt(plan)}`).join(" + ");
-    const formulas = [
-      ["Reference budget", `${list(inPool, (p) => rp(p.monthly))} = <strong>${rp(s.poolBudget)}</strong>/month (current budget of the selected channels). Over ${months} months: ${rp(s.poolBudget)} × ${months} = ${rp(s.poolBudget * months)}.`],
-      ["Scenario budget", `${list(inPool, (p) => rp(p.scenario))} = <strong>${rp(s.budget)}</strong>/month. Change: ${rp(s.budget)} − ${rp(s.poolBudget)} = ${signedRp(s.budgetDelta)} (${signedRp(s.budgetDelta)} ÷ ${rp(s.poolBudget)} = ${signedPct(safeDivide(s.budgetDelta, s.poolBudget) * 100)}). Over ${months} months: ${rp(s.budget)} × ${months} = ${rp(s.budget * months)}.`],
-      ["Incremental revenue", `${list(inPool, (p) => rp(p.scenarioIncr))} = <strong>${rp(s.media)}</strong>/month. Change: ${rp(s.media)} − ${rp(s.poolMedia)} = ${signedRp(s.mediaDelta)} (${signedRp(s.mediaDelta)} ÷ ${rp(s.poolMedia)} = ${signedPct(s.mediaDeltaPct)}). Over ${months} months: ${rp(s.media)} × ${months} = ${rp(s.media * months)}.`],
-      ["Portfolio iROAS", `${rp(s.media)} ÷ ${rp(s.budget)} = <strong>${ratio(s.iroas)}</strong>. Reference: ${rp(s.poolMedia)} ÷ ${rp(s.poolBudget)} = ${ratio(refIroas)}.`],
-      ["Portfolio mROI", `Budget-weighted average of the channel mROI: (${list(inPool, (p) => `${ratio(p.scenarioMroi)} × ${rp(p.scenario)}`).replace(/ \+ /g, " + ")}) ÷ ${rp(s.budget)} = <strong>${ratio(s.mroi)}</strong>.`],
-      ["Per channel", "Incremental revenue = the channel's Meridian response curve at that budget (solid line in section 02). iROAS = incremental revenue ÷ budget. Revenue Δ = scenario − reference incremental revenue. mROI = extra revenue from the next Rp1 at the scenario budget (slope of the curve)."],
-    ];
     el.calc.innerHTML = `<div class="mmm-calc-head"><span class="mmm-kicker">How the numbers are calculated</span><small>Per month. Incr. revenue = incremental revenue. Small differences are rounding.${excluded.length ? ` Not in this scenario: ${excluded.map((p) => p.name).join(", ")} (not counted).` : ""}</small></div>${s.notes.length ? `<p class="mmm-calc-note">${s.notes.map(escapeHtml).join(" ")}</p>` : ""}
       <div class="mmm-table-wrap mmm-calc-table"><table>
         <thead>
@@ -683,8 +684,7 @@
           <tr><th class="numeric">Budget</th><th class="numeric">Incr. revenue</th><th class="numeric">iROAS</th><th class="numeric">Budget</th><th class="numeric">Incr. revenue</th><th class="numeric">iROAS</th></tr>
         </thead>
         <tbody>${rows}${total}</tbody>
-      </table></div>
-      <dl class="mmm-calc-formulas">${formulas.map(([label, text]) => `<div><dt>${label}</dt><dd>${text}</dd></div>`).join("")}</dl>`;
+      </table></div>`;
   }
 
   function renderPlannerOutput() {
