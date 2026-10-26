@@ -159,7 +159,6 @@
           <button type="button" data-hiatus-preset="6">6 weeks</button>
           <button type="button" data-hiatus-preset="8">8 weeks</button>
         </div>
-        <label class="mmm-range-field mmm-threshold"><span>Allowed KPI decline <strong data-hiatus-tolerance-output>3%</strong></span><input type="range" min="1" max="10" step="1" value="3" data-hiatus-tolerance></label>
       </div>
       <div class="mmm-hiatus-grid">
         <div class="mmm-hiatus-left">
@@ -168,7 +167,11 @@
         </div>
         <div class="mmm-hiatus-right">
           <div class="mmm-hiatus-results" data-hiatus-results aria-live="polite"></div>
-          <h3>KPI decline by pause length</h3>
+          <div class="mmm-decline-head">
+            <h3>KPI decline by pause length</h3>
+            <label class="mmm-range-field mmm-threshold"><span>Allowed KPI decline <strong data-hiatus-tolerance-output>3%</strong></span><input type="range" min="1" max="10" step="1" value="3" data-hiatus-tolerance></label>
+          </div>
+          <p class="mmm-decline-copy">Drop in total revenue during the pause. The dashed line is the allowed decline; bars above it break the limit.</p>
           <div class="mmm-hiatus-trajectory" data-hiatus-trajectory></div>
         </div>
       </div>
