@@ -476,3 +476,17 @@
 .mmm-dr-legend .loss { width: 1rem; height: .8rem; background: #fde8ee; border: 1px solid #f7c6d5; }
 .mmm-loss { color: #b0174f !important; }
 .mmm-gain { color: #0b7a62 !important; }
+
+/* carryover: pause (red) and recovery (green) windows */
+.co-recovered { stroke: #16a34a; stroke-dasharray: 4 3; stroke-width: 1.4; }
+.co-recovered-dot { fill: #16a34a; stroke: #fff; stroke-width: 2; }
+.co-label.recovered, .co-label.recoveredhead { fill: #15803d; }
+.co-label.pausehead { fill: #be123c; }
+
+/* saved scenarios: per-channel detail (hidden by default) */
+.mmm-saved-detail-toggle { margin: 0 1.2rem .9rem; }
+.mmm-saved-detail { margin: 0 0 .4rem; }
+.mmm-saved-detail > .mmm-kicker { margin: .2rem 1.2rem .3rem; }
+.mmm-saved-table tr.group-row td { padding-top: .9rem; border-top: 2px solid #dfe3ee; color: #26324c; background: #fff; font-size: .74rem; white-space: normal; }
+.mmm-saved-table tbody:first-of-type tr.group-row td { border-top: 0; }
+.mmm-saved-table tr.total td { background: #f6f7fb; }

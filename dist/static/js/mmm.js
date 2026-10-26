@@ -533,9 +533,8 @@
       const labelY = Math.max(m.t + 24, sy - 12);
       scenarioMarker = `<line x1="${sx}" x2="${sx}" y1="${sy}" y2="${m.t + ph}" class="dr-scenario-line"/><circle cx="${sx}" cy="${sy}" r="6.5" class="dr-scenario-dot" data-tooltip-text="${escapeHtml(`Scenario budget ${rp(plan.scenario)}/month (${signedPct(plan.deltaPct)})\nIncremental revenue ${rp(plan.scenarioIncr)}/month (${signedRp(plan.incrDelta)})\niROAS ${ratio(plan.scenarioIroas)} · next Rp1 ${ratio(plan.scenarioMroi)}`)}"/><text x="${sx}" y="${labelY}" text-anchor="middle" class="dr-marker-label scenario">Scenario ${rp(plan.scenario)} · mROI ${ratio(plan.scenarioMroi)}</text>`;
     }
-    const signalClass = SIGNAL_CLASS[channel.signal];
     return `<article class="mmm-panel mmm-dr-card" data-dr-channel="${channel.name}">
-      <header><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span><span class="mmm-signal ${signalClass}">${channel.signal}</span></header>
+      <header><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span></header>
       <p class="mmm-dr-card-copy">Efficient range <strong>${rp(channel.band.low)}–${rp(channel.band.high)}</strong>/month · peak iROAS ${ratio(channel.band.peakIroas)} · ${channel.band.peakIroas < 1 ? '<em class="mmm-not-in-pool">iROAS below 1x at any budget</em>' : `break-even <strong>${channel.breakEven ? rp(channel.breakEven) : "—"}</strong>`} · mROI now <strong class="${channel.mroi < 1 ? "mmm-loss" : "mmm-gain"}">${ratio(channel.mroi)}</strong>${plan && !plan.inPool ? ' · <em class="mmm-not-in-pool">not in scenario pool</em>' : ""}</p>
       <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${channel.name} incremental revenue and iROAS by monthly budget" data-dr-svg="${channel.name}" data-xmax="${xMax}" data-ymax="${yMax}">
         ${lossZone}${box}${grid}${xTicks}
@@ -592,8 +591,7 @@
       <td class="numeric">${rp(channel.monthly)}</td>
       <td class="numeric">${rp(channel.band.low)}–${rp(channel.band.high)}</td>
       <td class="numeric">${ratio(channel.mroi)}</td>
-      <td><span class="mmm-signal ${SIGNAL_CLASS[channel.signal]}">${channel.signal}</span></td>
-    </tr>`).join("") + `<tr class="total"><td><strong>Portfolio</strong></td><td class="numeric">${ratio(safeDivide(sum(channels, (c) => c.observedRoas * c.monthly), reference.totalMonthly))}</td><td class="numeric">${ratio(reference.iroas)}</td><td class="numeric">${pct(safeDivide(reference.iroas, safeDivide(sum(channels, (c) => c.observedRoas * c.monthly), reference.totalMonthly)) * 100, 0)}</td><td class="numeric">${rp(reference.totalMonthly)}</td><td></td><td class="numeric">${ratio(safeDivide(sum(channels, (c) => c.mroi * c.monthly), reference.totalMonthly))}</td><td></td></tr>`;
+    </tr>`).join("") + `<tr class="total"><td><strong>Portfolio</strong></td><td class="numeric">${ratio(safeDivide(sum(channels, (c) => c.observedRoas * c.monthly), reference.totalMonthly))}</td><td class="numeric">${ratio(reference.iroas)}</td><td class="numeric">${pct(safeDivide(reference.iroas, safeDivide(sum(channels, (c) => c.observedRoas * c.monthly), reference.totalMonthly)) * 100, 0)}</td><td class="numeric">${rp(reference.totalMonthly)}</td><td></td><td class="numeric">${ratio(safeDivide(sum(channels, (c) => c.mroi * c.monthly), reference.totalMonthly))}</td></tr>`;
   }
 
   // ---------- section 02: planner ----------
@@ -754,10 +752,21 @@
 
     const plan = scenario.byName[state.hiatusChannel];
     const halfLife = plan.halfLife;
+    const share = safeDivide(plan.scenarioIncr, scenario.totalKpi);
+    const declineAt = (w) => share * lostEffect(halfLife, w * 7) * 100;
+    let safeWeeks = 0;
+    for (let w = 0; w <= 8; w += 1) if (declineAt(w) <= state.tolerance) safeWeeks = w;
+    if (state.hiatusAutoWeeks) {
+      // Moving the allowed-decline slider selects the longest pause that stays within it.
+      state.hiatusWeeks = Math.max(1, safeWeeks);
+      state.hiatusAutoWeeks = false;
+    }
+    root.querySelectorAll("[data-hiatus-preset]").forEach((button) => button.classList.toggle("active", Number(button.dataset.hiatusPreset) === state.hiatusWeeks));
     const weeks = state.hiatusWeeks;
     const days = weeks * 7;
+    const recovery = Math.ceil(halfLife * 2);
     el.carryoverCaption.textContent = `${plan.name} · half-life ${halfLife.toFixed(1)} days`;
-    renderCarryover(plan, days);
+    renderCarryover(plan, days, recovery);
 
     if (plan.scenario <= 0) {
       el.hiatusResults.innerHTML = `<p class="mmm-hiatus-empty"><strong>${plan.name} is not funded in the active scenario.</strong> There is nothing to pause — include it in the planner to evaluate a pause.</p>`;
@@ -765,11 +774,7 @@
       return;
     }
 
-    const share = safeDivide(plan.scenarioIncr, scenario.totalKpi);
-    const declineAt = (w) => share * lostEffect(halfLife, w * 7) * 100;
     const decline = declineAt(weeks);
-    let safeWeeks = 0;
-    for (let w = 0; w <= 8; w += 1) if (declineAt(w) <= state.tolerance) safeWeeks = w;
     // Revenue accounting: the paused budget would have produced iROAS x budget of incremental revenue.
     // Part of that loss shows up during the pause (effect decays), the rest while the effect rebuilds after restart.
     const daily = plan.scenarioIncr / DPM;
@@ -777,17 +782,17 @@
     const lostTotal = daily * days;
     const lostDuring = lostTotal * lostEffect(halfLife, days);
     const lostAfter = lostTotal - lostDuring;
-    const net = savings - lostTotal;
     const within = decline <= state.tolerance;
-    const recovery = Math.ceil(halfLife * 2);
+    const remainingAtRestart = Math.pow(0.5, days / halfLife);
+    const rebuilt = 1 - (1 - remainingAtRestart) * Math.pow(0.5, recovery / halfLife);
 
     const cards = [
       ["KPI decline during pause", pct(decline), within ? "good" : "bad", `Allowed ${state.tolerance}% · ${within ? "within limit" : "above limit"}`],
-      ["Longest pause within limit", `${safeWeeks} week${safeWeeks === 1 ? "" : "s"}`, "", "Whole weeks, directional"],
+      [`Max pause allowed at ${state.tolerance}%`, safeWeeks ? `${safeWeeks} week${safeWeeks === 1 ? "" : "s"}` : "Less than 1 week", safeWeeks ? "" : "bad", safeWeeks ? "Whole weeks, directional" : "Even a 1-week pause exceeds the limit"],
       ["Media budget saved", rp(savings), "good", `${rp(plan.scenario)}/month for ${days} days`],
       ["Revenue lost during pause", rp(lostDuring), "bad", `Effect fades to ${pct(Math.pow(0.5, days / halfLife) * 100, 0)} by restart`],
-      ["Revenue lost after restart", rp(lostAfter), "bad", `While the effect rebuilds (≈${recovery} days)`],
-      ["Net (saved − total lost)", signedRp(net), net >= 0 ? "good" : "bad", `Total lost ${rp(lostTotal)} = iROAS ${ratio(plan.scenarioIroas)} × saved budget`],
+      ["Revenue lost after restart", rp(lostAfter), "bad", `Day ${days}–${days + recovery}: effect rebuilds to ${pct(rebuilt * 100, 0)}`],
+      ["Net (saved − total lost)", signedRp(savings - lostTotal), savings - lostTotal >= 0 ? "good" : "bad", `Total lost ${rp(lostTotal)}`],
     ];
     el.hiatusResults.innerHTML = cards.map(([label, value, cls, note]) => `<div class="mmm-hiatus-metric ${cls}"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`).join("");
 
@@ -816,36 +821,57 @@
     </svg>`;
   }
 
-  function renderCarryover(plan, days) {
+  function renderCarryover(plan, days, recovery) {
     const W = 460;
     const H = 440;
     const m = { l: 44, r: 16, t: 22, b: 34 };
     const pw = W - m.l - m.r;
     const ph = H - m.t - m.b;
-    const maxDays = 56;
+    const maxDays = Math.max(56, Math.ceil((days + recovery * 1.5) / 14) * 14);
     const x = (day) => m.l + (day / maxDays) * pw;
     const y = (value) => m.t + ph - (value / 100) * ph;
-    const points = Array.from({ length: maxDays + 1 }, (_, day) => [x(day), y(Math.pow(0.5, day / plan.halfLife) * 100)]);
+    const remainingAt = Math.pow(0.5, days / plan.halfLife);
+    // Effect while paused decays; after restart it rebuilds toward 100% at the same speed.
+    const effect = (day) => (day <= days ? Math.pow(0.5, day / plan.halfLife) : 1 - (1 - remainingAt) * Math.pow(0.5, (day - days) / plan.halfLife)) * 100;
+    const steps = maxDays * 2;
+    const points = Array.from({ length: steps + 1 }, (_, i) => { const day = (i / steps) * maxDays; return [x(day), y(effect(day))]; });
     const line = points.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
     const area = `${line} L${x(maxDays)},${m.t + ph} L${x(0)},${m.t + ph} Z`;
-    const remaining = Math.pow(0.5, days / plan.halfLife) * 100;
+    const remaining = remainingAt * 100;
+    const recoveredDay = days + recovery;
+    const recovered = effect(Math.min(recoveredDay, maxDays));
     const grid = [0, 25, 50, 75, 100].map((v) => `<line x1="${m.l}" x2="${m.l + pw}" y1="${y(v)}" y2="${y(v)}" class="dr-grid"/><text x="${m.l - 6}" y="${y(v) + 3.5}" text-anchor="end" class="dr-axis">${v}%</text>`).join("");
-    const ticks = [0, 14, 28, 42, 56].map((d) => `<text x="${x(d)}" y="${H - 12}" text-anchor="middle" class="dr-axis">${d / 7}w</text>`).join("");
+    const tickStep = maxDays > 84 ? 28 : 14;
+    const ticks = Array.from({ length: Math.floor(maxDays / tickStep) + 1 }, (_, i) => i * tickStep).map((d) => `<text x="${x(d)}" y="${H - 12}" text-anchor="middle" class="dr-axis">${d / 7}w</text>`).join("");
     const hx = x(plan.halfLife);
     const px = x(days);
-    el.carryover.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${plan.name} carryover decay">
-      ${grid}${ticks}
-      <rect x="${x(0)}" y="${m.t}" width="${px - x(0)}" height="${ph}" class="co-pause"/>
-      <path d="${area}" fill="${plan.color}" opacity=".12"/>
-      <path d="${line}" fill="none" stroke="${plan.color}" stroke-width="3"/>
-      <line x1="${hx}" x2="${hx}" y1="${m.t}" y2="${m.t + ph}" class="co-half"/>
+    const rx = x(Math.min(recoveredDay, maxDays));
+    const halfMarker = plan.halfLife < days
+      ? `<line x1="${hx}" x2="${hx}" y1="${m.t}" y2="${m.t + ph}" class="co-half"/>
       <circle cx="${hx}" cy="${y(50)}" r="4.5" class="co-half-dot" data-tooltip-text="${escapeHtml(`Half-life ${plan.halfLife.toFixed(1)} days: 50% of the media effect remains`)}"/>
-      <text x="${hx + 6}" y="${y(50) - 8}" class="co-label half">Half-life ${plan.halfLife.toFixed(1)}d · 50%</text>
-      <circle cx="${px}" cy="${y(remaining)}" r="5.5" class="co-pause-dot" data-tooltip-text="${escapeHtml(`Day ${days}: ${pct(remaining)} of the effect remains`)}"/>
-      <text x="${Math.min(px + 8, W - 150)}" y="${Math.max(m.t + 34, y(remaining) - 10)}" class="co-label pause">Restart day ${days} · ${pct(remaining, 0)} left</text>
-      <text x="${x(0) + 6}" y="${m.t + 12}" class="co-label muted">Pause window</text>
+      <text x="${hx + 6}" y="${y(50) - 8}" class="co-label half">Half-life ${plan.halfLife.toFixed(1)}d · 50%</text>`
+      : "";
+    el.carryover.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${plan.name} carryover decay and recovery">
+      <defs>
+        <linearGradient id="coPauseGrad" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#f9a8c0" stop-opacity=".25"/><stop offset="1" stop-color="#e11d48" stop-opacity=".35"/></linearGradient>
+        <linearGradient id="coRecoveryGrad" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#86efac" stop-opacity=".5"/><stop offset="1" stop-color="#16a34a" stop-opacity=".12"/></linearGradient>
+      </defs>
+      ${grid}${ticks}
+      <rect x="${x(0)}" y="${m.t}" width="${px - x(0)}" height="${ph}" fill="url(#coPauseGrad)"/>
+      <rect x="${px}" y="${m.t}" width="${rx - px}" height="${ph}" fill="url(#coRecoveryGrad)"/>
+      <path d="${area}" fill="${plan.color}" opacity=".1"/>
+      <path d="${line}" fill="none" stroke="${plan.color}" stroke-width="3"/>
+      ${halfMarker}
+      <line x1="${rx}" x2="${rx}" y1="${m.t}" y2="${m.t + ph}" class="co-recovered"/>
+      <circle cx="${px}" cy="${y(remaining)}" r="5.5" class="co-pause-dot" data-tooltip-text="${escapeHtml(`Restart day ${days}: ${pct(remaining)} of the effect remains`)}"/>
+      <text x="${Math.min(px + 8, W - 150)}" y="${Math.min(m.t + ph - 10, y(remaining) + 18)}" class="co-label pause">Restart day ${days} · ${pct(remaining, 0)} left</text>
+      <circle cx="${rx}" cy="${y(recovered)}" r="5" class="co-recovered-dot" data-tooltip-text="${escapeHtml(`Day ${recoveredDay}: effect back to ${pct(recovered)}`)}"/>
+      <text x="${Math.min(rx + 6, W - 120)}" y="${y(recovered) - 10}" class="co-label recovered">Day ${recoveredDay} · ${pct(recovered, 0)}</text>
+      <text x="${x(0) + 6}" y="${m.t + 12}" class="co-label pausehead">Pause ${days} days</text>
+      <text x="${px + 6}" y="${px - x(0) < 90 ? m.t + 28 : m.t + 12}" class="co-label recoveredhead">Recovery ≈${recovery} days</text>
     </svg>`;
   }
+
 
   // ---------- section 04: saved scenarios ----------
   function scopeKey() { return [dataset.meta.modelVersion, state.dateStart, state.dateEnd].join("|"); }
@@ -945,7 +971,51 @@
         </thead>
         <tbody>${rows}</tbody>
       </table></div>
-      <p class="mmm-footnote">Current = current monthly budget and modeled result of the channels selected in that scenario only.</p>`;
+      <p class="mmm-footnote">Current = current monthly budget and modeled result of the channels selected in that scenario only.</p>
+      <div class="mmm-saved-detail-toggle"><button type="button" class="mmm-button ghost" data-toggle-saved-detail aria-expanded="${state.savedDetailOpen ? "true" : "false"}">${state.savedDetailOpen ? "Hide detail per channel" : "Show detail per channel"}</button></div>
+      ${state.savedDetailOpen ? savedDetail(saved) : ""}`;
+  }
+
+  // Per-channel breakdown of every saved plan; channel rows add up to the plan's summary row.
+  function savedDetail(saved) {
+    const groups = saved.map((record) => {
+      const rows = (record.channels || []).map((channel) => {
+        if (!channel.inPool) {
+          return `<tr class="excluded"><td><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span></td><td>Not in scenario</td><td class="numeric ref">—</td><td class="numeric">—</td><td class="numeric ref">—</td><td class="numeric">—</td><td class="numeric ref">—</td><td class="numeric">—</td></tr>`;
+        }
+        const budgetDelta = channel.budget - channel.refBudget;
+        const incrDelta = channel.incr - channel.refIncr;
+        const refIroas = safeDivide(channel.refIncr, channel.refBudget);
+        const iroas = safeDivide(channel.incr, channel.budget);
+        return `<tr>
+          <td><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span>${channel.locked ? '<small class="mmm-guard">Locked</small>' : ""}</td>
+          <td>Included</td>
+          <td class="numeric ref">${rp(channel.refBudget)}</td>
+          <td class="numeric"><strong>${rp(channel.budget)}</strong><small>${signedRp(budgetDelta)} (${signedPct(safeDivide(budgetDelta, channel.refBudget) * 100)})</small></td>
+          <td class="numeric ref">${rp(channel.refIncr)}</td>
+          <td class="numeric"><strong>${rp(channel.incr)}</strong><small class="${incrDelta >= 0 ? "up" : "down"}">${signedRp(incrDelta)} (${signedPct(safeDivide(incrDelta, channel.refIncr) * 100)})</small></td>
+          <td class="numeric ref">${ratio(refIroas)}</td>
+          <td class="numeric"><strong>${ratio(iroas)}</strong><small class="${iroas >= refIroas ? "up" : "down"}">${signedRatio(iroas - refIroas)}</small></td>
+        </tr>`;
+      }).join("");
+      const refIroas = safeDivide(record.poolMedia, record.poolBudget);
+      return `<tbody>
+        <tr class="group-row"><td colspan="8"><strong>${escapeHtml(record.name)}</strong> · ${escapeHtml(record.mode)} · ${record.months} mo · ${escapeHtml(record.poolLabel)}</td></tr>
+        ${rows}
+        <tr class="total"><td><strong>Total</strong></td><td>${(record.poolNames || []).length} channel${(record.poolNames || []).length === 1 ? "" : "s"}</td><td class="numeric ref"><strong>${rp(record.poolBudget)}</strong></td><td class="numeric"><strong>${rp(record.budget)}</strong></td><td class="numeric ref"><strong>${rp(record.poolMedia)}</strong></td><td class="numeric"><strong>${rp(record.media)}</strong></td><td class="numeric ref"><strong>${ratio(refIroas)}</strong></td><td class="numeric"><strong>${ratio(record.iroas)}</strong></td></tr>
+      </tbody>`;
+    }).join("");
+    return `<div class="mmm-saved-detail">
+      <p class="mmm-kicker">Detail per channel</p>
+      <div class="mmm-table-wrap mmm-saved-table"><table>
+        <thead>
+          <tr class="group"><th rowspan="2">Channel</th><th rowspan="2">Status</th><th colspan="2" class="numeric">Budget / month</th><th colspan="2" class="numeric">Incremental revenue / month</th><th colspan="2" class="numeric">iROAS</th></tr>
+          <tr><th class="numeric ref">Current</th><th class="numeric">Scenario</th><th class="numeric ref">Current</th><th class="numeric">Scenario</th><th class="numeric ref">Current</th><th class="numeric">Scenario</th></tr>
+        </thead>
+        ${groups}
+      </table></div>
+      <p class="mmm-footnote">Channel rows add up to each plan's total in the table above. Channels not in a scenario are not counted.</p>
+    </div>`;
   }
 
   // ---------- orchestration ----------
@@ -1058,6 +1128,7 @@
       window.setTimeout(() => { el.save.textContent = original; }, 1200);
     });
     el.saved.addEventListener("click", (event) => {
+      if (event.target.closest("[data-toggle-saved-detail]")) { state.savedDetailOpen = !state.savedDetailOpen; renderSaved(); return; }
       const remove = event.target.closest("[data-remove-scenario]");
       const load = event.target.closest("[data-load-scenario]");
       if (remove) { state.saved.splice(Number(remove.dataset.removeScenario), 1); persist(); renderSaved(); }
@@ -1087,7 +1158,7 @@
       if (preset) state.hiatusWeeks = Number(preset.dataset.hiatusPreset);
       if (channel || preset) renderHiatus();
     });
-    el.tolerance.addEventListener("input", () => { state.tolerance = Number(el.tolerance.value); renderHiatus(); });
+    el.tolerance.addEventListener("input", () => { state.tolerance = Number(el.tolerance.value); state.hiatusAutoWeeks = true; renderHiatus(); });
   }
 
   async function initialize() {
