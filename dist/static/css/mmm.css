@@ -297,7 +297,7 @@
 .mmm-horizon-end { display: grid; gap: .3rem; padding-bottom: .62rem; color: #5e6b84; font-size: .72rem; font-weight: 760; }
 .mmm-horizon-end strong { color: #1f2a44; font-size: .8rem; }
 .mmm-channel-table { margin: .9rem 1.2rem 0; border: 1px solid #e6e9f2; border-radius: .9rem; overflow: hidden; }
-.mmm-channel-table-head, .mmm-channel-row { display: grid; grid-template-columns: 1.3fr 1fr .6fr .5fr; gap: .4rem; align-items: center; padding: .5rem .75rem; }
+.mmm-channel-table-head, .mmm-channel-row { display: grid; grid-template-columns: 1.1fr .9fr 1.3fr .55fr .45fr; gap: .4rem; align-items: center; padding: .5rem .75rem; }
 .mmm-channel-table-head { color: #8490a6; background: #f6f7fb; font-size: .62rem; font-weight: 820; letter-spacing: .05em; text-transform: uppercase; }
 .mmm-channel-row { border-top: 1px solid #eef0f6; color: #4b5872; font-size: .75rem; }
 .mmm-channel-row.excluded { opacity: .5; }
@@ -344,7 +344,7 @@
 .mmm-pill-group { display: flex; flex-wrap: wrap; gap: .35rem; }
 .mmm-pill-group button { display: inline-flex; align-items: center; gap: .35rem; }
 .mmm-threshold { min-width: 14rem; margin-left: auto; }
-.mmm-hiatus-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 1rem; padding: .4rem 1.2rem .6rem; align-items: start; }
+.mmm-hiatus-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 1.4rem; padding: .4rem 1.2rem .6rem; align-items: stretch; }
 .mmm-hiatus-left h3 { margin: .4rem 0 .2rem; color: #1f2a44; font-size: .9rem; }
 .mmm-hiatus-left h3 small { color: #7b869c; font-size: .72rem; font-weight: 650; }
 .mmm-chart svg, .mmm-hiatus-trajectory svg { display: block; width: 100%; height: auto; overflow: visible; }
@@ -431,3 +431,15 @@
 .mmm-saved-table td.ref { border-left: 1px solid #eceff5; }
 .mmm-saved-table td small { display: block; }
 .mmm-saved-table + .mmm-footnote { margin: .2rem 1.2rem 1rem; }
+
+/* fixed guardrails */
+.mmm-guardrails-head { display: flex; justify-content: space-between; gap: .6rem; color: #46536d; font-size: .75rem; font-weight: 800; }
+.mmm-guardrails-head strong { color: var(--mmm-navy); }
+.mmm-guardrails p { margin: .4rem 0 0; color: #7d889e; font-size: .7rem; line-height: 1.5; }
+.mmm-allowed-range { color: #5b6780; font-size: .7rem; white-space: nowrap; }
+
+/* pause planner: carryover left (full height), results + decline chart right */
+.mmm-hiatus-left { display: flex; flex-direction: column; }
+.mmm-carryover-chart { flex: 1; display: flex; align-items: center; }
+.mmm-hiatus-right h3 { margin: 1.1rem 0 .2rem; color: #1f2a44; font-size: .9rem; }
+.mmm-hiatus-empty { margin: .4rem 0 0; padding: .8rem .9rem; border-radius: .8rem; color: #4b5872; background: #f4f6fb; font-size: .76rem; line-height: 1.5; grid-column: 1 / -1; }

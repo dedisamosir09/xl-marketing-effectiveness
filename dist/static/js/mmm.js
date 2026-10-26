@@ -50,11 +50,6 @@
     horizonMonths: q("[data-horizon-months]"),
     horizonEnd: q("[data-horizon-end]"),
     channels: q("[data-planner-channels]"),
-    guardrailSummary: q("[data-guardrail-summary]"),
-    maxDecrease: q("[data-max-decrease]"),
-    maxDecreaseOutput: q("[data-max-decrease-output]"),
-    maxIncrease: q("[data-max-increase]"),
-    maxIncreaseOutput: q("[data-max-increase-output]"),
     resultTitle: q("[data-planner-result-title]"),
     horizonCopy: q("[data-planner-horizon-copy]"),
     kpis: q("[data-planner-kpis]"),
@@ -68,7 +63,6 @@
     carryover: q("[data-mmm-carryover-curve]"),
     carryoverCaption: q("[data-carryover-caption]"),
     hiatusResults: q("[data-hiatus-results]"),
-    hiatusFeedback: q("[data-hiatus-feedback]"),
     hiatusTrajectory: q("[data-hiatus-trajectory]"),
     saved: q("[data-saved-scenarios]"),
   };
@@ -632,21 +626,18 @@
     el.horizonMonths.value = String(state.horizonMonths);
     el.horizonEnd.textContent = formatDate(addMonths(state.horizonStart, state.horizonMonths));
 
-    el.channels.innerHTML = `<div class="mmm-channel-table-head"><span>Channel</span><span>Reference / month</span><span>Include</span><span>Lock</span></div>` + reference.channels.map((channel) => {
+    el.channels.innerHTML = `<div class="mmm-channel-table-head"><span>Channel</span><span>Reference / month</span><span>Allowed range / month</span><span>Include</span><span>Lock</span></div>` + reference.channels.map((channel) => {
       const selected = state.selected.has(channel.name);
+      const bound = bounds[channel.name];
+      const range = !selected ? "—" : bound.locked ? "Locked" : `${rp(bound.floor)}–${rp(bound.ceil)}`;
       return `<div class="mmm-channel-row${selected ? "" : " excluded"}">
         <span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span>
         <span>${rp(channel.monthly)}</span>
+        <span class="mmm-allowed-range">${range}</span>
         <label class="mmm-toggle"><input type="checkbox" data-include-channel="${channel.name}" ${selected ? "checked" : ""}><span class="sr-only">Include ${channel.name}</span></label>
         <label class="mmm-toggle lock"><input type="checkbox" data-lock-channel="${channel.name}" ${state.locked.has(channel.name) && selected ? "checked" : ""} ${selected ? "" : "disabled"}><span class="sr-only">Lock ${channel.name}</span></label>
       </div>`;
-    }).join("") + `<div class="mmm-channel-row total"><span>Reference · ${pool.names.length} selected</span><span>${rp(pool.budget)}</span><span></span><span></span></div>`;
-
-    el.maxDecrease.value = state.maxDecrease;
-    el.maxIncrease.value = state.maxIncrease;
-    el.maxDecreaseOutput.textContent = `${state.maxDecrease}%`;
-    el.maxIncreaseOutput.textContent = `${state.maxIncrease}%`;
-    el.guardrailSummary.textContent = `−${state.maxDecrease}% / +${state.maxIncrease}%`;
+    }).join("") + `<div class="mmm-channel-row total"><span>Reference · ${pool.names.length} selected</span><span>${rp(pool.budget)}</span><span class="mmm-allowed-range">${rp(sum(Object.values(bounds), (b) => b.floor))}–${rp(sum(Object.values(bounds), (b) => b.ceil))}</span><span></span><span></span></div>`;
   }
 
   function renderPlannerOutput() {
@@ -741,9 +732,7 @@
     renderCarryover(plan, days);
 
     if (plan.scenario <= 0) {
-      el.hiatusResults.innerHTML = "";
-      el.hiatusFeedback.className = "mmm-hiatus-feedback";
-      el.hiatusFeedback.innerHTML = `<strong>${plan.name} is not funded in the active scenario.</strong> There is nothing to pause — include it in the planner to evaluate a pause.`;
+      el.hiatusResults.innerHTML = `<p class="mmm-hiatus-empty"><strong>${plan.name} is not funded in the active scenario.</strong> There is nothing to pause — include it in the planner to evaluate a pause.</p>`;
       el.hiatusTrajectory.innerHTML = "";
       return;
     }
@@ -773,15 +762,6 @@
       ["Net (saved − total lost)", signedRp(net), net >= 0 ? "good" : "bad", `Total lost ${rp(lostTotal)} = iROAS ${ratio(plan.scenarioIroas)} × saved budget`],
     ];
     el.hiatusResults.innerHTML = cards.map(([label, value, cls, note]) => `<div class="mmm-hiatus-metric ${cls}"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`).join("");
-    el.hiatusFeedback.className = `mmm-hiatus-feedback ${within ? "safe" : "risk"}`;
-    const economics = net < 0
-      ? `Pausing saves ${rp(savings)} of budget but gives up about ${rp(lostTotal)} of incremental revenue (net ${signedRp(net)}), because every rupiah in ${plan.name} returns ${ratio(plan.scenarioIroas)} on average. Pause only if the budget itself must be released.`
-      : `The paused budget returns less than it costs (iROAS ${ratio(plan.scenarioIroas)}), so the pause is cash-positive (net ${signedRp(net)}).`;
-    if (within) {
-      el.hiatusFeedback.innerHTML = `<strong>A ${weeks}-week ${plan.name} pause keeps the KPI decline within ${state.tolerance}% (${pct(decline)}).</strong> ${economics}`;
-    } else {
-      el.hiatusFeedback.innerHTML = `<strong>A ${weeks}-week ${plan.name} pause exceeds the ${state.tolerance}% limit (${pct(decline)}).</strong> Shorten it to ${safeWeeks} week${safeWeeks === 1 ? "" : "s"} or keep a maintenance budget. ${economics}`;
-    }
 
     const W = 640;
     const H = 210;
@@ -809,8 +789,8 @@
   }
 
   function renderCarryover(plan, days) {
-    const W = 560;
-    const H = 250;
+    const W = 460;
+    const H = 440;
     const m = { l: 44, r: 16, t: 22, b: 34 };
     const pw = W - m.l - m.r;
     const ph = H - m.t - m.b;
@@ -1037,8 +1017,6 @@
       renderPlannerControls();
       solve({ pulse: true });
     });
-    el.maxDecrease.addEventListener("input", () => { state.maxDecrease = Number(el.maxDecrease.value); renderPlannerControls(); queueSolve(); });
-    el.maxIncrease.addEventListener("input", () => { state.maxIncrease = Number(el.maxIncrease.value); renderPlannerControls(); queueSolve(); });
 
     el.save.addEventListener("click", () => {
       const record = snapshot();
@@ -1065,8 +1043,6 @@
           preset: settings.preset ?? null,
           selected: new Set(settings.selected || reference.channels.map((c) => c.name)),
           locked: new Set(settings.locked || []),
-          maxDecrease: settings.maxDecrease ?? state.maxDecrease,
-          maxIncrease: settings.maxIncrease ?? state.maxIncrease,
           horizonStart: settings.horizonStart || state.horizonStart,
           horizonMonths: settings.horizonMonths || state.horizonMonths,
         });

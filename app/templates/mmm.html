@@ -64,12 +64,10 @@
 
         <div class="mmm-channel-table" data-planner-channels></div>
 
-        <details class="mmm-guardrails" data-guardrails>
-          <summary><span>Guardrails per channel</span><strong data-guardrail-summary>−30% / +60%</strong></summary>
-          <label class="mmm-range-field"><span>Maximum reduction vs current <strong data-max-decrease-output>30%</strong></span><input type="range" min="0" max="70" step="5" value="30" data-max-decrease></label>
-          <label class="mmm-range-field"><span>Maximum increase vs current <strong data-max-increase-output>60%</strong></span><input type="range" min="0" max="150" step="5" value="60" data-max-increase></label>
-          <p class="mmm-helper">Budgets outside the combined guardrail range are applied as an equal % change to every unlocked channel and flagged as extrapolation.</p>
-        </details>
+        <div class="mmm-guardrails" data-guardrails>
+          <div class="mmm-guardrails-head"><span>Guardrails per channel</span><strong>−30% / +60% vs current</strong></div>
+          <p>Fixed for every scenario, the same limits used in the Google Meridian scenarios. Each channel's allowed range is shown in the table above. Cuts deeper than −30% per platform should be phased over several periods.</p>
+        </div>
       </article>
 
       <article class="mmm-panel mmm-planner-output">
@@ -166,13 +164,12 @@
       <div class="mmm-hiatus-grid">
         <div class="mmm-hiatus-left">
           <h3>Carryover decay <small data-carryover-caption></small></h3>
-          <div class="mmm-chart" data-mmm-carryover-curve></div>
-          <h3>KPI decline by pause length</h3>
-          <div class="mmm-hiatus-trajectory" data-hiatus-trajectory></div>
+          <div class="mmm-chart mmm-carryover-chart" data-mmm-carryover-curve></div>
         </div>
         <div class="mmm-hiatus-right">
-          <div class="mmm-hiatus-results" data-hiatus-results></div>
-          <div class="mmm-hiatus-feedback" data-hiatus-feedback aria-live="polite"></div>
+          <div class="mmm-hiatus-results" data-hiatus-results aria-live="polite"></div>
+          <h3>KPI decline by pause length</h3>
+          <div class="mmm-hiatus-trajectory" data-hiatus-trajectory></div>
         </div>
       </div>
       <p class="mmm-footnote">Assumes the channel was running at full effect before the pause; seasonality and payday peaks are not modeled. Recovery after restart takes roughly two half-lives.</p>
