@@ -1,0 +1,3046 @@
+{
+ "meta": {
+  "engine": "Google Meridian",
+  "version": "2.1.0",
+  "fittedOn": "2026-10-26",
+  "grain": "Geo \u00d7 Week",
+  "geos": 20,
+  "weeks": 104,
+  "trainingStart": "2024-08-23",
+  "trainingEnd": "2026-08-14",
+  "analysisWindow": {
+   "firstWeek": "2026-04-03",
+   "lastWeek": "2026-08-14",
+   "weeks": 20,
+   "months": 4.59958932238193
+  },
+  "kpi": "Revenue (IDR)",
+  "controls": [
+   "promo_index",
+   "competitor_promo",
+   "ramadan",
+   "lebaran"
+  ],
+  "prior": "ROI ~ LogNormal(0.3, 0.6) (median 1.35x); Hill slope ~ LogNormal(0.7, 0.4) (median 2.0)",
+  "adstock": "geometric, max lag 8 weeks",
+  "saturation": "Hill",
+  "knots": 13,
+  "sampler": {
+   "chains": 4,
+   "adapt": 500,
+   "burnin": 500,
+   "keep": 500,
+   "seed": 20260826
+  },
+  "quickRun": false,
+  "maxRhat": 1.1139522043006271,
+  "rhat": {
+   "alpha_m": 1.0069742212237789,
+   "beta_gm": 1.0474027061850149,
+   "beta_m": 1.0261406734113736,
+   "ec_m": 1.0280721415390273,
+   "eta_m": 1.0078356288628427,
+   "gamma_c": 1.0018119434085913,
+   "gamma_gc": 1.0063899879031541,
+   "knot_values": 1.1139522043006271,
+   "mu_t": 1.1139522043006271,
+   "roi_m": 1.0460198168259238,
+   "sigma": 1.0002852756843081,
+   "slope_m": 1.0197924147489457,
+   "tau_g": 1.0276108996391986,
+   "xi_c": 1.015936556974135
+  },
+  "converged": true,
+  "accuracy": {
+   "geo": {
+    "R_Squared": 0.9995847016243078,
+    "MAPE": 0.024331299441937303,
+    "wMAPE": 0.017960792183713385
+   },
+   "national": {
+    "R_Squared": 0.9830625723653184,
+    "MAPE": 0.00802427609797229,
+    "wMAPE": 0.008046449441390165
+   }
+  },
+  "credibleLevel": 90,
+  "runtimeSeconds": 854,
+  "dataSeed": 20260826,
+  "note": "Fitted on simulated demo data; ground truth included for validation."
+ },
+ "channels": {
+  "Google": {
+   "windowSpend": 9114200000,
+   "currentMonthlySpend": 1981524732,
+   "roi": {
+    "median": 1.5389104535518996,
+    "mean": 1.622096234032357,
+    "ci_lo": 1.1473241660555005,
+    "ci_hi": 2.3755778250663213
+   },
+   "mroi": {
+    "median": 0.7333050577342561,
+    "mean": 0.7375773106991733,
+    "ci_lo": 0.5213275459175729,
+    "ci_hi": 0.9789316194750366
+   },
+   "incrementalRevenue": {
+    "median": 14025937655.762714,
+    "mean": 14784109496.2177,
+    "ci_lo": 10456941914.263037,
+    "ci_hi": 21651491413.219448
+   },
+   "contributionPct": 9.521046734490458,
+   "adstockDecayWeekly": {
+    "median": 0.34658334712052685,
+    "lo": 0.25775179327974984,
+    "hi": 0.4341169684888245
+   },
+   "halfLifeDays": {
+    "median": 4.578976946489689,
+    "lo": 3.5788316210460884,
+    "hi": 5.814706088806578
+   },
+   "hill": {
+    "ec": {
+     "median": 0.6716370620848735,
+     "lo": 0.5276791974025616,
+     "hi": 0.777615326658968
+    },
+    "slope": {
+     "median": 2.8612488151791755,
+     "lo": 1.7245873603391872,
+     "hi": 4.2496766955894705
+    }
+   },
+   "beta": {
+    "median": 0.26064848242042693,
+    "lo": -0.0752701506143857,
+    "hi": 0.7309310615217711
+   },
+   "betaByGeo": {
+    "Bandar Lampung": 1.2952237071084545,
+    "Bandung": 1.3352350803977173,
+    "Batam": 1.2348985404548691,
+    "Bekasi": 1.3091953018960973,
+    "Bogor": 1.3141841313886995,
+    "Denpasar": 1.2978184267419062,
+    "Depok": 1.2638761823518352,
+    "Jakarta": 1.2613467545081973,
+    "Makassar": 1.2741857474081668,
+    "Malang": 1.3266216219190725,
+    "Medan": 1.3255704438601232,
+    "Padang": 1.2711955648215718,
+    "Palembang": 1.2962038036635817,
+    "Pekanbaru": 1.3078259898784275,
+    "Rest of Indonesia": 1.2842130659287665,
+    "Samarinda": 1.3228918182410574,
+    "Semarang": 1.3237850699009814,
+    "Surabaya": 1.2977404952527771,
+    "Tangerang": 1.3526195455292829,
+    "Tasikmalaya": 1.2712803097621097
+   },
+   "monthlyCurve": {
+    "alpha": 2.5097577769873904,
+    "k": 1096506323.2582343,
+    "m": 3929979454.7679996,
+    "fitR2": 0.9999236860603843
+   },
+   "responseCurve": [
+    {
+     "multiplier": 0.0,
+     "spendMonthly": 0,
+     "incrMonthly": 0,
+     "lo": 0,
+     "hi": 0
+    },
+    {
+     "multiplier": 0.1,
+     "spendMonthly": 198152473,
+     "incrMonthly": 83379106,
+     "lo": 1614345,
+     "hi": 386113454
+    },
+    {
+     "multiplier": 0.2,
+     "spendMonthly": 396304946,
+     "incrMonthly": 320656277,
+     "lo": 30232528,
+     "hi": 1104844299
+    },
+    {
+     "multiplier": 0.3,
+     "spendMonthly": 594457420,
+     "incrMonthly": 707414529,
+     "lo": 150736932,
+     "hi": 1880959342
+    },
+    {
+     "multiplier": 0.4,
+     "spendMonthly": 792609893,
+     "incrMonthly": 1192767580,
+     "lo": 429829373,
+     "hi": 2588231901
+    },
+    {
+     "multiplier": 0.5,
+     "spendMonthly": 990762366,
+     "incrMonthly": 1696941612,
+     "lo": 824030306,
+     "hi": 3191463739
+    },
+    {
+     "multiplier": 0.6,
+     "spendMonthly": 1188914839,
+     "incrMonthly": 2152089665,
+     "lo": 1239684452,
+     "hi": 3645643185
+    },
+    {
+     "multiplier": 0.7,
+     "spendMonthly": 1387067312,
+     "incrMonthly": 2526830921,
+     "lo": 1619224909,
+     "hi": 4024055330
+    },
+    {
+     "multiplier": 0.8,
+     "spendMonthly": 1585219786,
+     "incrMonthly": 2819932223,
+     "lo": 1903863234,
+     "hi": 4302425105
+    },
+    {
+     "multiplier": 0.9,
+     "spendMonthly": 1783372259,
+     "incrMonthly": 3043952747,
+     "lo": 2117754096,
+     "hi": 4533193290
+    },
+    {
+     "multiplier": 1.0,
+     "spendMonthly": 1981524732,
+     "incrMonthly": 3214223806,
+     "lo": 2273451211,
+     "hi": 4707266213
+    },
+    {
+     "multiplier": 1.1,
+     "spendMonthly": 2179677205,
+     "incrMonthly": 3344225045,
+     "lo": 2381701023,
+     "hi": 4863043977
+    },
+    {
+     "multiplier": 1.2,
+     "spendMonthly": 2377829679,
+     "incrMonthly": 3444460595,
+     "lo": 2456104103,
+     "hi": 4994951561
+    },
+    {
+     "multiplier": 1.3,
+     "spendMonthly": 2575982152,
+     "incrMonthly": 3522701139,
+     "lo": 2511744110,
+     "hi": 5112617896
+    },
+    {
+     "multiplier": 1.4,
+     "spendMonthly": 2774134625,
+     "incrMonthly": 3584577820,
+     "lo": 2545742049,
+     "hi": 5202650096
+    },
+    {
+     "multiplier": 1.5,
+     "spendMonthly": 2972287098,
+     "incrMonthly": 3634152823,
+     "lo": 2571957994,
+     "hi": 5282869000
+    },
+    {
+     "multiplier": 1.6,
+     "spendMonthly": 3170439571,
+     "incrMonthly": 3674368300,
+     "lo": 2590562696,
+     "hi": 5339203992
+    },
+    {
+     "multiplier": 1.7,
+     "spendMonthly": 3368592045,
+     "incrMonthly": 3707373390,
+     "lo": 2608799757,
+     "hi": 5383207805
+    },
+    {
+     "multiplier": 1.8,
+     "spendMonthly": 3566744518,
+     "incrMonthly": 3734754900,
+     "lo": 2620241294,
+     "hi": 5418728602
+    },
+    {
+     "multiplier": 1.9,
+     "spendMonthly": 3764896991,
+     "incrMonthly": 3757698189,
+     "lo": 2629180173,
+     "hi": 5452159938
+    },
+    {
+     "multiplier": 2.0,
+     "spendMonthly": 3963049464,
+     "incrMonthly": 3777099297,
+     "lo": 2633993514,
+     "hi": 5499522382
+    },
+    {
+     "multiplier": 2.1,
+     "spendMonthly": 4161201937,
+     "incrMonthly": 3793643503,
+     "lo": 2637726182,
+     "hi": 5546482804
+    },
+    {
+     "multiplier": 2.2,
+     "spendMonthly": 4359354411,
+     "incrMonthly": 3807860806,
+     "lo": 2640999569,
+     "hi": 5583597240
+    },
+    {
+     "multiplier": 2.3,
+     "spendMonthly": 4557506884,
+     "incrMonthly": 3820165515,
+     "lo": 2644460331,
+     "hi": 5603145181
+    },
+    {
+     "multiplier": 2.4,
+     "spendMonthly": 4755659357,
+     "incrMonthly": 3830884780,
+     "lo": 2646811074,
+     "hi": 5625396589
+    },
+    {
+     "multiplier": 2.5,
+     "spendMonthly": 4953811830,
+     "incrMonthly": 3840279391,
+     "lo": 2648878151,
+     "hi": 5645866030
+    },
+    {
+     "multiplier": 2.6,
+     "spendMonthly": 5151964304,
+     "incrMonthly": 3848559100,
+     "lo": 2650567734,
+     "hi": 5664342320
+    },
+    {
+     "multiplier": 2.7,
+     "spendMonthly": 5350116777,
+     "incrMonthly": 3855894021,
+     "lo": 2651961470,
+     "hi": 5688344677
+    },
+    {
+     "multiplier": 2.8,
+     "spendMonthly": 5548269250,
+     "incrMonthly": 3862423205,
+     "lo": 2653127869,
+     "hi": 5703793271
+    },
+    {
+     "multiplier": 2.9,
+     "spendMonthly": 5746421723,
+     "incrMonthly": 3868261149,
+     "lo": 2654102006,
+     "hi": 5720862311
+    },
+    {
+     "multiplier": 3.0,
+     "spendMonthly": 5944574196,
+     "incrMonthly": 3873502782,
+     "lo": 2654920518,
+     "hi": 5736216200
+    }
+   ],
+   "truth": {
+    "roi": 1.5411,
+    "halfLifeDays": 4.2,
+    "windowIncremental": 14045617302
+   }
+  },
+  "Meta": {
+   "windowSpend": 4484787000,
+   "currentMonthlySpend": 975040745,
+   "roi": {
+    "median": 2.743273508692033,
+    "mean": 2.8128307869735374,
+    "ci_lo": 2.033569551612767,
+    "ci_hi": 3.8200861651031097
+   },
+   "mroi": {
+    "median": 2.6050958502247807,
+    "mean": 2.6168923201686285,
+    "ci_lo": 2.0006065091707192,
+    "ci_hi": 3.2414332249310838
+   },
+   "incrementalRevenue": {
+    "median": 12302997369.226414,
+    "mean": 12614946946.618687,
+    "ci_lo": 9120126288.668766,
+    "ci_hi": 17132272772.134277
+   },
+   "contributionPct": 8.351485355318871,
+   "adstockDecayWeekly": {
+    "median": 0.580821845506325,
+    "lo": 0.5140089745657326,
+    "hi": 0.6378999935938426
+   },
+   "halfLifeDays": {
+    "median": 8.930480952912166,
+    "lo": 7.290644930497764,
+    "hi": 10.79251356981011
+   },
+   "hill": {
+    "ec": {
+     "median": 1.1691994841514473,
+     "lo": 0.9119141279333718,
+     "hi": 1.907458884906287
+    },
+    "slope": {
+     "median": 2.205211275289324,
+     "lo": 1.3839766905485902,
+     "hi": 3.6267639622114807
+    }
+   },
+   "beta": {
+    "median": 0.6030908921439737,
+    "lo": 0.12431925465322874,
+    "hi": 1.1539310503187712
+   },
+   "betaByGeo": {
+    "Bandar Lampung": 2.0863606541779705,
+    "Bandung": 1.8150532322638542,
+    "Batam": 1.6444116624203893,
+    "Bekasi": 1.7316759073824333,
+    "Bogor": 1.9978067531202628,
+    "Denpasar": 2.169554835582847,
+    "Depok": 1.6883406777389929,
+    "Jakarta": 1.8769985668234233,
+    "Makassar": 1.7355857315489354,
+    "Malang": 1.7544631640602648,
+    "Medan": 1.8165660089383877,
+    "Padang": 1.7347341390756918,
+    "Palembang": 1.9238980017896732,
+    "Pekanbaru": 1.764627239953592,
+    "Rest of Indonesia": 1.5675450894372207,
+    "Samarinda": 2.030275295900852,
+    "Semarang": 1.9316655212462912,
+    "Surabaya": 1.670971979864484,
+    "Tangerang": 2.1207558378846314,
+    "Tasikmalaya": 1.838041800941974
+   },
+   "monthlyCurve": {
+    "alpha": 2.008835478079021,
+    "k": 911950344.2265885,
+    "m": 5120793812.251577,
+    "fitR2": 0.9999730338758244
+   },
+   "responseCurve": [
+    {
+     "multiplier": 0.0,
+     "spendMonthly": 0,
+     "incrMonthly": 0,
+     "lo": 0,
+     "hi": 0
+    },
+    {
+     "multiplier": 0.1,
+     "spendMonthly": 97504075,
+     "incrMonthly": 73890956,
+     "lo": 2011140,
+     "hi": 262743273
+    },
+    {
+     "multiplier": 0.2,
+     "spendMonthly": 195008149,
+     "incrMonthly": 236891787,
+     "lo": 24023383,
+     "hi": 657137946
+    },
+    {
+     "multiplier": 0.3,
+     "spendMonthly": 292512224,
+     "incrMonthly": 476429370,
+     "lo": 99233591,
+     "hi": 1110195620
+    },
+    {
+     "multiplier": 0.4,
+     "spendMonthly": 390016298,
+     "incrMonthly": 777651717,
+     "lo": 254750765,
+     "hi": 1547375820
+    },
+    {
+     "multiplier": 0.5,
+     "spendMonthly": 487520373,
+     "incrMonthly": 1119592606,
+     "lo": 494725577,
+     "hi": 2005404255
+    },
+    {
+     "multiplier": 0.6,
+     "spendMonthly": 585024447,
+     "incrMonthly": 1478283318,
+     "lo": 793228210,
+     "hi": 2418314650
+    },
+    {
+     "multiplier": 0.7,
+     "spendMonthly": 682528522,
+     "incrMonthly": 1832035471,
+     "lo": 1123593630,
+     "hi": 2799533048
+    },
+    {
+     "multiplier": 0.8,
+     "spendMonthly": 780032596,
+     "incrMonthly": 2165409800,
+     "lo": 1441223950,
+     "hi": 3148088939
+    },
+    {
+     "multiplier": 0.9,
+     "spendMonthly": 877536671,
+     "incrMonthly": 2469937274,
+     "lo": 1733329603,
+     "hi": 3443525984
+    },
+    {
+     "multiplier": 1.0,
+     "spendMonthly": 975040745,
+     "incrMonthly": 2742624626,
+     "lo": 1982813171,
+     "hi": 3724739661
+    },
+    {
+     "multiplier": 1.1,
+     "spendMonthly": 1072544820,
+     "incrMonthly": 2983956125,
+     "lo": 2197815029,
+     "hi": 3983027107
+    },
+    {
+     "multiplier": 1.2,
+     "spendMonthly": 1170048894,
+     "incrMonthly": 3196261545,
+     "lo": 2374513732,
+     "hi": 4225539779
+    },
+    {
+     "multiplier": 1.3,
+     "spendMonthly": 1267552969,
+     "incrMonthly": 3382632802,
+     "lo": 2512381004,
+     "hi": 4427277821
+    },
+    {
+     "multiplier": 1.4,
+     "spendMonthly": 1365057043,
+     "incrMonthly": 3546297276,
+     "lo": 2614523263,
+     "hi": 4627986101
+    },
+    {
+     "multiplier": 1.5,
+     "spendMonthly": 1462561118,
+     "incrMonthly": 3690299431,
+     "lo": 2708122855,
+     "hi": 4820599387
+    },
+    {
+     "multiplier": 1.6,
+     "spendMonthly": 1560065192,
+     "incrMonthly": 3817366151,
+     "lo": 2782513914,
+     "hi": 4975893475
+    },
+    {
+     "multiplier": 1.7,
+     "spendMonthly": 1657569267,
+     "incrMonthly": 3929871479,
+     "lo": 2850130769,
+     "hi": 5125011284
+    },
+    {
+     "multiplier": 1.8,
+     "spendMonthly": 1755073341,
+     "incrMonthly": 4029850115,
+     "lo": 2885202814,
+     "hi": 5275377113
+    },
+    {
+     "multiplier": 1.9,
+     "spendMonthly": 1852577416,
+     "incrMonthly": 4119031603,
+     "lo": 2926895515,
+     "hi": 5420175548
+    },
+    {
+     "multiplier": 2.0,
+     "spendMonthly": 1950081490,
+     "incrMonthly": 4198880650,
+     "lo": 2953666446,
+     "hi": 5550091093
+    },
+    {
+     "multiplier": 2.1,
+     "spendMonthly": 2047585565,
+     "incrMonthly": 4270636591,
+     "lo": 2979756370,
+     "hi": 5684052778
+    },
+    {
+     "multiplier": 2.2,
+     "spendMonthly": 2145089639,
+     "incrMonthly": 4335349036,
+     "lo": 3000128521,
+     "hi": 5798259741
+    },
+    {
+     "multiplier": 2.3,
+     "spendMonthly": 2242593714,
+     "incrMonthly": 4393908742,
+     "lo": 3010220429,
+     "hi": 5890938121
+    },
+    {
+     "multiplier": 2.4,
+     "spendMonthly": 2340097788,
+     "incrMonthly": 4447073759,
+     "lo": 3021982426,
+     "hi": 5992768887
+    },
+    {
+     "multiplier": 2.5,
+     "spendMonthly": 2437601863,
+     "incrMonthly": 4495491270,
+     "lo": 3026933843,
+     "hi": 6098976149
+    },
+    {
+     "multiplier": 2.6,
+     "spendMonthly": 2535105937,
+     "incrMonthly": 4539715720,
+     "lo": 3034137411,
+     "hi": 6190664502
+    },
+    {
+     "multiplier": 2.7,
+     "spendMonthly": 2632610012,
+     "incrMonthly": 4580223812,
+     "lo": 3042006755,
+     "hi": 6292520910
+    },
+    {
+     "multiplier": 2.8,
+     "spendMonthly": 2730114086,
+     "incrMonthly": 4617426891,
+     "lo": 3048673041,
+     "hi": 6380456685
+    },
+    {
+     "multiplier": 2.9,
+     "spendMonthly": 2827618161,
+     "incrMonthly": 4651681190,
+     "lo": 3051805277,
+     "hi": 6465962564
+    },
+    {
+     "multiplier": 3.0,
+     "spendMonthly": 2925122235,
+     "incrMonthly": 4683296308,
+     "lo": 3054787431,
+     "hi": 6526365593
+    }
+   ],
+   "truth": {
+    "roi": 1.9312,
+    "halfLifeDays": 7.8,
+    "windowIncremental": 8661037241
+   }
+  },
+  "TikTok": {
+   "windowSpend": 5035552000,
+   "currentMonthlySpend": 1094782957,
+   "roi": {
+    "median": 0.8300096115034696,
+    "mean": 0.8880984745374881,
+    "ci_lo": 0.4783277763620048,
+    "ci_hi": 1.5167379637885594
+   },
+   "mroi": {
+    "median": 0.667302341150327,
+    "mean": 0.6914468334189885,
+    "ci_lo": 0.38406192143533013,
+    "ci_hi": 1.0865973815045107
+   },
+   "incrementalRevenue": {
+    "median": 4179556559.2255154,
+    "mean": 4472066049.654192,
+    "ci_lo": 2408644390.9152436,
+    "ci_hi": 7637612887.031401
+   },
+   "contributionPct": 2.8371545850613806,
+   "adstockDecayWeekly": {
+    "median": 0.2581467276958552,
+    "lo": 0.037798093364795615,
+    "hi": 0.5731649237268994
+   },
+   "halfLifeDays": {
+    "median": 3.582878020761551,
+    "lo": 1.4813111176522666,
+    "hi": 8.717551569127028
+   },
+   "hill": {
+    "ec": {
+     "median": 1.166588465005919,
+     "lo": 0.645207164930292,
+     "hi": 2.1679668432749826
+    },
+    "slope": {
+     "median": 1.822806760245193,
+     "lo": 1.0349276984816467,
+     "hi": 3.2810357078244063
+    }
+   },
+   "beta": {
+    "median": -0.45901347307467333,
+    "lo": -1.1069232570973622,
+    "hi": 0.1624840213208115
+   },
+   "betaByGeo": {
+    "Bandar Lampung": 0.6340780047818426,
+    "Bandung": 0.6879249118633093,
+    "Batam": 0.5886473251935491,
+    "Bekasi": 0.6066132887830732,
+    "Bogor": 0.5839829316254872,
+    "Denpasar": 0.6531398348206163,
+    "Depok": 0.600323520245884,
+    "Jakarta": 0.6371991465352931,
+    "Makassar": 0.6449515704981367,
+    "Malang": 0.6230068893490062,
+    "Medan": 0.6690768702676704,
+    "Padang": 0.6888255891027584,
+    "Palembang": 0.6181356215900302,
+    "Pekanbaru": 0.6058047981497707,
+    "Rest of Indonesia": 0.6141459009683335,
+    "Samarinda": 0.6622497793586485,
+    "Semarang": 0.6466275077671673,
+    "Surabaya": 0.6363381827843955,
+    "Tangerang": 0.7114117750344514,
+    "Tasikmalaya": 0.5923707407220296
+   },
+   "monthlyCurve": {
+    "alpha": 1.5356217014550066,
+    "k": 1102299309.6152897,
+    "m": 1953855233.252517,
+    "fitR2": 0.9999505466775471
+   },
+   "responseCurve": [
+    {
+     "multiplier": 0.0,
+     "spendMonthly": 0,
+     "incrMonthly": 0,
+     "lo": 0,
+     "hi": 0
+    },
+    {
+     "multiplier": 0.1,
+     "spendMonthly": 109478296,
+     "incrMonthly": 68020179,
+     "lo": 1091914,
+     "hi": 264349157
+    },
+    {
+     "multiplier": 0.2,
+     "spendMonthly": 218956591,
+     "incrMonthly": 160412438,
+     "lo": 9970400,
+     "hi": 511992387
+    },
+    {
+     "multiplier": 0.3,
+     "spendMonthly": 328434887,
+     "incrMonthly": 266274967,
+     "lo": 34357552,
+     "hi": 728008770
+    },
+    {
+     "multiplier": 0.4,
+     "spendMonthly": 437913183,
+     "incrMonthly": 378689810,
+     "lo": 77980977,
+     "hi": 910296890
+    },
+    {
+     "multiplier": 0.5,
+     "spendMonthly": 547391479,
+     "incrMonthly": 492230366,
+     "lo": 140647665,
+     "hi": 1084129827
+    },
+    {
+     "multiplier": 0.6,
+     "spendMonthly": 656869774,
+     "incrMonthly": 602684709,
+     "lo": 213778648,
+     "hi": 1237742573
+    },
+    {
+     "multiplier": 0.7,
+     "spendMonthly": 766348070,
+     "incrMonthly": 707105705,
+     "lo": 293709748,
+     "hi": 1371209284
+    },
+    {
+     "multiplier": 0.8,
+     "spendMonthly": 875826366,
+     "incrMonthly": 803816153,
+     "lo": 375480315,
+     "hi": 1471926363
+    },
+    {
+     "multiplier": 0.9,
+     "spendMonthly": 985304661,
+     "incrMonthly": 892183092,
+     "lo": 453135066,
+     "hi": 1566832085
+    },
+    {
+     "multiplier": 1.0,
+     "spendMonthly": 1094782957,
+     "incrMonthly": 972275074,
+     "lo": 523665097,
+     "hi": 1660498873
+    },
+    {
+     "multiplier": 1.1,
+     "spendMonthly": 1204261253,
+     "incrMonthly": 1044556963,
+     "lo": 584692171,
+     "hi": 1746967135
+    },
+    {
+     "multiplier": 1.2,
+     "spendMonthly": 1313739549,
+     "incrMonthly": 1109677538,
+     "lo": 638625601,
+     "hi": 1825711310
+    },
+    {
+     "multiplier": 1.3,
+     "spendMonthly": 1423217844,
+     "incrMonthly": 1168341804,
+     "lo": 682451561,
+     "hi": 1900243758
+    },
+    {
+     "multiplier": 1.4,
+     "spendMonthly": 1532696140,
+     "incrMonthly": 1221241698,
+     "lo": 725220919,
+     "hi": 1958534846
+    },
+    {
+     "multiplier": 1.5,
+     "spendMonthly": 1642174436,
+     "incrMonthly": 1269022229,
+     "lo": 748746730,
+     "hi": 2020476134
+    },
+    {
+     "multiplier": 1.6,
+     "spendMonthly": 1751652731,
+     "incrMonthly": 1312267679,
+     "lo": 778056534,
+     "hi": 2078991377
+    },
+    {
+     "multiplier": 1.7,
+     "spendMonthly": 1861131027,
+     "incrMonthly": 1351498582,
+     "lo": 798194441,
+     "hi": 2129785233
+    },
+    {
+     "multiplier": 1.8,
+     "spendMonthly": 1970609323,
+     "incrMonthly": 1387174168,
+     "lo": 818162512,
+     "hi": 2174163193
+    },
+    {
+     "multiplier": 1.9,
+     "spendMonthly": 2080087619,
+     "incrMonthly": 1419697323,
+     "lo": 835327023,
+     "hi": 2212854213
+    },
+    {
+     "multiplier": 2.0,
+     "spendMonthly": 2189565914,
+     "incrMonthly": 1449420468,
+     "lo": 849262227,
+     "hi": 2249602731
+    },
+    {
+     "multiplier": 2.1,
+     "spendMonthly": 2299044210,
+     "incrMonthly": 1476651525,
+     "lo": 859804364,
+     "hi": 2292905112
+    },
+    {
+     "multiplier": 2.2,
+     "spendMonthly": 2408522506,
+     "incrMonthly": 1501659537,
+     "lo": 867146364,
+     "hi": 2333905795
+    },
+    {
+     "multiplier": 2.3,
+     "spendMonthly": 2518000801,
+     "incrMonthly": 1524679783,
+     "lo": 873874769,
+     "hi": 2377318305
+    },
+    {
+     "multiplier": 2.4,
+     "spendMonthly": 2627479097,
+     "incrMonthly": 1545918299,
+     "lo": 878654501,
+     "hi": 2417294090
+    },
+    {
+     "multiplier": 2.5,
+     "spendMonthly": 2736957393,
+     "incrMonthly": 1565555841,
+     "lo": 882833169,
+     "hi": 2447482854
+    },
+    {
+     "multiplier": 2.6,
+     "spendMonthly": 2846435689,
+     "incrMonthly": 1583751306,
+     "lo": 888141095,
+     "hi": 2481592336
+    },
+    {
+     "multiplier": 2.7,
+     "spendMonthly": 2955913984,
+     "incrMonthly": 1600644690,
+     "lo": 892195088,
+     "hi": 2513906332
+    },
+    {
+     "multiplier": 2.8,
+     "spendMonthly": 3065392280,
+     "incrMonthly": 1616359620,
+     "lo": 898221676,
+     "hi": 2534135345
+    },
+    {
+     "multiplier": 2.9,
+     "spendMonthly": 3174870576,
+     "incrMonthly": 1631005528,
+     "lo": 901950943,
+     "hi": 2567318974
+    },
+    {
+     "multiplier": 3.0,
+     "spendMonthly": 3284348871,
+     "incrMonthly": 1644679511,
+     "lo": 904221774,
+     "hi": 2601145951
+    }
+   ],
+   "truth": {
+    "roi": 1.3385,
+    "halfLifeDays": 6.4,
+    "windowIncremental": 6739951799
+   }
+  },
+  "X": {
+   "windowSpend": 309435000,
+   "currentMonthlySpend": 67274484,
+   "roi": {
+    "median": 1.7140279781297494,
+    "mean": 1.9062812713386734,
+    "ci_lo": 0.7201109476172914,
+    "ci_hi": 3.7853171670220864
+   },
+   "mroi": {
+    "median": 2.1489743385115565,
+    "mean": 2.4037327935503723,
+    "ci_lo": 0.40331540087216966,
+    "ci_hi": 5.274531785577722
+   },
+   "incrementalRevenue": {
+    "median": 530380247.4125787,
+    "mean": 589870145.1966821,
+    "ci_lo": 222827531.07595646,
+    "ci_hi": 1171309617.577479
+   },
+   "contributionPct": 0.3600311969582309,
+   "adstockDecayWeekly": {
+    "median": 0.6610159007499261,
+    "lo": 0.23724038074150716,
+    "hi": 0.9313223448214262
+   },
+   "halfLifeDays": {
+    "median": 11.720520974027,
+    "lo": 3.372554246682106,
+    "hi": 68.19523167880904
+   },
+   "hill": {
+    "ec": {
+     "median": 1.1987425940467138,
+     "lo": 0.4356345985336986,
+     "hi": 2.2443819225242527
+    },
+    "slope": {
+     "median": 2.303449613138071,
+     "lo": 1.1568513270697618,
+     "hi": 4.188797801871054
+    }
+   },
+   "beta": {
+    "median": -2.2549490027493944,
+    "lo": -3.8916896899581364,
+    "hi": -1.0209006153926288
+   },
+   "betaByGeo": {
+    "Bandar Lampung": 0.1240312287554923,
+    "Bandung": 0.10096171589656036,
+    "Batam": 0.0941577265623829,
+    "Bekasi": 0.09524247445045425,
+    "Bogor": 0.10289661370514264,
+    "Denpasar": 0.11314973092596166,
+    "Depok": 0.11260763627419731,
+    "Jakarta": 0.11788210448111415,
+    "Makassar": 0.16182171243476645,
+    "Malang": 0.09286141944332933,
+    "Medan": 0.12343490607063187,
+    "Padang": 0.1513411255493024,
+    "Palembang": 0.1653335664265309,
+    "Pekanbaru": 0.09277455747112748,
+    "Rest of Indonesia": 0.09113083199301042,
+    "Samarinda": 0.18511732320035304,
+    "Semarang": 0.12247123271136187,
+    "Surabaya": 0.09241916401859852,
+    "Tangerang": 0.10789241363104637,
+    "Tasikmalaya": 0.09917466042429535
+   },
+   "monthlyCurve": {
+    "alpha": 1.7754688631203437,
+    "k": 110080252.06769563,
+    "m": 437334504.5245413,
+    "fitR2": 0.9999751622985397
+   },
+   "responseCurve": [
+    {
+     "multiplier": 0.0,
+     "spendMonthly": 0,
+     "incrMonthly": 0,
+     "lo": 0,
+     "hi": 0
+    },
+    {
+     "multiplier": 0.1,
+     "spendMonthly": 6727448,
+     "incrMonthly": 4369778,
+     "lo": 14509,
+     "hi": 19363264
+    },
+    {
+     "multiplier": 0.2,
+     "spendMonthly": 13454897,
+     "incrMonthly": 11747277,
+     "lo": 242171,
+     "hi": 43519401
+    },
+    {
+     "multiplier": 0.3,
+     "spendMonthly": 20182345,
+     "incrMonthly": 21718086,
+     "lo": 1228039,
+     "hi": 69252300
+    },
+    {
+     "multiplier": 0.4,
+     "spendMonthly": 26909794,
+     "incrMonthly": 33844071,
+     "lo": 3663556,
+     "hi": 95327221
+    },
+    {
+     "multiplier": 0.5,
+     "spendMonthly": 33637242,
+     "incrMonthly": 47721076,
+     "lo": 8081788,
+     "hi": 121661839
+    },
+    {
+     "multiplier": 0.6,
+     "spendMonthly": 40364691,
+     "incrMonthly": 62893391,
+     "lo": 14345863,
+     "hi": 147618985
+    },
+    {
+     "multiplier": 0.7,
+     "spendMonthly": 47092139,
+     "incrMonthly": 78904086,
+     "lo": 23003802,
+     "hi": 176850416
+    },
+    {
+     "multiplier": 0.8,
+     "spendMonthly": 53819587,
+     "incrMonthly": 95349512,
+     "lo": 31781450,
+     "hi": 205647416
+    },
+    {
+     "multiplier": 0.9,
+     "spendMonthly": 60547036,
+     "incrMonthly": 111887884,
+     "lo": 39852137,
+     "hi": 231398919
+    },
+    {
+     "multiplier": 1.0,
+     "spendMonthly": 67274484,
+     "incrMonthly": 128244090,
+     "lo": 48445093,
+     "hi": 254655261
+    },
+    {
+     "multiplier": 1.1,
+     "spendMonthly": 74001933,
+     "incrMonthly": 144211739,
+     "lo": 55010264,
+     "hi": 283295275
+    },
+    {
+     "multiplier": 1.2,
+     "spendMonthly": 80729381,
+     "incrMonthly": 159643441,
+     "lo": 60317037,
+     "hi": 308534774
+    },
+    {
+     "multiplier": 1.3,
+     "spendMonthly": 87456830,
+     "incrMonthly": 174437853,
+     "lo": 65380451,
+     "hi": 337684472
+    },
+    {
+     "multiplier": 1.4,
+     "spendMonthly": 94184278,
+     "incrMonthly": 188529820,
+     "lo": 67712240,
+     "hi": 359967609
+    },
+    {
+     "multiplier": 1.5,
+     "spendMonthly": 100911727,
+     "incrMonthly": 201883068,
+     "lo": 70860169,
+     "hi": 391345760
+    },
+    {
+     "multiplier": 1.6,
+     "spendMonthly": 107639175,
+     "incrMonthly": 214484038,
+     "lo": 74186198,
+     "hi": 417072933
+    },
+    {
+     "multiplier": 1.7,
+     "spendMonthly": 114366623,
+     "incrMonthly": 226336447,
+     "lo": 77185497,
+     "hi": 446442974
+    },
+    {
+     "multiplier": 1.8,
+     "spendMonthly": 121094072,
+     "incrMonthly": 237456625,
+     "lo": 79179701,
+     "hi": 478939349
+    },
+    {
+     "multiplier": 1.9,
+     "spendMonthly": 127821520,
+     "incrMonthly": 247869696,
+     "lo": 81379533,
+     "hi": 503685805
+    },
+    {
+     "multiplier": 2.0,
+     "spendMonthly": 134548969,
+     "incrMonthly": 257606584,
+     "lo": 82280825,
+     "hi": 527146781
+    },
+    {
+     "multiplier": 2.1,
+     "spendMonthly": 141276417,
+     "incrMonthly": 266701726,
+     "lo": 83045540,
+     "hi": 550563833
+    },
+    {
+     "multiplier": 2.2,
+     "spendMonthly": 148003866,
+     "incrMonthly": 275191375,
+     "lo": 83197626,
+     "hi": 573010911
+    },
+    {
+     "multiplier": 2.3,
+     "spendMonthly": 154731314,
+     "incrMonthly": 283112343,
+     "lo": 83393983,
+     "hi": 597122537
+    },
+    {
+     "multiplier": 2.4,
+     "spendMonthly": 161458762,
+     "incrMonthly": 290501112,
+     "lo": 84394758,
+     "hi": 617005132
+    },
+    {
+     "multiplier": 2.5,
+     "spendMonthly": 168186211,
+     "incrMonthly": 297393208,
+     "lo": 85518477,
+     "hi": 638456915
+    },
+    {
+     "multiplier": 2.6,
+     "spendMonthly": 174913659,
+     "incrMonthly": 303822778,
+     "lo": 87095367,
+     "hi": 660979853
+    },
+    {
+     "multiplier": 2.7,
+     "spendMonthly": 181641108,
+     "incrMonthly": 309822330,
+     "lo": 88507550,
+     "hi": 678276872
+    },
+    {
+     "multiplier": 2.8,
+     "spendMonthly": 188368556,
+     "incrMonthly": 315422577,
+     "lo": 89710263,
+     "hi": 691718002
+    },
+    {
+     "multiplier": 2.9,
+     "spendMonthly": 195096005,
+     "incrMonthly": 320652376,
+     "lo": 90191625,
+     "hi": 707668532
+    },
+    {
+     "multiplier": 3.0,
+     "spendMonthly": 201823453,
+     "incrMonthly": 325538722,
+     "lo": 90237908,
+     "hi": 721612817
+    }
+   ],
+   "truth": {
+    "roi": 1.5639,
+    "halfLifeDays": 3.1,
+    "windowIncremental": 483917947
+   }
+  }
+ },
+ "optimization": {
+  "scenario": "Fixed budget, Meridian default spend constraints (\u00b130%)",
+  "channels": {
+   "Google": {
+    "currentMonthly": 1980611607,
+    "optimizedMonthly": 1891473214
+   },
+   "Meta": {
+    "currentMonthly": 974000000,
+    "optimizedMonthly": 1265330357
+   },
+   "TikTok": {
+    "currentMonthly": 1095750000,
+    "optimizedMonthly": 873991071
+   },
+   "X": {
+    "currentMonthly": 67397321,
+    "optimizedMonthly": 86964286
+   }
+  },
+  "incrementalRevenueMonthly": {
+   "current": 7054909816.366184,
+   "optimized": 7496869075.137108
+  }
+ },
+ "scenarios": {
+  "window": {
+   "firstWeek": "2026-04-03",
+   "lastWeek": "2026-08-14",
+   "weeks": 20,
+   "months": 4.59958932238193
+  },
+  "guardrails": {
+   "maxCutPct": 30.0,
+   "maxIncreasePct": 60.0
+  },
+  "engine": "Meridian BudgetOptimizer grid search (posterior mean incremental revenue)",
+  "totalRevenueMonthly": 31884932049.553574,
+  "current": {
+   "label": "Current budget and mix",
+   "note": "",
+   "budgetChangePct": 0.0,
+   "budgetMonthly": 4118622918.7499986,
+   "incrementalMonthly": 7057363625.930845,
+   "incrementalChangePct": 0.0,
+   "totalRevenueMonthly": 31884932049.553574,
+   "totalRevenueChangePct": 0.0,
+   "roas": 1.713525070188449,
+   "channels": {
+    "Google": {
+     "currentMonthly": 1981524732.142856,
+     "budgetMonthly": 1981524732.142856,
+     "changePct": 0.0,
+     "incrementalMonthly": 3214223219.12208
+    },
+    "Meta": {
+     "currentMonthly": 975040745.0892856,
+     "budgetMonthly": 975040745.0892856,
+     "changePct": 0.0,
+     "incrementalMonthly": 2742622672.0757675
+    },
+    "TikTok": {
+     "currentMonthly": 1094782957.1428561,
+     "budgetMonthly": 1094782957.1428561,
+     "changePct": 0.0,
+     "incrementalMonthly": 972274693.1501031
+    },
+    "X": {
+     "currentMonthly": 67274484.37499997,
+     "budgetMonthly": 67274484.37499997,
+     "changePct": 0.0,
+     "incrementalMonthly": 128243041.58289509
+    }
+   }
+  },
+  "q1FlatIncremental": {
+   "label": "Lowest budget that keeps incremental revenue flat",
+   "note": "Reallocation within -30%/+60% per channel",
+   "budgetChangePct": -11.000722446092848,
+   "budgetMonthly": 3665544642.857143,
+   "incrementalMonthly": 7058820236.989647,
+   "incrementalChangePct": 0.020639592006399532,
+   "totalRevenueMonthly": 31886388660.61237,
+   "totalRevenueChangePct": 0.004568336719479055,
+   "roas": 1.925722075366018,
+   "channels": {
+    "Google": {
+     "currentMonthly": 1981524732.142856,
+     "budgetMonthly": 1430562500.0,
+     "changePct": -27.804963683043994,
+     "incrementalMonthly": 2597836961.6136127
+    },
+    "Meta": {
+     "currentMonthly": 975040745.0892856,
+     "budgetMonthly": 1358816964.2857144,
+     "changePct": 39.36001865863419,
+     "incrementalMonthly": 3536442825.1648054
+    },
+    "TikTok": {
+     "currentMonthly": 1094782957.1428561,
+     "budgetMonthly": 767459821.4285715,
+     "changePct": -29.898450060688408,
+     "incrementalMonthly": 708128390.7196515
+    },
+    "X": {
+     "currentMonthly": 67274484.37499997,
+     "budgetMonthly": 108705357.14285715,
+     "changePct": 61.5848239533344,
+     "incrementalMonthly": 216412059.49157652
+    }
+   }
+  },
+  "q2Cut10": {
+   "optimal": {
+    "label": "Budget -10%, optimal mix",
+    "note": "",
+    "budgetChangePct": -9.997764988486535,
+    "budgetMonthly": 3706852678.571429,
+    "incrementalMonthly": 7124840754.373363,
+    "incrementalChangePct": 0.9561237314538396,
+    "totalRevenueMonthly": 31952409177.99609,
+    "totalRevenueChangePct": 0.21162701033092193,
+    "roas": 1.9220728127558553,
+    "channels": {
+     "Google": {
+      "currentMonthly": 1981524732.142856,
+      "budgetMonthly": 1452303571.4285715,
+      "changePct": -26.70777468126654,
+      "incrementalMonthly": 2631870642.550362
+     },
+     "Meta": {
+      "currentMonthly": 975040745.0892856,
+      "budgetMonthly": 1380558035.7142859,
+      "changePct": 41.58977895717235,
+      "incrementalMonthly": 3570430346.7595835
+     },
+     "TikTok": {
+      "currentMonthly": 1094782957.1428561,
+      "budgetMonthly": 765285714.2857143,
+      "changePct": -30.097038020856438,
+      "incrementalMonthly": 706127705.5718398
+     },
+     "X": {
+      "currentMonthly": 67274484.37499997,
+      "budgetMonthly": 108705357.14285715,
+      "changePct": 61.5848239533344,
+      "incrementalMonthly": 216412059.49157652
+     }
+    }
+   },
+   "sameMix": {
+    "label": "Budget -10%, same mix (every channel -10%)",
+    "note": "",
+    "budgetChangePct": -10.000000000000009,
+    "budgetMonthly": 3706760626.8749976,
+    "incrementalMonthly": 6517957092.845108,
+    "incrementalChangePct": -7.643173310551809,
+    "totalRevenueMonthly": 31345525516.467834,
+    "totalRevenueChangePct": -1.6917286580615138,
+    "roas": 1.758397088171324,
+    "channels": {
+     "Google": {
+      "currentMonthly": 1981524732.142856,
+      "budgetMonthly": 1783372258.9285705,
+      "changePct": -9.999999999999986,
+      "incrementalMonthly": 3043952099.914828
+     },
+     "Meta": {
+      "currentMonthly": 975040745.0892856,
+      "budgetMonthly": 877536670.5803571,
+      "changePct": -9.999999999999998,
+      "incrementalMonthly": 2469935414.1644874
+     },
+     "TikTok": {
+      "currentMonthly": 1094782957.1428561,
+      "budgetMonthly": 985304661.4285704,
+      "changePct": -10.000000000000009,
+      "incrementalMonthly": 892182829.944581
+     },
+     "X": {
+      "currentMonthly": 67274484.37499997,
+      "budgetMonthly": 60547035.93749998,
+      "changePct": -9.999999999999998,
+      "incrementalMonthly": 111886748.8212115
+     }
+    }
+   }
+  },
+  "q3Plus10Incremental": {
+   "label": "Lowest budget for +10% incremental revenue",
+   "note": "",
+   "budgetChangePct": 1.932150033567459,
+   "budgetMonthly": 4198200892.857143,
+   "incrementalMonthly": 7764916917.1678,
+   "incrementalChangePct": 10.025745147057386,
+   "totalRevenueMonthly": 32592485340.79053,
+   "totalRevenueChangePct": 2.219083578843196,
+   "roas": 1.8495820270009233,
+   "channels": {
+    "Google": {
+     "currentMonthly": 1981524732.142856,
+     "budgetMonthly": 1763200892.857143,
+     "changePct": -11.017971955849049,
+     "incrementalMonthly": 3023855826.158143
+    },
+    "Meta": {
+     "currentMonthly": 975040745.0892856,
+     "budgetMonthly": 1561008928.5714285,
+     "changePct": 60.09678943503898,
+     "incrementalMonthly": 3818521325.946241
+    },
+    "TikTok": {
+     "currentMonthly": 1094782957.1428561,
+     "budgetMonthly": 765285714.2857143,
+     "changePct": -30.097038020856438,
+     "incrementalMonthly": 706127705.5718398
+    },
+    "X": {
+     "currentMonthly": 67274484.37499997,
+     "budgetMonthly": 108705357.14285715,
+     "changePct": 61.5848239533344,
+     "incrementalMonthly": 216412059.49157652
+    }
+   }
+  },
+  "q4FixedBudget": {
+   "label": "Same budget, optimal mix (max revenue = max ROAS)",
+   "note": "",
+   "budgetChangePct": -0.020977647034303715,
+   "budgetMonthly": 4117758928.571429,
+   "incrementalMonthly": 7678270036.946177,
+   "incrementalChangePct": 8.797993754125644,
+   "totalRevenueMonthly": 32505838460.5689,
+   "totalRevenueChangePct": 1.9473349043063886,
+   "roas": 1.8646720631627636,
+   "channels": {
+    "Google": {
+     "currentMonthly": 1981524732.142856,
+     "budgetMonthly": 1682758928.5714285,
+     "changePct": -15.077571262425604,
+     "incrementalMonthly": 2937871508.179735
+    },
+    "Meta": {
+     "currentMonthly": 975040745.0892856,
+     "budgetMonthly": 1558834821.4285715,
+     "changePct": 59.87381340518516,
+     "incrementalMonthly": 3815858078.555215
+    },
+    "TikTok": {
+     "currentMonthly": 1094782957.1428561,
+     "budgetMonthly": 767459821.4285715,
+     "changePct": -29.898450060688408,
+     "incrementalMonthly": 708128390.7196515
+    },
+    "X": {
+     "currentMonthly": 67274484.37499997,
+     "budgetMonthly": 108705357.14285715,
+     "changePct": 61.5848239533344,
+     "incrementalMonthly": 216412059.49157652
+    }
+   }
+  },
+  "q5MroiOne": {
+   "label": "Flexible budget: spend until mROI = 1 per channel",
+   "note": "Meridian FlexibleBudgetScenario(target mROI = 1), within -30%/+60%",
+   "budgetChangePct": 2.090511737400025,
+   "budgetMonthly": 4204723214.2857146,
+   "incrementalMonthly": 7770814290.870479,
+   "incrementalChangePct": 10.109308557068019,
+   "totalRevenueMonthly": 32598382714.493206,
+   "totalRevenueChangePct": 2.2375793802252164,
+   "roas": 1.8481155345657063,
+   "channels": {
+    "Google": {
+     "currentMonthly": 1981524732.142856,
+     "budgetMonthly": 1769723214.2857144,
+     "changePct": -10.68881525531582,
+     "incrementalMonthly": 3030415762.104036
+    },
+    "Meta": {
+     "currentMonthly": 975040745.0892856,
+     "budgetMonthly": 1558834821.4285715,
+     "changePct": 59.87381340518516,
+     "incrementalMonthly": 3815858078.555215
+    },
+    "TikTok": {
+     "currentMonthly": 1094782957.1428561,
+     "budgetMonthly": 767459821.4285715,
+     "changePct": -29.898450060688408,
+     "incrementalMonthly": 708128390.7196515
+    },
+    "X": {
+     "currentMonthly": 67274484.37499997,
+     "budgetMonthly": 108705357.14285715,
+     "changePct": 61.5848239533344,
+     "incrementalMonthly": 216412059.49157652
+    }
+   }
+  },
+  "frontier": [
+   {
+    "budgetChangePct": -30.0,
+    "optimal": {
+     "label": "Optimal mix at -30% budget",
+     "note": "",
+     "budgetChangePct": -30.00412690600185,
+     "budgetMonthly": 2882866071.4285717,
+     "incrementalMonthly": 5146210212.114435,
+     "incrementalChangePct": -27.08027409547479,
+     "totalRevenueMonthly": 29973778635.73716,
+     "totalRevenueChangePct": -5.993907751931902,
+     "roas": 1.785102077102142,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 1387080357.1428573,
+       "changePct": -29.99934168659888,
+       "incrementalMonthly": 2526852808.4698696
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 682669642.8571429,
+       "changePct": -29.98552662590218,
+       "incrementalMonthly": 1832535545.573907
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 765285714.2857143,
+       "changePct": -30.097038020856438,
+       "incrementalMonthly": 706127705.5718398
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 47830357.14285714,
+       "changePct": -28.902677460532868,
+       "incrementalMonthly": 80694152.49881862
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at -30% budget",
+     "note": "",
+     "budgetChangePct": -30.00000000000003,
+     "budgetMonthly": 2883036043.124998,
+     "incrementalMonthly": 5144880638.569929,
+     "incrementalChangePct": -27.099113617072067,
+     "totalRevenueMonthly": 29972449062.192654,
+     "totalRevenueChangePct": -5.998077663733625,
+     "roas": 1.7845356636586682,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 1387067312.499999,
+       "changePct": -30.000000000000004,
+       "incrementalMonthly": 2526830891.3133597
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 682528521.5624999,
+       "changePct": -30.000000000000004,
+       "incrementalMonthly": 1832035155.8099935
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 766348069.9999992,
+       "changePct": -30.000000000000004,
+       "incrementalMonthly": 707105320.3624657
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 47092139.06249997,
+       "changePct": -30.000000000000004,
+       "incrementalMonthly": 78909271.08410996
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": -25.0,
+    "optimal": {
+     "label": "Optimal mix at -25% budget",
+     "note": "",
+     "budgetChangePct": -24.989339617970295,
+     "budgetMonthly": 3089406250.0,
+     "incrementalMonthly": 5814695009.574199,
+     "incrementalChangePct": -17.6081137691519,
+     "totalRevenueMonthly": 30642263433.196926,
+     "totalRevenueChangePct": -3.8973538172368345,
+     "roas": 1.8821399774064025,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 1387080357.1428573,
+       "changePct": -29.99934168659888,
+       "incrementalMonthly": 2526852808.4698696
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 889209821.4285715,
+       "changePct": -8.802803789789781,
+       "incrementalMonthly": 2504276266.3815413
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 767459821.4285715,
+       "changePct": -29.898450060688408,
+       "incrementalMonthly": 708128390.7196515
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 45656250.0,
+       "changePct": -32.134373939599556,
+       "incrementalMonthly": 75437544.0031373
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at -25% budget",
+     "note": "",
+     "budgetChangePct": -25.0,
+     "budgetMonthly": 3088967189.0624986,
+     "incrementalMonthly": 5528488166.594384,
+     "incrementalChangePct": -21.663549455194865,
+     "totalRevenueMonthly": 30356056590.217113,
+     "totalRevenueChangePct": -4.794977944316706,
+     "roas": 1.7897529589080161,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 1486143549.107142,
+       "changePct": -25.0,
+       "incrementalMonthly": 2682956923.3251595
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 731280558.8169643,
+       "changePct": -25.0,
+       "incrementalMonthly": 2001949488.9721124
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 821087217.8571421,
+       "changePct": -25.0,
+       "incrementalMonthly": 756484492.4001926
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 50455863.28124998,
+       "changePct": -25.0,
+       "incrementalMonthly": 87097261.89691915
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": -20.0,
+    "optimal": {
+     "label": "Optimal mix at -20% budget",
+     "note": "",
+     "budgetChangePct": -19.974552329938756,
+     "budgetMonthly": 3295946428.571429,
+     "incrementalMonthly": 6351175747.910306,
+     "incrementalChangePct": -10.006397791744737,
+     "totalRevenueMonthly": 31178744171.53303,
+     "totalRevenueChangePct": -2.214801263879213,
+     "roas": 1.9269657094102446,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 1387080357.1428573,
+       "changePct": -29.99934168659888,
+       "incrementalMonthly": 2526852808.4698696
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1067486607.1428572,
+       "changePct": 9.481230658223016,
+       "incrementalMonthly": 2972175137.13586
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 767459821.4285715,
+       "changePct": -29.898450060688408,
+       "incrementalMonthly": 708128390.7196515
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 73919642.85714287,
+       "changePct": 9.877680288267388,
+       "incrementalMonthly": 144019411.58492425
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at -20% budget",
+     "note": "",
+     "budgetChangePct": -20.000000000000007,
+     "budgetMonthly": 3294898334.999998,
+     "incrementalMonthly": 5884506755.149033,
+     "incrementalChangePct": -16.61890945327501,
+     "totalRevenueMonthly": 30712075178.771763,
+     "totalRevenueChangePct": -3.678404799354857,
+     "roas": 1.7859448628933297,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 1585219785.7142847,
+       "changePct": -19.999999999999996,
+       "incrementalMonthly": 2819931733.4345326
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 780032596.0714285,
+       "changePct": -19.999999999999996,
+       "incrementalMonthly": 2165408563.1840234
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 875826365.714285,
+       "changePct": -19.999999999999996,
+       "incrementalMonthly": 803815934.7869018
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 53819587.49999998,
+       "changePct": -19.999999999999996,
+       "incrementalMonthly": 95350523.74357483
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": -15.0,
+    "optimal": {
+     "label": "Optimal mix at -15% budget",
+     "note": "",
+     "budgetChangePct": -15.012552276518075,
+     "budgetMonthly": 3500312500.0,
+     "incrementalMonthly": 6780473499.926526,
+     "incrementalChangePct": -3.9234215591066213,
+     "totalRevenueMonthly": 31608041923.549255,
+     "totalRevenueChangePct": -0.8684043157877654,
+     "roas": 1.937105187015881,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 1387080357.1428573,
+       "changePct": -29.99934168659888,
+       "incrementalMonthly": 2526852808.4698696
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1241415178.5714285,
+       "changePct": 27.319313046528194,
+       "incrementalMonthly": 3335032402.963608
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 765285714.2857143,
+       "changePct": -30.097038020856438,
+       "incrementalMonthly": 706127705.5718398
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 106531250.0,
+       "changePct": 58.35312747426771,
+       "incrementalMonthly": 212460582.92120972
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at -15% budget",
+     "note": "",
+     "budgetChangePct": -15.000000000000025,
+     "budgetMonthly": 3500829480.9374976,
+     "incrementalMonthly": 6213850521.145893,
+     "incrementalChangePct": -11.952240942859117,
+     "totalRevenueMonthly": 31041418944.76862,
+     "totalRevenueChangePct": -2.6454913044005166,
+     "roas": 1.774965206097918,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 1684296022.3214273,
+       "changePct": -15.000000000000002,
+       "incrementalMonthly": 2939605239.738978
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 828784633.3258928,
+       "changePct": -15.000000000000002,
+       "incrementalMonthly": 2321569449.1913123
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 930565513.5714277,
+       "changePct": -15.000000000000002,
+       "incrementalMonthly": 849050689.7130944
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 57183311.71874998,
+       "changePct": -14.999999999999991,
+       "incrementalMonthly": 103625142.5025086
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": -10.0,
+    "optimal": {
+     "label": "Optimal mix at -10% budget",
+     "note": "",
+     "budgetChangePct": -9.997764988486535,
+     "budgetMonthly": 3706852678.571429,
+     "incrementalMonthly": 7124840754.373363,
+     "incrementalChangePct": 0.9561237314538396,
+     "totalRevenueMonthly": 31952409177.99609,
+     "totalRevenueChangePct": 0.21162701033092193,
+     "roas": 1.9220728127558553,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 1452303571.4285715,
+       "changePct": -26.70777468126654,
+       "incrementalMonthly": 2631870642.550362
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1380558035.7142859,
+       "changePct": 41.58977895717235,
+       "incrementalMonthly": 3570430346.7595835
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 765285714.2857143,
+       "changePct": -30.097038020856438,
+       "incrementalMonthly": 706127705.5718398
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 108705357.14285715,
+       "changePct": 61.5848239533344,
+       "incrementalMonthly": 216412059.49157652
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at -10% budget",
+     "note": "",
+     "budgetChangePct": -10.000000000000009,
+     "budgetMonthly": 3706760626.8749976,
+     "incrementalMonthly": 6517957092.845108,
+     "incrementalChangePct": -7.643173310551809,
+     "totalRevenueMonthly": 31345525516.467834,
+     "totalRevenueChangePct": -1.6917286580615138,
+     "roas": 1.758397088171324,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 1783372258.9285705,
+       "changePct": -9.999999999999986,
+       "incrementalMonthly": 3043952099.914828
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 877536670.5803571,
+       "changePct": -9.999999999999998,
+       "incrementalMonthly": 2469935414.1644874
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 985304661.4285704,
+       "changePct": -10.000000000000009,
+       "incrementalMonthly": 892182829.944581
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 60547035.93749998,
+       "changePct": -9.999999999999998,
+       "incrementalMonthly": 111886748.8212115
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": -5.0,
+    "optimal": {
+     "label": "Optimal mix at -5% budget",
+     "note": "",
+     "budgetChangePct": -5.0357649350658455,
+     "budgetMonthly": 3911218750.0,
+     "incrementalMonthly": 7418809140.329814,
+     "incrementalChangePct": 5.121537355265504,
+     "totalRevenueMonthly": 32246377563.95254,
+     "totalRevenueChangePct": 1.133593491236651,
+     "roas": 1.8968024072623946,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 1554486607.1428573,
+       "changePct": -21.55098637291254,
+       "incrementalMonthly": 2779385095.242298
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1484915178.5714285,
+       "changePct": 52.29262839015545,
+       "incrementalMonthly": 3720835756.5944657
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 765285714.2857143,
+       "changePct": -30.097038020856438,
+       "incrementalMonthly": 706127705.5718398
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 106531250.0,
+       "changePct": 58.35312747426771,
+       "incrementalMonthly": 212460582.92120972
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at -5% budget",
+     "note": "",
+     "budgetChangePct": -5.000000000000027,
+     "budgetMonthly": 3912691772.8124967,
+     "incrementalMonthly": 6798526829.926293,
+     "incrementalChangePct": -3.6676131445673277,
+     "totalRevenueMonthly": 31626095253.549015,
+     "totalRevenueChangePct": -0.8117840602648456,
+     "roas": 1.7375574731355383,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 1882448495.5357127,
+       "changePct": -5.000000000000016,
+       "incrementalMonthly": 3134897108.225471
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 926288707.8348213,
+       "changePct": -4.999999999999993,
+       "incrementalMonthly": 2610289963.4589787
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1040043809.2857133,
+       "changePct": -5.000000000000016,
+       "incrementalMonthly": 933240351.304147
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 63910760.15624996,
+       "changePct": -4.999999999999993,
+       "incrementalMonthly": 120099406.93769662
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": -0.0,
+    "optimal": {
+     "label": "Optimal mix at -0% budget",
+     "note": "",
+     "budgetChangePct": -0.020977647034303715,
+     "budgetMonthly": 4117758928.571429,
+     "incrementalMonthly": 7678270036.946177,
+     "incrementalChangePct": 8.797993754125644,
+     "totalRevenueMonthly": 32505838460.5689,
+     "totalRevenueChangePct": 1.9473349043063886,
+     "roas": 1.8646720631627636,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 1682758928.5714285,
+       "changePct": -15.077571262425604,
+       "incrementalMonthly": 2937871508.179735
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1558834821.4285715,
+       "changePct": 59.87381340518516,
+       "incrementalMonthly": 3815858078.555215
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 767459821.4285715,
+       "changePct": -29.898450060688408,
+       "incrementalMonthly": 708128390.7196515
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 108705357.14285715,
+       "changePct": 61.5848239533344,
+       "incrementalMonthly": 216412059.49157652
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at -0% budget",
+     "note": "",
+     "budgetChangePct": 0.0,
+     "budgetMonthly": 4118622918.7499986,
+     "incrementalMonthly": 7057363625.930845,
+     "incrementalChangePct": 0.0,
+     "totalRevenueMonthly": 31884932049.553574,
+     "totalRevenueChangePct": 0.0,
+     "roas": 1.713525070188449,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 1981524732.142856,
+       "changePct": 0.0,
+       "incrementalMonthly": 3214223219.12208
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 975040745.0892856,
+       "changePct": 0.0,
+       "incrementalMonthly": 2742622672.0757675
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1094782957.1428561,
+       "changePct": 0.0,
+       "incrementalMonthly": 972274693.1501031
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 67274484.37499997,
+       "changePct": 0.0,
+       "incrementalMonthly": 128243041.58289509
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": 5.0,
+    "optimal": {
+     "label": "Optimal mix at +5% budget",
+     "note": "",
+     "budgetChangePct": 4.993809640997227,
+     "budgetMonthly": 4324299107.142858,
+     "incrementalMonthly": 7881211550.672463,
+     "incrementalChangePct": 11.673593262426717,
+     "totalRevenueMonthly": 32708779974.29519,
+     "totalRevenueChangePct": 2.583815839598605,
+     "roas": 1.8225407991908595,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 1850165178.5714288,
+       "changePct": -6.629215948739264,
+       "incrementalMonthly": 3106622931.724967
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1561008928.5714285,
+       "changePct": 60.09678943503898,
+       "incrementalMonthly": 3818521325.946241
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 806593750.0,
+       "changePct": -26.32386677766403,
+       "incrementalMonthly": 743606710.0800457
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 106531250.0,
+       "changePct": 58.35312747426771,
+       "incrementalMonthly": 212460582.92120972
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at +5% budget",
+     "note": "",
+     "budgetChangePct": 4.99999999999996,
+     "budgetMonthly": 4324554064.687497,
+     "incrementalMonthly": 7296257668.77144,
+     "incrementalChangePct": 3.385032364817153,
+     "totalRevenueMonthly": 32123826092.39417,
+     "totalRevenueChangePct": 0.7492380490863801,
+     "roas": 1.687169950851033,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2080600968.7499988,
+       "changePct": 5.000000000000004,
+       "incrementalMonthly": 3283531471.448926
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1023792782.3437499,
+       "changePct": 5.000000000000004,
+       "incrementalMonthly": 2867091553.3753095
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1149522104.999999,
+       "changePct": 5.000000000000004,
+       "incrementalMonthly": 1009353904.205937
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 70638208.59374997,
+       "changePct": 5.000000000000004,
+       "incrementalMonthly": 136280739.7412665
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": 10.0,
+    "optimal": {
+     "label": "Optimal mix at +10% budget",
+     "note": "",
+     "budgetChangePct": 10.00859692902878,
+     "budgetMonthly": 4530839285.714286,
+     "incrementalMonthly": 8055639161.856625,
+     "incrementalChangePct": 14.14516225659419,
+     "totalRevenueMonthly": 32883207585.479355,
+     "totalRevenueChangePct": 3.1308692594179606,
+     "roas": 1.7779573835814513,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 1928433035.7142859,
+       "changePct": -2.6793355423404552,
+       "incrementalMonthly": 3173058634.7269816
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1558834821.4285715,
+       "changePct": 59.87381340518516,
+       "incrementalMonthly": 3815858078.555215
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 937040178.5714287,
+       "changePct": -14.408589167582742,
+       "incrementalMonthly": 854261865.6532186
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 106531250.0,
+       "changePct": 58.35312747426771,
+       "incrementalMonthly": 212460582.92120972
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at +10% budget",
+     "note": "",
+     "budgetChangePct": 9.999999999999986,
+     "budgetMonthly": 4530485210.624998,
+     "incrementalMonthly": 7516946680.652781,
+     "incrementalChangePct": 6.512106773601545,
+     "totalRevenueMonthly": 32344515104.275505,
+     "totalRevenueChangePct": 1.4413800663199758,
+     "roas": 1.6591924112286836,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2179677205.3571415,
+       "changePct": 10.000000000000009,
+       "incrementalMonthly": 3344224607.205554
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1072544819.5982144,
+       "changePct": 10.000000000000009,
+       "incrementalMonthly": 2983954535.797788
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1204261252.857142,
+       "changePct": 10.000000000000009,
+       "incrementalMonthly": 1044556847.7208823
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 74001932.81249997,
+       "changePct": 10.000000000000009,
+       "incrementalMonthly": 144210689.9285564
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": 15.0,
+    "optimal": {
+     "label": "Optimal mix at +15% budget",
+     "note": "",
+     "budgetChangePct": 15.02338421706031,
+     "budgetMonthly": 4737379464.285714,
+     "incrementalMonthly": 8216060979.659741,
+     "incrementalChangePct": 16.418274799834577,
+     "totalRevenueMonthly": 33043629403.282475,
+     "totalRevenueChangePct": 3.633996622379876,
+     "roas": 1.7343050185443674,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2008875000.0,
+       "changePct": 1.3802637642361004,
+       "incrementalMonthly": 3234294219.1639686
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1561008928.5714285,
+       "changePct": 60.09678943503898,
+       "incrementalMonthly": 3818521325.946241
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1058790178.5714287,
+       "changePct": -3.287663398173535,
+       "incrementalMonthly": 946833375.0579567
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 108705357.14285715,
+       "changePct": 61.5848239533344,
+       "incrementalMonthly": 216412059.49157652
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at +15% budget",
+     "note": "",
+     "budgetChangePct": 14.999999999999991,
+     "budgetMonthly": 4736416356.562497,
+     "incrementalMonthly": 7721034311.713499,
+     "incrementalChangePct": 9.403946302896049,
+     "totalRevenueMonthly": 32548602735.336224,
+     "totalRevenueChangePct": 2.0814555438011224,
+     "roas": 1.6301426501527243,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2278753441.964284,
+       "changePct": 14.999999999999991,
+       "incrementalMonthly": 3397520216.111666
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1121296856.8526783,
+       "changePct": 14.999999999999991,
+       "incrementalMonthly": 3093551222.764517
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1259000400.7142844,
+       "changePct": 14.999999999999991,
+       "incrementalMonthly": 1077968528.350423
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 77365657.03124996,
+       "changePct": 14.999999999999991,
+       "incrementalMonthly": 151994344.48689368
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": 20.0,
+    "optimal": {
+     "label": "Optimal mix at +20% budget",
+     "note": "",
+     "budgetChangePct": 19.985384270481,
+     "budgetMonthly": 4941745535.714286,
+     "incrementalMonthly": 8351240013.233822,
+     "incrementalChangePct": 18.333707257890055,
+     "totalRevenueMonthly": 33178808436.85655,
+     "totalRevenueChangePct": 4.057955605149524,
+     "roas": 1.6899372808411357,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2095839285.7142859,
+       "changePct": 5.769019771345896,
+       "incrementalMonthly": 3293394409.4742885
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1558834821.4285715,
+       "changePct": 59.87381340518516,
+       "incrementalMonthly": 3815858078.555215
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1180540178.5714285,
+       "changePct": 7.833262371235672,
+       "incrementalMonthly": 1029526942.2831084
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 106531250.0,
+       "changePct": 58.35312747426771,
+       "incrementalMonthly": 212460582.92120972
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at +20% budget",
+     "note": "",
+     "budgetChangePct": 19.99999999999997,
+     "budgetMonthly": 4942347502.499997,
+     "incrementalMonthly": 7910037794.266728,
+     "incrementalChangePct": 12.082049523463745,
+     "totalRevenueMonthly": 32737606217.88945,
+     "totalRevenueChangePct": 2.6742229433348306,
+     "roas": 1.6004616814713208,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2377829678.571427,
+       "changePct": 19.999999999999996,
+       "incrementalMonthly": 3444460320.8625565
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1170048894.1071427,
+       "changePct": 19.999999999999996,
+       "incrementalMonthly": 3196260616.6388006
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1313739548.571427,
+       "changePct": 19.999999999999996,
+       "incrementalMonthly": 1109677289.3008838
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 80729381.24999996,
+       "changePct": 19.999999999999996,
+       "incrementalMonthly": 159639567.46448705
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": 25.0,
+    "optimal": {
+     "label": "Optimal mix at +25% budget",
+     "note": "",
+     "budgetChangePct": 25.00017155851255,
+     "budgetMonthly": 5148285714.285714,
+     "incrementalMonthly": 8480400087.031173,
+     "incrementalChangePct": 20.16385348023828,
+     "totalRevenueMonthly": 33307968510.653904,
+     "totalRevenueChangePct": 4.463037458849629,
+     "roas": 1.6472279429829126,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2180629464.2857146,
+       "changePct": 10.048056878277922,
+       "incrementalMonthly": 3344770695.6601696
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1561008928.5714285,
+       "changePct": 60.09678943503898,
+       "incrementalMonthly": 3818521325.946241
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1297941964.2857144,
+       "changePct": 18.557012220308835,
+       "incrementalMonthly": 1100696005.9331863
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 108705357.14285715,
+       "changePct": 61.5848239533344,
+       "incrementalMonthly": 216412059.49157652
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at +25% budget",
+     "note": "",
+     "budgetChangePct": 25.0,
+     "budgetMonthly": 5148278648.437498,
+     "incrementalMonthly": 8085309001.334606,
+     "incrementalChangePct": 14.565571931518217,
+     "totalRevenueMonthly": 32912877424.95733,
+     "totalRevenueChangePct": 3.223922114076303,
+     "roas": 1.5704878374810767,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2476905915.17857,
+       "changePct": 25.0,
+       "incrementalMonthly": 3485935131.240536
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1218800931.361607,
+       "changePct": 25.0,
+       "incrementalMonthly": 3292484065.9612207
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1368478696.4285703,
+       "changePct": 25.0,
+       "incrementalMonthly": 1139772335.6358714
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 84093105.46874997,
+       "changePct": 25.0,
+       "incrementalMonthly": 167117468.49697885
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": 30.0,
+    "optimal": {
+     "label": "Optimal mix at +30% budget",
+     "note": "",
+     "budgetChangePct": 30.014958846544083,
+     "budgetMonthly": 5354825892.857143,
+     "incrementalMonthly": 8589380804.079886,
+     "incrementalChangePct": 21.708066345341127,
+     "totalRevenueMonthly": 33416949227.70261,
+     "totalRevenueChangePct": 4.804831246834945,
+     "roas": 1.6040448328184391,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2269767857.142857,
+       "changePct": 14.546531785565463,
+       "incrementalMonthly": 3392963370.623115
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1561008928.5714285,
+       "changePct": 60.09678943503898,
+       "incrementalMonthly": 3818521325.946241
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1417517857.1428573,
+       "changePct": 29.479350029550023,
+       "incrementalMonthly": 1165435524.58932
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 106531250.0,
+       "changePct": 58.35312747426771,
+       "incrementalMonthly": 212460582.92120972
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at +30% budget",
+     "note": "",
+     "budgetChangePct": 29.999999999999982,
+     "budgetMonthly": 5354209794.374997,
+     "incrementalMonthly": 8248106606.271049,
+     "incrementalChangePct": 16.872348421513372,
+     "totalRevenueMonthly": 33075675029.893776,
+     "totalRevenueChangePct": 3.7345006051435967,
+     "roas": 1.5404899925543278,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2575982151.7857127,
+       "changePct": 30.000000000000004,
+       "incrementalMonthly": 3522701012.0856266
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1267552968.6160712,
+       "changePct": 30.000000000000004,
+       "incrementalMonthly": 3382632678.989862
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1423217844.285713,
+       "changePct": 30.000000000000004,
+       "incrementalMonthly": 1168341536.8154933
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 87456829.68749997,
+       "changePct": 30.000000000000004,
+       "incrementalMonthly": 174431378.38006726
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": 35.0,
+    "optimal": {
+     "label": "Optimal mix at +35% budget",
+     "note": "",
+     "budgetChangePct": 34.97695889996477,
+     "budgetMonthly": 5559191964.285714,
+     "incrementalMonthly": 8689482383.95745,
+     "incrementalChangePct": 23.12646541308594,
+     "totalRevenueMonthly": 33517050807.58018,
+     "totalRevenueChangePct": 5.118777595291933,
+     "roas": 1.563083707089424,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2354558035.714286,
+       "changePct": 18.825568892497515,
+       "incrementalMonthly": 3433956686.2695637
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1558834821.4285715,
+       "changePct": 59.87381340518516,
+       "incrementalMonthly": 3815858078.555215
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1537093750.0,
+       "changePct": 40.40168783879119,
+       "incrementalMonthly": 1223255559.641097
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 108705357.14285715,
+       "changePct": 61.5848239533344,
+       "incrementalMonthly": 216412059.49157652
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at +35% budget",
+     "note": "",
+     "budgetChangePct": 34.999999999999964,
+     "budgetMonthly": 5560140940.312496,
+     "incrementalMonthly": 8399543673.998649,
+     "incrementalChangePct": 19.01815067507979,
+     "totalRevenueMonthly": 33227112097.621376,
+     "totalRevenueChangePct": 4.209449297184858,
+     "roas": 1.510670999920115,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2675058388.3928556,
+       "changePct": 35.00000000000001,
+       "incrementalMonthly": 3555400003.0815334
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1316305005.8705356,
+       "changePct": 35.00000000000001,
+       "incrementalMonthly": 3467105295.6456428
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1477956992.142856,
+       "changePct": 35.00000000000001,
+       "incrementalMonthly": 1195470481.1330311
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 90820553.90624996,
+       "changePct": 35.00000000000001,
+       "incrementalMonthly": 181567894.1384418
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": 40.0,
+    "optimal": {
+     "label": "Optimal mix at +40% budget",
+     "note": "",
+     "budgetChangePct": 39.9917461879963,
+     "budgetMonthly": 5765732142.857143,
+     "incrementalMonthly": 8777680453.873264,
+     "incrementalChangePct": 24.37619653919296,
+     "totalRevenueMonthly": 33605248877.495987,
+     "totalRevenueChangePct": 5.395391231409271,
+     "roas": 1.5223878314825052,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2443696428.571429,
+       "changePct": 23.32404379978503,
+       "incrementalMonthly": 3472593028.063722
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1561008928.5714285,
+       "changePct": 60.09678943503898,
+       "incrementalMonthly": 3818521325.946241
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1654495535.7142859,
+       "changePct": 51.12543768786435,
+       "incrementalMonthly": 1274105516.9420907
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 106531250.0,
+       "changePct": 58.35312747426771,
+       "incrementalMonthly": 212460582.92120972
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at +40% budget",
+     "note": "",
+     "budgetChangePct": 39.99999999999994,
+     "budgetMonthly": 5766072086.249996,
+     "incrementalMonthly": 8540637593.782873,
+     "incrementalChangePct": 21.017394688322977,
+     "totalRevenueMonthly": 33368206017.405605,
+     "totalRevenueChangePct": 4.651959005422424,
+     "roas": 1.481188140909514,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2774134624.999998,
+       "changePct": 39.99999999999999,
+       "incrementalMonthly": 3584577811.2022605
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1365057043.1249998,
+       "changePct": 39.99999999999999,
+       "incrementalMonthly": 3546296724.056507
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1532696139.9999983,
+       "changePct": 39.99999999999999,
+       "incrementalMonthly": 1221241675.6272488
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 94184278.12499994,
+       "changePct": 39.99999999999999,
+       "incrementalMonthly": 188521382.89685804
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": 45.0,
+    "optimal": {
+     "label": "Optimal mix at +45% budget",
+     "note": "",
+     "budgetChangePct": 45.006533476027855,
+     "budgetMonthly": 5972272321.428572,
+     "incrementalMonthly": 8859134362.982943,
+     "incrementalChangePct": 25.530365623104046,
+     "totalRevenueMonthly": 33686702786.60567,
+     "totalRevenueChangePct": 5.650853306671308,
+     "roas": 1.4833774962330974,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2552401785.714286,
+       "changePct": 28.809988808672273,
+       "incrementalMonthly": 3514341879.611434
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1558834821.4285715,
+       "changePct": 59.87381340518516,
+       "incrementalMonthly": 3815858078.555215
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1752330357.1428573,
+       "changePct": 60.06189589542532,
+       "incrementalMonthly": 1312522345.3247197
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 108705357.14285715,
+       "changePct": 61.5848239533344,
+       "incrementalMonthly": 216412059.49157652
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at +45% budget",
+     "note": "",
+     "budgetChangePct": 44.99999999999997,
+     "budgetMonthly": 5972003232.187496,
+     "incrementalMonthly": 8672303062.629158,
+     "incrementalChangePct": 22.883041349386435,
+     "totalRevenueMonthly": 33499871486.25189,
+     "totalRevenueChangePct": 5.064898473637876,
+     "roas": 1.4521598072632933,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2873210861.6071405,
+       "changePct": 44.99999999999999,
+       "incrementalMonthly": 3610697110.7111874
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1413809080.3794641,
+       "changePct": 44.99999999999999,
+       "incrementalMonthly": 3620576584.5731034
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1587435287.8571413,
+       "changePct": 44.99999999999999,
+       "incrementalMonthly": 1245733746.9856443
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 97548002.34374996,
+       "changePct": 44.99999999999999,
+       "incrementalMonthly": 195295620.35922244
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": 50.0,
+    "optimal": {
+     "label": "Optimal mix at +50% budget",
+     "note": "",
+     "budgetChangePct": 49.96853352944854,
+     "budgetMonthly": 6176638392.857143,
+     "incrementalMonthly": 8922999494.478094,
+     "incrementalChangePct": 26.435308812661273,
+     "totalRevenueMonthly": 33750567918.100815,
+     "totalRevenueChangePct": 5.8511520916770134,
+     "roas": 1.4446368602048856,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2758941964.2857146,
+       "changePct": 39.23328432555802,
+       "incrementalMonthly": 3580312860.155762
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1561008928.5714285,
+       "changePct": 60.09678943503898,
+       "incrementalMonthly": 3818521325.946241
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1750156250.0,
+       "changePct": 59.863307935257296,
+       "incrementalMonthly": 1311704725.4548821
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 106531250.0,
+       "changePct": 58.35312747426771,
+       "incrementalMonthly": 212460582.92120972
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at +50% budget",
+     "note": "",
+     "budgetChangePct": 50.0,
+     "budgetMonthly": 6177934378.124997,
+     "incrementalMonthly": 8795346881.08783,
+     "incrementalChangePct": 24.62652269710346,
+     "totalRevenueMonthly": 33622915304.710556,
+     "totalRevenueChangePct": 5.450798052371315,
+     "roas": 1.4236711403459772,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2972287098.214284,
+       "changePct": 50.0,
+       "incrementalMonthly": 3634152759.66857
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1462561117.6339285,
+       "changePct": 50.0,
+       "incrementalMonthly": 3690298579.9088345
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1642174435.7142842,
+       "changePct": 50.0,
+       "incrementalMonthly": 1269022030.9610686
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 100911726.56249996,
+       "changePct": 50.0,
+       "incrementalMonthly": 201873510.54935658
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": 55.00000000000001,
+    "optimal": {
+     "label": "Optimal mix at +55% budget",
+     "note": "",
+     "budgetChangePct": 55.03610805209094,
+     "budgetMonthly": 6385352678.571429,
+     "incrementalMonthly": 8977412273.846884,
+     "incrementalChangePct": 27.20631597982579,
+     "totalRevenueMonthly": 33804980697.469604,
+     "totalRevenueChangePct": 6.021805675897372,
+     "roas": 1.405938360143228,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 2965482142.857143,
+       "changePct": 49.65657984244376,
+       "incrementalMonthly": 3632619790.475373
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1558834821.4285715,
+       "changePct": 59.87381340518516,
+       "incrementalMonthly": 3815858078.555215
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1752330357.1428573,
+       "changePct": 60.06189589542532,
+       "incrementalMonthly": 1312522345.3247197
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 108705357.14285715,
+       "changePct": 61.5848239533344,
+       "incrementalMonthly": 216412059.49157652
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at +55% budget",
+     "note": "",
+     "budgetChangePct": 54.999999999999986,
+     "budgetMonthly": 6383865524.062496,
+     "incrementalMonthly": 8910527092.743557,
+     "incrementalChangePct": 26.25857990374252,
+     "totalRevenueMonthly": 33738095516.366283,
+     "totalRevenueChangePct": 5.812035176780808,
+     "roas": 1.3957886580093828,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 3071363334.821427,
+       "changePct": 55.00000000000001,
+       "incrementalMonthly": 3655280596.1008773
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1511313154.8883927,
+       "changePct": 55.00000000000001,
+       "incrementalMonthly": 3755792606.005449
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1696913583.571427,
+       "changePct": 55.00000000000001,
+       "incrementalMonthly": 1291177612.9433758
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 104275450.78124996,
+       "changePct": 55.00000000000001,
+       "incrementalMonthly": 208276277.6938541
+      }
+     }
+    }
+   },
+   {
+    "budgetChangePct": 60.0,
+    "optimal": {
+     "label": "Optimal mix at +60% budget",
+     "note": "",
+     "budgetChangePct": 60.05089534012249,
+     "budgetMonthly": 6591892857.142858,
+     "incrementalMonthly": 9021715650.877432,
+     "incrementalChangePct": 27.834076987743337,
+     "totalRevenueMonthly": 33849284074.500156,
+     "totalRevenueChangePct": 6.160753367432969,
+     "roas": 1.3686077499123277,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 3169848214.2857146,
+       "changePct": 59.97015645915176,
+       "incrementalMonthly": 3674259920.114895
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1561008928.5714285,
+       "changePct": 60.09678943503898,
+       "incrementalMonthly": 3818521325.946241
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1752330357.1428573,
+       "changePct": 60.06189589542532,
+       "incrementalMonthly": 1312522345.3247197
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 108705357.14285715,
+       "changePct": 61.5848239533344,
+       "incrementalMonthly": 216412059.49157652
+      }
+     }
+    },
+    "proportional": {
+     "label": "Same mix at +60% budget",
+     "note": "",
+     "budgetChangePct": 59.999999999999986,
+     "budgetMonthly": 6589796669.999996,
+     "incrementalMonthly": 9018475243.030342,
+     "incrementalChangePct": 27.7881617137282,
+     "totalRevenueMonthly": 33846043666.653072,
+     "totalRevenueChangePct": 6.150590548700743,
+     "roas": 1.3685513673110565,
+     "channels": {
+      "Google": {
+       "currentMonthly": 1981524732.142856,
+       "budgetMonthly": 3170439571.4285693,
+       "changePct": 60.00000000000001,
+       "incrementalMonthly": 3674368214.5664425
+      },
+      "Meta": {
+       "currentMonthly": 975040745.0892856,
+       "budgetMonthly": 1560065192.142857,
+       "changePct": 60.00000000000001,
+       "incrementalMonthly": 3817365263.518744
+      },
+      "TikTok": {
+       "currentMonthly": 1094782957.1428561,
+       "budgetMonthly": 1751652731.42857,
+       "changePct": 60.00000000000001,
+       "incrementalMonthly": 1312267509.563688
+      },
+      "X": {
+       "currentMonthly": 67274484.37499997,
+       "budgetMonthly": 107639174.99999996,
+       "changePct": 60.00000000000001,
+       "incrementalMonthly": 214474255.38146856
+      }
+     }
+    }
+   }
+  ]
+ }
+}

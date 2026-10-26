@@ -13,7 +13,7 @@ from app.streamlit_adapter import PAGE_ASSETS, build_streamlit_dashboard
 
 
 DEFAULT_MODULE = "campaign-performance"
-DEPLOY_MARKER = "master-data-model-2026-10-26"
+DEPLOY_MARKER = "google-meridian-2026-10-26"
 
 
 def selected_module() -> str:

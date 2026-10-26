@@ -5,6 +5,7 @@ Exits with status 1 if any check fails.
 """
 
 from collections import defaultdict
+from datetime import date, timedelta
 from pathlib import Path
 import sys
 
@@ -14,7 +15,8 @@ sys.path.insert(0, str(ROOT))
 from app.data.campaign_performance import generate_campaign_dataset
 from app.data.geo import generate_geo_dataset
 from app.data.master import CHANNELS, DEFAULT_END, DEFAULT_START, MTA_TRACKED_COVERAGE
-from app.data.mmm import generate_mmm_dataset
+from app.data.meridian_input import HISTORY_WEEKS, generate_meridian_input
+from app.data.mmm import _daily_channel_spend, generate_mmm_dataset, load_meridian_output
 from app.data.mta import generate_mta_dataset
 
 START, END = DEFAULT_START.isoformat(), DEFAULT_END.isoformat()
@@ -90,6 +92,40 @@ def run_checks():
         check(f"MTA {channel}: last-touch revenue = 40% x Campaign", last_touch[channel][1] == expected_revenue, f"Rp{last_touch[channel][1]:,}")
     campaign_names = {item["campaign"] for item in campaign["campaigns"]}
     check("MTA campaigns all exist in Campaign list", all(row["campaign"] in campaign_names for row in mta["rows"]), "")
+
+    # ---- Google Meridian training data and fit ----
+    meridian_input = generate_meridian_input()
+    rows = meridian_input["rows"]
+    check("Meridian input: 20 geos x 104 weeks", len(rows) == 20 * 104 and len({r["geo"] for r in rows}) == 20, f"{len(rows)} rows")
+    weekly = defaultdict(lambda: defaultdict(float))
+    for row in rows:
+        for channel in CHANNELS:
+            weekly[row["time"]][channel] += row[f"{channel.lower()}_spend"]
+    all_daily, _, _ = _daily_channel_spend()
+    mismatched = 0
+    for week, source in zip(sorted(weekly), meridian_input["weekSource"]):
+        if source != "campaign":
+            continue
+        start = date.fromisoformat(week)
+        for channel in CHANNELS:
+            expected = sum(all_daily[(start + timedelta(days=d)).isoformat()][channel] for d in range(7)) / 1e6
+            if abs(weekly[week][channel] - expected) > 0.02:  # CSV rounds each geo to IDR 1,000
+                mismatched += 1
+    campaign_weeks = meridian_input["weekSource"].count("campaign")
+    check(f"Meridian input: national weekly spend = Campaign ({campaign_weeks} weeks with campaign rows)", mismatched == 0, f"{mismatched} mismatches")
+
+    output = load_meridian_output()
+    check("Meridian output file present (app/data/meridian_output.json)", output is not None, "")
+    if output:
+        meta = output["meta"]
+        check("Meridian fit: full sampler run (not --quick)", not meta["quickRun"], f"{meta['sampler']}")
+        check("Meridian fit: converged (max R-hat < 1.2)", meta["maxRhat"] < 1.2, f"max R-hat {meta['maxRhat']:.3f}")
+        check("Meridian fit: national R2 > 0.9", meta["accuracy"]["national"]["R_Squared"] > 0.9, f"{meta['accuracy']['national']['R_Squared']:.3f}")
+        mmm_curves = {channel["name"]: channel["curve"] for channel in mmm["channels"]}
+        for channel, fitted in output["channels"].items():
+            curve = fitted["monthlyCurve"]
+            check(f"MMM {channel}: page curve = Meridian monthly curve", round(curve["k"]) == mmm_curves[channel]["k"] and round(curve["m"]) == mmm_curves[channel]["m"], f"alpha {curve['alpha']:.2f}")
+            check(f"Meridian {channel}: monthly Hill fit R2 > 0.99", curve["fitR2"] > 0.99, f"{curve['fitR2']:.4f}")
     return checks
 
 

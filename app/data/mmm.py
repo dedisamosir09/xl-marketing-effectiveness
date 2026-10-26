@@ -1,13 +1,17 @@
-"""MMM demo model derived from the shared master model.
+"""MMM dataset for the MMM page.
 
+* Response curves and adstock half-lives come from the Google Meridian fit
+  (app/data/meridian_output.json, produced by meridian/train_meridian.py). Each channel's
+  Meridian response curve is summarized as a monthly Hill curve: m × s^alpha / (s^alpha + k^alpha).
+  If the file is missing, the master (ground-truth) curves from master.py are used instead.
 * Daily channel spend is exactly the Campaign Performance spend (same campaigns, same days).
 * Daily incremental revenue = adstocked spend (channel half-life) scaled so the window total
-  equals the monthly Hill response at the current monthly budget.
-* Incremental revenue is a share of platform-observed revenue (incrementality < 100%).
+  equals the monthly curve response at the current monthly budget.
 """
 
 from collections import defaultdict
 from datetime import date
+from pathlib import Path
 import json
 import math
 
@@ -32,6 +36,26 @@ from .master import (
 )
 
 SMALL_CHANNEL_SHARE = 0.05
+MERIDIAN_OUTPUT = Path(__file__).with_name("meridian_output.json")
+
+
+def load_meridian_output(path=MERIDIAN_OUTPUT):
+    if not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _channel_model(name, meridian):
+    """Monthly curve parameters and half-life for a channel (Meridian fit, else master)."""
+    if meridian and name in meridian["channels"]:
+        fitted = meridian["channels"][name]
+        curve = fitted["monthlyCurve"]
+        return {"alpha": curve["alpha"], "k": curve["k"], "m": curve["m"]}, round(fitted["halfLifeDays"]["median"], 1)
+    return hill_parameters(name), CHANNELS[name]["half_life_days"]
+
+
+def _format_week(value):
+    return date.fromisoformat(value).strftime("%d %b %Y")
 
 
 def channel_signal(name, monthly_spend, total_monthly_spend, params, band):
@@ -76,20 +100,32 @@ def generate_mmm_dataset():
     default_keys = [current.isoformat() for current in dates]
     offset = len(history_dates) - len(dates)
 
+    meridian = load_meridian_output()
     channels = []
     media = {}
     total_monthly = sum(current_monthly_spend(name) for name in CHANNELS)
     for name, config in CHANNELS.items():
-        params = hill_parameters(name)
+        params, half_life = _channel_model(name, meridian)
         s0 = current_monthly_spend(name)
         incremental_total = round(response(params, s0) * DEFAULT_DAYS / DAYS_PER_MONTH)
         full_series = [daily_spend[current.isoformat()][name] for current in history_dates]
-        adstocked = _adstock(full_series, config["half_life_days"])[offset:]
+        adstocked = _adstock(full_series, half_life)[offset:]
         media[name] = allocate_integers(adstocked, incremental_total)
         band = efficient_range(params)
         signal, reason = channel_signal(name, s0, total_monthly, params, band)
         observed_revenue = config["observed_roas"] * config["spend"]
         breakeven = break_even_spend(params)
+        estimate = None
+        if meridian:
+            fitted = meridian["channels"][name]
+            estimate = {
+                "roi": fitted["roi"],
+                "mroi": fitted["mroi"],
+                "halfLifeDays": fitted["halfLifeDays"],
+                "curveFitR2": round(fitted["monthlyCurve"]["fitR2"], 5),
+                "truthRoi": fitted["truth"]["roi"],
+                "truthHalfLifeDays": fitted["truth"]["halfLifeDays"],
+            }
         channels.append(
             {
                 "name": name,
@@ -102,8 +138,9 @@ def generate_mmm_dataset():
                 "iROAS": round(incremental_total / config["spend"], 4),
                 "incrementalShare": round(incremental_total / observed_revenue, 4),
                 "mROI": round(marginal(params, s0), 4),
-                "halfLifeDays": config["half_life_days"],
-                "curve": {"alpha": params["alpha"], "k": round(params["k"]), "m": round(params["m"])},
+                "halfLifeDays": half_life,
+                "curve": {"alpha": round(params["alpha"], 4), "k": round(params["k"]), "m": round(params["m"])},
+                "meridian": estimate,
                 "efficientRange": {
                     "low": round(band["low"]),
                     "high": round(band["high"]),
@@ -157,27 +194,47 @@ def generate_mmm_dataset():
             }
         )
 
+    if meridian:
+        mm = meridian["meta"]
+        window = mm["analysisWindow"]
+        model_meta = {
+            "dataset": "MMM page dataset · curves from Google Meridian fit",
+            "modelSource": "meridian",
+            "modelVersion": f"Google Meridian {mm['version']} · fitted {mm['fittedOn']}",
+            "modelLabel": f"Google Meridian {mm['version']} · {mm['geos']} geos × {mm['weeks']} weeks",
+            "methodology": "Bayesian geo-level MMM (Google Meridian) fitted on simulated demo data",
+            "trainingWindow": f"{_format_week(mm['trainingStart'])} – {_format_week(window['lastWeek'])} (weekly)",
+            "analysisWindow": f"{_format_week(window['firstWeek'])} + {window['weeks']} weeks",
+            "nationalR2": round(mm["accuracy"]["national"]["R_Squared"], 4),
+            "wMAPE": round(mm["accuracy"]["national"]["wMAPE"] * 100, 2),
+            "maxRhat": round(mm["maxRhat"], 3),
+            "converged": mm["converged"],
+            "credibleLevel": mm["credibleLevel"],
+            "prior": mm["prior"],
+        }
+    else:
+        model_meta = {
+            "dataset": "MMM page dataset · master (ground-truth) curves",
+            "modelSource": "master",
+            "modelVersion": "Master curves (Meridian output not found)",
+            "modelLabel": "Model estimate · master curves",
+            "methodology": "Simulated response curves; run meridian/train_meridian.py to fit Google Meridian",
+        }
+
     return {
         "meta": {
-            "dataset": "Deterministic MMM demo model (master model)",
+            **model_meta,
             "defaultStart": DEFAULT_START.isoformat(),
             "defaultEnd": DEFAULT_END.isoformat(),
             "lastUpdated": LAST_UPDATED,
             "product": "Prepaid",
             "businessKpis": ["Revenue"],
             "currency": "IDR",
-            "methodology": "Bayesian MMM demo estimate; not platform attribution",
             "grain": "Channel × Day",
-            "modelVersion": "Meridian POC v3",
-            "trainingWindow": "03 Apr–24 Aug 2026 (144 days)",
-            "trainR2": 0.9736,
-            "testR2": 0.8733,
-            "wMAPE": 8.7,
-            "credibleLevel": 90,
             "daysPerMonth": DAYS_PER_MONTH,
             "efficientRangeShare": EFFICIENT_RANGE_SHARE,
             "smallChannelShare": SMALL_CHANNEL_SHARE,
-            "responseCurve": "Monthly Hill curve: incremental = m × s^alpha / (s^alpha + k^alpha)",
+            "responseCurve": "Monthly Hill curve fitted to the Meridian response curve: incremental = m × s^alpha / (s^alpha + k^alpha)",
         },
         "channels": channels,
         "rows": rows,

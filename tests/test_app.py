@@ -77,12 +77,13 @@ class DashboardRendererTest(unittest.TestCase):
         page = render_page("mmm")
         self.assertEqual(page.count('aria-current="page"'), 1)
         self.assertIn("data-mmm-dashboard", page)
-        self.assertIn("01 · Diminishing Return", page)
-        self.assertIn("02 · Budget Scenario Planner", page)
+        self.assertIn("01 · Budget Scenario Planner", page)
+        self.assertIn("02 · Diminishing Return", page)
+        self.assertLess(page.index("01 · Budget Scenario Planner"), page.index("02 · Diminishing Return"))
         self.assertIn("03 · Pause Planner", page)
         self.assertIn("04 · Saved Scenario Comparison", page)
-        for hook in ("data-dr-charts", "data-dr-insights", "data-dr-recommendation", "data-dr-table",
-                     "data-planner-kpis", "data-planner-allocation", "data-planner-banner",
+        for hook in ("data-dr-charts", "data-dr-table",
+                     "data-planner-kpis", "data-planner-allocation",
                      "data-horizon-start", "data-horizon-months", "data-guardrails",
                      "data-hiatus-channels", "data-hiatus-trajectory", "data-mmm-carryover-curve",
                      "data-saved-scenario-panel", "data-save-scenario"):
@@ -92,6 +93,8 @@ class DashboardRendererTest(unittest.TestCase):
         for removed_mode in ("roi", "manual"):
             self.assertNotIn(f'data-planner-mode="{removed_mode}"', page)
         self.assertNotIn("data-manual-inputs", page)
+        for removed_hook in ("data-dr-insights", "data-dr-recommendation", "data-planner-banner"):
+            self.assertNotIn(removed_hook, page)
         self.assertIn("Available Budget", page)
         self.assertIn("Target KPI", page)
         self.assertIn("Efficient range", page)
@@ -104,11 +107,11 @@ class DashboardRendererTest(unittest.TestCase):
         script = Path("app/static/js/mmm.js").read_text(encoding="utf-8")
         for snippet in ("function optimize(", "function proportional(", "function buildCurves(",
                         "Invest more", "Test & learn", "Revenue lost after restart",
-                        "Equal % change (outside guardrails)", "funded past break-even",
-                        "xl-mmm-saved-scenarios-v3", "function poolReference(", "Channel breakdown",
+                        "Equal % change (outside guardrails)", "Past break-even",
+                        "xl-mmm-saved-scenarios-v3", "function poolReference(", "mmm-saved-table",
                         "Reference budget / month", "Not in pool"):
             self.assertIn(snippet, script)
-        for removed in ("renderChannelMatrix", "renderDecomposition", "renderModelMetrics", "allocateRemaining",
+        for removed in ("Channel breakdown", "Current reference", "channelInsight", "renderChannelMatrix", "renderDecomposition", "renderModelMetrics", "allocateRemaining",
                         "Minimum iROAS", "Manual mix", "state.manual"):
             self.assertNotIn(removed, script)
 
@@ -121,7 +124,9 @@ class DashboardRendererTest(unittest.TestCase):
         self.assertEqual(dataset["meta"]["grain"], "Channel × Day")
         self.assertEqual(dataset["meta"]["businessKpis"], ["Revenue"])
         signals = {channel["name"]: channel["signal"] for channel in dataset["channels"]}
-        self.assertEqual(signals, {"Google": "Reduce", "Meta": "Invest more", "TikTok": "Hold", "X": "Test & learn"})
+        self.assertTrue(set(signals.values()) <= {"Invest more", "Hold", "Reduce", "Test & learn"})
+        self.assertEqual(signals["X"], "Test & learn")  # small spend base
+        self.assertEqual(signals["Google"], "Reduce")  # above its efficient range in master truth and Meridian fit
         for channel in dataset["channels"]:
             self.assertLess(channel["incrementalShare"], 1)
             self.assertLess(channel["efficientRange"]["low"], channel["efficientRange"]["high"])
@@ -134,6 +139,20 @@ class DashboardRendererTest(unittest.TestCase):
                 observed[lookup[row[1]]] = observed.get(lookup[row[1]], 0) + row[8]
         for channel in dataset["channels"]:
             self.assertEqual(sum(row["observed"][channel["name"]] for row in dataset["rows"]), observed[channel["name"]])
+
+    def test_mmm_uses_google_meridian_output(self):
+        from app.data.mmm import load_meridian_output
+        output = load_meridian_output()
+        self.assertIsNotNone(output, "app/data/meridian_output.json is missing; run meridian/train_meridian.py")
+        dataset = generate_mmm_dataset()
+        self.assertTrue(dataset["meta"]["modelVersion"].startswith("Google Meridian"))
+        self.assertEqual(dataset["meta"]["modelSource"], "meridian")
+        for channel in dataset["channels"]:
+            fitted = output["channels"][channel["name"]]
+            self.assertEqual(channel["curve"]["k"], round(fitted["monthlyCurve"]["k"]))
+            self.assertEqual(channel["halfLifeDays"], round(fitted["halfLifeDays"]["median"], 1))
+        self.assertLess(output["meta"]["maxRhat"], 1.2)
+        self.assertFalse(output["meta"]["quickRun"])
 
     def test_cross_module_consistency_report_passes(self):
         from scripts.validate_data import run_checks

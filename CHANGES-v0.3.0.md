@@ -49,3 +49,10 @@ Spend scale and period unchanged. AOV, observed ROAS, incrementality, curve shap
 - **Geo**: clustering method (big cities sit near the median after per-addressable normalization), map point placement, label overlap.
 - **Campaign**: unused history rows; "Active campaigns % of target".
 - **UI**: Streamlit iframe fixed height.
+
+## v0.3.1 — MMM layout simplification
+
+- Section order: 01 Budget Scenario Planner (top), 02 Diminishing Return, 03 Pause Planner, 04 Saved Scenario Comparison.
+- Removed the "What the curves say" insights and the Recommendation box under the curves.
+- Removed the planner warning banner (outside-guardrail, past break-even, not-in-pool notes). The allocation table still shows "Outside guardrail", the curve position (incl. "Past break-even") and "Not in pool". Target KPI notes (already reached / unreachable) are part of the Interpretation text.
+- Saved Scenario Comparison: the separate "Current reference" row and the Channel breakdown table are removed. Each saved plan now shows Current | Scenario side by side for budget, incremental revenue and iROAS, where Current follows the channels selected in that plan.

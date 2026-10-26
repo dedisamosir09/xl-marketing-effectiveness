@@ -1,0 +1,4 @@
+# Only needed to re-fit the model (not for the Streamlit app).
+google-meridian==2.1.0
+pandas
+scipy

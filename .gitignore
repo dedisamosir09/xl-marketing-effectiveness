@@ -6,3 +6,6 @@ __pycache__/
 .DS_Store
 .sites-runtime/
 
+
+# Meridian fitted model and generated workbook (re-create with meridian/train_meridian.py)
+meridian/output/

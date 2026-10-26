@@ -36,11 +36,13 @@ The MTA demo uses deterministic aggregate journey data covering about 40% of pla
 
 ## Marketing mix modeling demo
 
-- **Diminishing Return**: per-channel monthly response curves (incremental revenue, solid) with average iROAS (dashed, right axis), an efficient-range box (iROAS within 2% of its peak), current and scenario budget markers, channel insights, a recommendation box, and an observed-vs-incremental summary table (Observed ROAS from Campaign Performance vs MMM iROAS)
-- **Budget Scenario Planner**: two planning objectives — Available Budget and Target KPI (monthly revenue) — per month with a planning horizon (start date + months). The reference budget always equals the current monthly budget of the channels selected in the scenario (e.g. all 4 channels Rp4.12B; Meta + TikTok Rp2.07B), and every comparison uses that reference
-- Global optimizer (dynamic programming over the budget above channel floors) that respects include/lock choices and ±% guardrails exactly; budgets outside the guardrail range are applied as an equal % change and flagged as extrapolation; channels funded past break-even (mROI < 1) are flagged
-- **Pause Planner**: carryover decay, KPI decline by pause length versus an allowed threshold, media budget saved, revenue lost during and after the pause, and the net effect
-- Saved scenario comparison (up to three plans plus the current reference): per plan the channel pool, reference budget → scenario budget, incremental revenue reference → scenario, plus a channel-by-channel breakdown (reference, scenario, change, incremental revenue, mROI); Load restores the plan's settings
+The MMM page is powered by a **Google Meridian** fit (geo-level Bayesian MMM, 20 geos × 104 weeks) on simulated demo data. See `meridian/README.md`. The fitted outputs live in `app/data/meridian_output.json`; Streamlit only reads that file and does not install Meridian.
+
+- **01 Budget Scenario Planner** (top of the page): two planning objectives — Available Budget and Target KPI (monthly revenue) — per month with a planning horizon (start date + months). The reference budget always equals the current monthly budget of the channels selected in the scenario (e.g. all 4 channels Rp4.12B; Meta + TikTok Rp2.07B), and every comparison uses that reference
+- **02 Diminishing Return**: per-channel monthly response curves (incremental revenue, solid) with average iROAS (dashed, right axis), an efficient-range box (iROAS within 2% of its peak), current and scenario budget markers, and an observed-vs-incremental summary table (Observed ROAS from Campaign Performance vs MMM iROAS)
+- Global optimizer (dynamic programming over the budget above channel floors) that respects include/lock choices and ±% guardrails exactly; budgets outside the guardrail range are applied as an equal % change and flagged as extrapolation; the allocation table shows each channel's position on the curve (in / above / below efficient range, past break-even)
+- **03 Pause Planner**: carryover decay, KPI decline by pause length versus an allowed threshold, media budget saved, revenue lost during and after the pause, and the net effect
+- **04 Saved scenario comparison** (up to three plans): each row shows Current vs Scenario side by side for budget, incremental revenue and iROAS, where Current is the current monthly budget of the channels selected in that plan; Load restores the plan's settings
 
 Signals use their own vocabulary (Invest more, Hold, Reduce, Test & learn) so they are not confused with the Campaign Performance channel roles.
 

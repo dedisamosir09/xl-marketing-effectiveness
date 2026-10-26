@@ -88,63 +88,12 @@
     <div class="mmm-scope-row" data-mmm-scope-copy></div>
   </section>
 
-  <section aria-labelledby="dr-title" data-diminishing-section>
-    <div class="mmm-section-heading">
-      <div>
-        <p class="mmm-kicker">01 · Diminishing Return</p>
-        <h2 id="dr-title" data-dr-headline>Where does each channel reach its most efficient budget?</h2>
-        <p>Solid line = incremental revenue per month. Dashed line = average iROAS. The shaded box is the efficient range, where iROAS stays within 2% of its peak.</p>
-      </div>
-    </div>
-    <div class="mmm-dr-legend" aria-label="Chart legend">
-      <span><i class="line"></i>Incremental revenue / month</span>
-      <span><i class="dash"></i>iROAS (right axis)</span>
-      <span><i class="box"></i>Efficient range</span>
-      <span><i class="dot current"></i>Current budget</span>
-      <span><i class="dot scenario"></i>Scenario budget</span>
-    </div>
-    <div class="mmm-dr-grid" data-dr-charts></div>
-    <div class="mmm-dr-side">
-      <div class="mmm-panel mmm-dr-insights">
-        <p class="mmm-kicker">What the curves say</p>
-        <ul data-dr-insights></ul>
-      </div>
-      <div class="mmm-dr-recommendation" data-dr-recommendation></div>
-    </div>
-    <div class="mmm-panel mmm-dr-table-panel">
-      <div class="mmm-panel-heading compact">
-        <div>
-          <p class="mmm-kicker">Channel efficiency summary</p>
-          <h3>Observed vs incremental return</h3>
-          <p>Observed ROAS comes from Campaign Performance (platform-reported revenue). iROAS comes from MMM (revenue that would not happen without the media). Incremental share = iROAS ÷ Observed ROAS.</p>
-        </div>
-      </div>
-      <div class="mmm-table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Channel</th>
-              <th class="numeric">Observed ROAS</th>
-              <th class="numeric">iROAS</th>
-              <th class="numeric">Incremental share</th>
-              <th class="numeric">Current budget / month</th>
-              <th class="numeric">Efficient range / month</th>
-              <th class="numeric">Next Rp1 return (mROI)</th>
-              <th>Signal</th>
-            </tr>
-          </thead>
-          <tbody data-dr-table></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
   <section aria-labelledby="planner-title" data-planner-section>
     <div class="mmm-section-heading">
       <div>
-        <p class="mmm-kicker">02 · Budget Scenario Planner</p>
+        <p class="mmm-kicker">01 · Budget Scenario Planner</p>
         <h2 id="planner-title">Test a budget and see the recommended channel mix</h2>
-        <p>The scenario budget is placed on the curves above (pink dots). Results are per month and for the full planning horizon.</p>
+        <p>The scenario budget is also shown on the diminishing-return curves below (pink dots). Results are per month and for the full planning horizon.</p>
       </div>
     </div>
     <div class="mmm-planner-layout" data-planner-workspace>
@@ -194,7 +143,6 @@
           <div><p class="mmm-kicker">Scenario result</p><h3 data-planner-result-title>Recommended channel mix</h3><p data-planner-horizon-copy></p></div>
           <button class="mmm-button save-scenario" type="button" data-save-scenario disabled>Save scenario</button>
         </div>
-        <div class="mmm-planner-banner" data-planner-banner hidden></div>
         <div class="mmm-planner-kpis" data-planner-kpis aria-live="polite"></div>
         <div class="mmm-table-wrap mmm-allocation-table">
           <table>
@@ -214,6 +162,50 @@
         </div>
         <div class="mmm-planner-recommendation" data-planner-recommendation></div>
       </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="dr-title" data-diminishing-section>
+    <div class="mmm-section-heading">
+      <div>
+        <p class="mmm-kicker">02 · Diminishing Return</p>
+        <h2 id="dr-title" data-dr-headline>Where does each channel reach its most efficient budget?</h2>
+        <p>Response curves estimated by Google Meridian. Solid line = incremental revenue per month. Dashed line = average iROAS. The shaded box is the efficient range, where iROAS stays within 2% of its peak.</p>
+      </div>
+    </div>
+    <div class="mmm-dr-legend" aria-label="Chart legend">
+      <span><i class="line"></i>Incremental revenue / month</span>
+      <span><i class="dash"></i>iROAS (right axis)</span>
+      <span><i class="box"></i>Efficient range</span>
+      <span><i class="dot current"></i>Current budget</span>
+      <span><i class="dot scenario"></i>Scenario budget (from planner)</span>
+    </div>
+    <div class="mmm-dr-grid" data-dr-charts></div>
+    <div class="mmm-panel mmm-dr-table-panel">
+      <div class="mmm-panel-heading compact">
+        <div>
+          <p class="mmm-kicker">Channel efficiency summary</p>
+          <h3>Observed vs incremental return</h3>
+          <p>Observed ROAS comes from Campaign Performance (platform-reported revenue). iROAS comes from the Google Meridian model (revenue that would not happen without the media). Incremental share = iROAS ÷ Observed ROAS.</p>
+        </div>
+      </div>
+      <div class="mmm-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Channel</th>
+              <th class="numeric">Observed ROAS</th>
+              <th class="numeric">iROAS</th>
+              <th class="numeric">Incremental share</th>
+              <th class="numeric">Current budget / month</th>
+              <th class="numeric">Efficient range / month</th>
+              <th class="numeric">Next Rp1 return (mROI)</th>
+              <th>Signal</th>
+            </tr>
+          </thead>
+          <tbody data-dr-table></tbody>
+        </table>
+      </div>
     </div>
   </section>
 
@@ -257,7 +249,7 @@
     <div class="mmm-section-heading">
       <div>
         <p class="mmm-kicker">04 · Saved Scenario Comparison</p>
-        <h2 id="saved-title">Compare saved plans — each against the reference budget of its own channels</h2>
+        <h2 id="saved-title">Compare saved plans — Current vs Scenario for the channels in each plan</h2>
       </div>
     </div>
     <article class="mmm-panel">

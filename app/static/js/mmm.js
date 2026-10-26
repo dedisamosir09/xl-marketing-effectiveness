@@ -38,8 +38,6 @@
     reset: q("[data-mmm-reset]"),
     drHeadline: q("[data-dr-headline]"),
     drCharts: q("[data-dr-charts]"),
-    drInsights: q("[data-dr-insights]"),
-    drRecommendation: q("[data-dr-recommendation]"),
     drTable: q("[data-dr-table]"),
     modeCopy: q("[data-planner-mode-copy]"),
     primary: q("[data-planner-primary]"),
@@ -59,7 +57,6 @@
     maxIncreaseOutput: q("[data-max-increase-output]"),
     resultTitle: q("[data-planner-result-title]"),
     horizonCopy: q("[data-planner-horizon-copy]"),
-    banner: q("[data-planner-banner]"),
     kpis: q("[data-planner-kpis]"),
     allocation: q("[data-planner-allocation]"),
     recommendation: q("[data-planner-recommendation]"),
@@ -110,6 +107,7 @@
     return `${number > 0 ? "+" : "−"}${Math.abs(number).toFixed(digits)}%`;
   };
   const ratio = (value) => `${(Number.isFinite(value) ? value : 0).toFixed(2)}x`;
+  const signedRatio = (value) => (Math.abs(value) < 0.005 ? "0.00x" : `${value > 0 ? "+" : "−"}${Math.abs(value).toFixed(2)}x`);
   const axisRp = (value) => {
     if (value === 0) return "0";
     if (Math.abs(value) >= 1e9) return `${Number((value / 1e9).toFixed(2))}B`;
@@ -363,10 +361,6 @@
         const result = proportional(budget, bounds);
         allocation = result.allocation;
         status = budget < floorTotal ? "below" : "above";
-        const change = (result.factor - 1) * 100;
-        notes.push(status === "below"
-          ? `Budget is below the lowest total the guardrails allow for ${pool.label} (${rp(floorTotal)}/month). Every unlocked channel is cut by ${pct(Math.abs(change), 0)} instead of optimized — this is outside the modeled range, treat it as directional.`
-          : `Budget is above the highest total the guardrails allow for ${pool.label} (${rp(ceilTotal)}/month). Every unlocked channel is raised by ${pct(change, 0)} instead of optimized — this is outside the modeled range, treat it as directional.`);
       }
     } else {
       const target = Math.max(0, (Number(state.primaryValue) || 0) * 1e9);
@@ -431,18 +425,6 @@
     });
     const budget = sum(plans, (plan) => plan.scenario);
     const media = sum(plans, (plan) => plan.scenarioIncr);
-    const isPast = (plan) => plan.scenario > 0 && plan.scenarioMroi < 1 && plan.scenario > plan.band.high;
-    const lockedPast = plans.filter((plan) => isPast(plan) && bounds[plan.name]?.locked);
-    const pastBreakEven = plans.filter((plan) => isPast(plan) && !bounds[plan.name]?.locked);
-    if (lockedPast.length) {
-      notes.push(`${lockedPast.map((plan) => `${plan.name} is locked at ${rp(plan.scenario)}/month, past break-even (next Rp1 returns ${ratio(plan.scenarioMroi)})`).join("; ")}. Unlock it to let the planner rebalance.`);
-    }
-    if (pastBreakEven.length) {
-      notes.push(`${pastBreakEven.map((plan) => plan.name).join(" and ")} ${pastBreakEven.length > 1 ? "are" : "is"} funded past break-even (next Rp1 returns less than Rp1) because the budget must be fully spent and stronger channels are at their caps. Consider a smaller budget or wider caps.`);
-    }
-    if (pool.excluded.length) {
-      notes.push(`Not in this scenario: ${pool.excluded.map((channel) => `${channel.name} (reference ${rp(channel.monthly)}/month, ${rp(channel.incr)} incremental revenue)`).join(", ")}. Comparisons use the reference of the selected channels only (${rp(pool.budget)}/month).`);
-    }
     return {
       mode: state.mode,
       status,
@@ -587,21 +569,10 @@
     });
   }
 
-  function channelInsight(channel) {
-    const range = `${rp(channel.band.low)}–${rp(channel.band.high)}/month`;
-    const peak = ratio(channel.band.peakIroas);
-    if (channel.signal === "Reduce") return `<strong>${channel.name} is past its efficient range.</strong> Efficiency peaks at ${range} (iROAS ≈${peak}); the current ${rp(channel.monthly)}/month earns ${ratio(channel.iroas)} on average and only ${ratio(channel.mroi)} on the next rupiah.`;
-    if (channel.signal === "Invest more") return `<strong>${channel.name} still has headroom.</strong> Efficiency peaks at ${range} (iROAS ≈${peak}); the current ${rp(channel.monthly)}/month is below that range and the next rupiah returns ${ratio(channel.mroi)}.`;
-    if (channel.signal === "Test & learn") return `<strong>${channel.name} reaches peak efficiency quickly on a small base.</strong> The efficient range is ${range} (iROAS ≈${peak}); the current ${rp(channel.monthly)}/month returns ${ratio(channel.mroi)} on the next rupiah — validate with a controlled test.`;
-    return `<strong>${channel.name} is operating inside its efficient range</strong> (${range}, iROAS ≈${peak}); keep spend within that range — it can fund reallocation without leaving it.`;
-  }
-
   function renderDiminishing() {
     const channels = reference.channels;
     const invest = channels.filter((channel) => channel.signal === "Invest more").sort((a, b) => b.mroi - a.mroi);
     const reduce = channels.filter((channel) => channel.signal === "Reduce").sort((a, b) => (b.monthly - b.band.high) - (a.monthly - a.band.high));
-    const test = channels.filter((channel) => channel.signal === "Test & learn");
-    const hold = channels.filter((channel) => channel.signal === "Hold");
     if (invest.length && reduce.length) el.drHeadline.textContent = `${invest[0].name} has the most headroom, while ${reduce[0].name} is already past its efficient range`;
     else if (invest.length) el.drHeadline.textContent = `${invest[0].name} has the most headroom for additional investment`;
     else if (reduce.length) el.drHeadline.textContent = `${reduce[0].name} is past its efficient range — rebalance before adding budget`;
@@ -609,15 +580,6 @@
 
     el.drCharts.innerHTML = channels.map(diminishingChart).join("");
     bindDiminishingHover();
-    el.drInsights.innerHTML = channels.map((channel) => `<li style="--channel-color:${channel.color}">${channelInsight(channel)}</li>`).join("");
-
-    const bullets = [];
-    if (invest.length) bullets.push(`Direct additional investment to ${invest.map((c) => c.name).join(" and ")} first — the next rupiah returns ${invest.map((c) => `${ratio(c.mroi)} (${c.name})`).join(", ")}.`);
-    if (reduce.length) bullets.push(`Bring ${reduce.map((c) => c.name).join(" and ")} back toward ${reduce.length > 1 ? "their" : "its"} efficient range (${reduce.map((c) => `${rp(c.band.high)}/month`).join(", ")}) before adding budget.`);
-    if (test.length) bullets.push(`Fund ${test.map((c) => c.name).join(" and ")} as a controlled test within ${test.map((c) => `${rp(c.band.low)}–${rp(c.band.high)}/month`).join(", ")}.`);
-    if (hold.length) bullets.push(`Keep ${hold.map((c) => c.name).join(" and ")} inside ${hold.length > 1 ? "their" : "its"} efficient range (${hold.map((c) => `${rp(c.band.low)}–${rp(c.band.high)}/month`).join(", ")}); trimming within that range is acceptable when reallocating.`);
-    el.drRecommendation.innerHTML = `<p class="mmm-kicker">Recommendation</p><ul>${bullets.map((b) => `<li>${b}</li>`).join("")}</ul>`;
-
     el.drTable.innerHTML = channels.map((channel) => `<tr>
       <td><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span></td>
       <td class="numeric">${ratio(channel.observedRoas)}</td>
@@ -692,10 +654,6 @@
     const pool = s.pool;
     el.resultTitle.textContent = s.status === "below" || s.status === "above" ? "Equal % change (outside guardrails)" : "Recommended channel mix";
     el.horizonCopy.textContent = `${MODE_LABELS[s.mode]} · ${pool.label} · ${state.horizonMonths} month${state.horizonMonths === 1 ? "" : "s"} (${formatDate(state.horizonStart)} – ${formatDate(addMonths(state.horizonStart, state.horizonMonths))})`;
-    el.banner.hidden = !s.notes.length;
-    el.banner.className = `mmm-planner-banner ${s.status === "optimized" ? "info" : "warn"}`;
-    el.banner.innerHTML = s.notes.map((note) => `<p>${escapeHtml(note)}</p>`).join("");
-
     const months = state.horizonMonths;
     const cards = [
       ["Reference budget / month", rp(s.poolBudget), `${pool.label} · ${rp(s.poolBudget * months)} over ${months} mo`, ""],
@@ -729,11 +687,12 @@
       const moves = `${up.length ? `Increase ${up.map((p) => `${p.name} (${signedPct(p.deltaPct, 0)})`).join(", ")}` : "No channel increases"}${down.length ? `; reduce ${down.map((p) => `${p.name} (${signedPct(p.deltaPct, 0)})`).join(", ")}` : ""}.`;
       const perRupiah = Math.abs(safeDivide(s.mediaDelta, s.budgetDelta));
       text = s.budgetDelta > 0
-        ? `Budget rises ${rp(s.budgetDelta)}/month versus the ${pool.label} reference. ${moves} Incremental revenue changes ${signedRp(s.mediaDelta)}/month (${signedPct(s.mediaDeltaPct)}) — about Rp${perRupiah.toFixed(2)} per extra rupiah, including the gain from moving money into higher-return channels.`
+        ? `Budget rises ${rp(s.budgetDelta)}/month versus the ${pool.label} reference. ${moves} Incremental revenue changes ${signedRp(s.mediaDelta)}/month (${signedPct(s.mediaDeltaPct)}) — about Rp${perRupiah.toFixed(2)} per extra rupiah${s.status === "optimized" ? ", including the gain from moving money into higher-return channels" : ""}.`
         : s.mediaDelta < 0
           ? `Budget falls ${rp(Math.abs(s.budgetDelta))}/month versus the ${pool.label} reference. ${moves} Incremental revenue changes ${signedRp(s.mediaDelta)}/month (${signedPct(s.mediaDeltaPct)}) — about Rp${perRupiah.toFixed(2)} of revenue given up per rupiah saved.`
           : `Budget falls ${rp(Math.abs(s.budgetDelta))}/month, yet incremental revenue still changes ${signedRp(s.mediaDelta)}/month (${signedPct(s.mediaDeltaPct)}) because money moves into higher-return channels. ${moves}`;
     }
+    if (s.notes.length) text = `${s.notes.join(" ")} ${text}`;
     el.recommendation.innerHTML = `<span class="mmm-kicker">Interpretation</span><p>${text}</p>`;
     el.save.disabled = false;
   }
@@ -941,74 +900,44 @@
     };
   }
 
-  function referenceRecord() {
-    return {
-      name: "Current reference",
-      mode: "—",
-      isReference: true,
-      months: state.horizonMonths,
-      poolLabel: `all ${reference.channels.length} channels`,
-      poolNames: reference.channels.map((c) => c.name),
-      poolBudget: reference.totalMonthly,
-      poolMedia: reference.media,
-      budget: reference.totalMonthly,
-      media: reference.media,
-      iroas: reference.iroas,
-      mroi: safeDivide(sum(reference.channels, (c) => c.mroi * c.monthly), reference.totalMonthly),
-      channels: reference.channels.map((c) => ({ name: c.name, color: c.color, inPool: true, locked: false, refBudget: c.monthly, budget: c.monthly, refIncr: c.incr, incr: c.incr, mroi: c.mroi })),
-    };
-  }
-
   function renderSaved() {
-    const ref = referenceRecord();
-    const records = [ref, ...state.saved];
     const saved = state.saved;
     const best = saved.slice().sort((a, b) => b.media - a.media)[0];
     const efficient = saved.slice().sort((a, b) => b.iroas - a.iroas)[0];
     let copy;
-    if (!saved.length) copy = "No plan saved yet. Adjust the planner and click <em>Save scenario</em> (up to three). Each saved plan keeps its own reference budget — the current budget of the channels selected in that plan.";
-    else if (saved.length === 1) copy = `<strong>${escapeHtml(saved[0].name)}</strong>: reference ${rp(saved[0].poolBudget)}/month for ${escapeHtml(saved[0].poolLabel)} → scenario ${rp(saved[0].budget)}/month; incremental revenue ${signedRp(saved[0].media - saved[0].poolMedia)}/month versus that reference.`;
+    if (!saved.length) copy = "No plan saved yet. Adjust the planner and click <em>Save scenario</em> (up to three). Each plan is compared with the current budget of the channels selected in that plan.";
+    else if (saved.length === 1) copy = `<strong>${escapeHtml(saved[0].name)}</strong>: current ${rp(saved[0].poolBudget)}/month for ${escapeHtml(saved[0].poolLabel)} → scenario ${rp(saved[0].budget)}/month; incremental revenue ${signedRp(saved[0].media - saved[0].poolMedia)}/month versus current.`;
     else if (best.name === efficient.name) copy = `<strong>${escapeHtml(best.name)}</strong> gives both the highest incremental revenue (${rp(best.media)}/month) and the highest iROAS (${ratio(best.iroas)}).`;
     else copy = `<strong>${escapeHtml(best.name)}</strong> maximizes incremental revenue (${rp(best.media)}/month), while <strong>${escapeHtml(efficient.name)}</strong> is the most efficient (${ratio(efficient.iroas)}). Choose by whether growth or efficiency is the binding goal.`;
 
-    const summaryRows = records.map((record, index) => {
+    if (!saved.length) { el.saved.innerHTML = `<p class="mmm-saved-copy">${copy}</p>`; return; }
+
+    const rows = saved.map((record, index) => {
       const budgetDelta = record.budget - record.poolBudget;
       const mediaDelta = record.media - record.poolMedia;
-      return `<tr class="${record.isReference ? "reference" : ""}">
-      <td><strong>${escapeHtml(record.name)}</strong><small>${escapeHtml(record.mode)}${record.isReference ? "" : ` · ${record.months} mo`}</small></td>
+      const refIroas = safeDivide(record.poolMedia, record.poolBudget);
+      return `<tr>
+      <td><strong>${escapeHtml(record.name)}</strong><small>${escapeHtml(record.mode)} · ${record.months} mo</small></td>
       <td>${escapeHtml(record.poolLabel)}</td>
-      <td class="numeric">${rp(record.poolBudget)} → <strong>${rp(record.budget)}</strong><small>${record.isReference ? "reference" : `${signedRp(budgetDelta)} (${signedPct(safeDivide(budgetDelta, record.poolBudget) * 100)})`}</small></td>
-      <td class="numeric">${rp(record.poolMedia)} → <strong>${rp(record.media)}</strong><small class="${record.isReference ? "" : mediaDelta >= 0 ? "up" : "down"}">${record.isReference ? "reference" : `${signedRp(mediaDelta)} (${signedPct(safeDivide(mediaDelta, record.poolMedia) * 100)})`}</small></td>
-      <td class="numeric">${ratio(safeDivide(record.poolMedia, record.poolBudget))} → <strong>${ratio(record.iroas)}</strong></td>
-      <td>${record.isReference ? "" : `<div class="mmm-row-actions"><button type="button" data-load-scenario="${index - 1}">Load</button><button type="button" data-remove-scenario="${index - 1}">Remove</button></div>`}</td>
+      <td class="numeric ref">${rp(record.poolBudget)}</td>
+      <td class="numeric"><strong>${rp(record.budget)}</strong><small>${signedRp(budgetDelta)} (${signedPct(safeDivide(budgetDelta, record.poolBudget) * 100)})</small></td>
+      <td class="numeric ref">${rp(record.poolMedia)}</td>
+      <td class="numeric"><strong>${rp(record.media)}</strong><small class="${mediaDelta >= 0 ? "up" : "down"}">${signedRp(mediaDelta)} (${signedPct(safeDivide(mediaDelta, record.poolMedia) * 100)})</small></td>
+      <td class="numeric ref">${ratio(refIroas)}</td>
+      <td class="numeric"><strong>${ratio(record.iroas)}</strong><small class="${record.iroas >= refIroas ? "up" : "down"}">${signedRatio(record.iroas - refIroas)}</small></td>
+      <td><div class="mmm-row-actions"><button type="button" data-load-scenario="${index}">Load</button><button type="button" data-remove-scenario="${index}">Remove</button></div></td>
     </tr>`;
     }).join("");
 
-    const breakdown = records.map((record) => {
-      const rows = record.channels.map((channel) => {
-        const delta = channel.budget - channel.refBudget;
-        return `<tr class="${channel.inPool ? "" : "excluded"}">
-          <td><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span>${channel.locked ? '<small class="mmm-guard">Locked</small>' : ""}</td>
-          <td>${channel.inPool ? "Included" : "Not in pool"}</td>
-          <td class="numeric">${channel.inPool ? rp(channel.refBudget) : `<span class="struck">${rp(channel.refBudget)}</span>`}</td>
-          <td class="numeric">${rp(channel.budget)}</td>
-          <td class="numeric ${channel.inPool && delta > 1 ? "up" : channel.inPool && delta < -1 ? "down" : ""}">${channel.inPool && !record.isReference ? `${signedPct(safeDivide(delta, channel.refBudget) * 100)}<small>${signedRp(delta)}</small>` : "—"}</td>
-          <td class="numeric">${channel.inPool ? `${rp(channel.refIncr)} → ${rp(channel.incr)}` : "—"}</td>
-          <td class="numeric">${channel.budget > 0 ? ratio(channel.mroi) : "—"}</td>
-        </tr>`;
-      }).join("");
-      const excluded = record.channels.filter((channel) => !channel.inPool);
-      return `<tbody class="mmm-breakdown-group">
-        <tr class="group"><td colspan="7"><strong>${escapeHtml(record.name)}</strong> · reference ${rp(record.poolBudget)}/month for ${escapeHtml(record.poolLabel)}${excluded.length ? ` · not in pool: ${excluded.map((c) => `${c.name} (${rp(c.refBudget)})`).join(", ")}` : ""}</td></tr>
-        ${rows}
-        <tr class="total"><td><strong>Selected channels</strong></td><td>${record.poolNames.length} of ${record.channels.length}</td><td class="numeric"><strong>${rp(record.poolBudget)}</strong></td><td class="numeric"><strong>${rp(record.budget)}</strong></td><td class="numeric">${record.isReference ? "—" : signedPct(safeDivide(record.budget - record.poolBudget, record.poolBudget) * 100)}</td><td class="numeric">${rp(record.poolMedia)} → ${rp(record.media)}</td><td class="numeric">${ratio(record.mroi)}</td></tr>
-      </tbody>`;
-    }).join("");
-
     el.saved.innerHTML = `<p class="mmm-saved-copy">${copy}</p>
-      <div class="mmm-table-wrap"><table><thead><tr><th>Scenario</th><th>Channels in pool</th><th class="numeric">Budget / month<br>reference → scenario</th><th class="numeric">Incremental revenue / month<br>reference → scenario</th><th class="numeric">iROAS<br>reference → scenario</th><th></th></tr></thead><tbody>${summaryRows}</tbody></table></div>
-      <div class="mmm-breakdown-heading"><span class="mmm-kicker">Channel breakdown</span><p>Reference = current monthly budget of each channel in the analysis period. A plan's reference total only counts the channels selected in that plan.</p></div>
-      <div class="mmm-table-wrap mmm-breakdown"><table><thead><tr><th>Channel</th><th>Pool</th><th class="numeric">Reference / month</th><th class="numeric">Scenario / month</th><th class="numeric">Change</th><th class="numeric">Incr. revenue ref → scenario</th><th class="numeric">mROI</th></tr></thead>${breakdown}</table></div>`;
+      <div class="mmm-table-wrap mmm-saved-table"><table>
+        <thead>
+          <tr class="group"><th rowspan="2">Scenario</th><th rowspan="2">Channels</th><th colspan="2" class="numeric">Budget / month</th><th colspan="2" class="numeric">Incremental revenue / month</th><th colspan="2" class="numeric">iROAS</th><th rowspan="2"></th></tr>
+          <tr><th class="numeric ref">Current</th><th class="numeric">Scenario</th><th class="numeric ref">Current</th><th class="numeric">Scenario</th><th class="numeric ref">Current</th><th class="numeric">Scenario</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+      <p class="mmm-footnote">Current = current monthly budget and modeled result of the channels selected in that scenario only.</p>`;
   }
 
   // ---------- orchestration ----------
@@ -1016,7 +945,7 @@
     reference = buildReference();
     if (resetPrimary) state.primaryValue = null;
     const totalSpend = sum(reference.rows, (row) => sum(Object.values(row.spend), (v) => v));
-    el.scopeCopy.innerHTML = `<span class="mmm-scope-pill"><i></i>Model estimate · Channel × Day</span><span>${reference.days} days selected · total spend ${rp(totalSpend)} → <strong>current budget ${rp(reference.totalMonthly)}/month</strong> · incremental revenue ${rp(reference.media)}/month (${ratio(reference.iroas)})</span>`;
+    el.scopeCopy.innerHTML = `<span class="mmm-scope-pill"><i></i>${escapeHtml(dataset.meta.modelLabel || "Model estimate")}</span><span>${reference.days} days selected · total spend ${rp(totalSpend)} → <strong>current budget ${rp(reference.totalMonthly)}/month</strong> · incremental revenue ${rp(reference.media)}/month (${ratio(reference.iroas)})</span>`;
     renderPlannerControls();
     solve();
     renderSaved();
