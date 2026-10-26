@@ -1,19 +1,36 @@
-from datetime import date, timedelta
+"""MTA demo journeys aligned with Campaign Performance.
+
+* Journeys are a tracked subset (MTA_TRACKED_COVERAGE) of platform-reported package purchases:
+  last-touch package purchases and revenue per channel equal coverage x Campaign purchases/revenue.
+* Revenue per purchase uses the same channel package values (AOV) as Campaign Performance.
+* Every journey row references a real campaign from the shared master list, so campaign,
+  objective, media plan and placement filters mean the same thing on every page.
+"""
+
+from collections import defaultdict
 import json
 import math
 import random
 
-from .campaign_performance import CAMPAIGN_OBJECTIVES, CHANNEL_CONFIG, DEFAULT_END, DEFAULT_START, MEDIA_PLANS
-
-
-TARGET_JOURNEYS = 30_000
-TARGET_USERS = 15_561
-TARGET_TOUCHPOINTS = 67_894
-TARGET_CONVERSIONS = 9_952
-TARGET_REVENUE = 759_710_000
+from .campaign_performance import generate_campaign_dataset
+from .master import (
+    CAMPAIGN_OBJECTIVES,
+    CHANNELS,
+    DEFAULT_END,
+    DEFAULT_START,
+    LAST_UPDATED,
+    MEDIA_PLANS,
+    MTA_TRACKED_COVERAGE,
+    allocate_integers,
+    date_range,
+)
 
 USER_TYPES = ["New User", "Existing User", "Returning User"]
 TARGET_EVENTS = ["Package Purchase", "Recharge", "App Install"]
+RECHARGE_TO_PURCHASE = 0.90
+INSTALL_TO_PURCHASE = 0.80
+RECHARGE_VALUE = 45_000
+OBJECTIVE_CVR = {"Awareness": 0.72, "Consideration": 0.91, "Conversion": 1.22, "Social Media Engagement": 0.81}
 
 PATH_ARCHETYPES = [
     {"channels": ["Google"], "weight": 0.40, "entry": "Deep Link", "engagement": "Promo View", "intent": "Package Detail", "drop": "Exit", "conversionRate": 0.43},
@@ -29,13 +46,6 @@ PATH_ARCHETYPES = [
     {"channels": ["Meta", "TikTok"], "weight": 0.01, "entry": "App Install", "engagement": "Promo Banner", "intent": "Package Detail", "drop": "Exit", "conversionRate": 0.33},
     {"channels": ["Google", "X"], "weight": 0.01, "entry": "App Open", "engagement": "Search", "intent": "Package Detail", "drop": "Payment Failed", "conversionRate": 0.29},
 ]
-
-
-def _date_range(start, end):
-    current = start
-    while current <= end:
-        yield current
-        current += timedelta(days=1)
 
 
 def _allocate(raw_values, target, caps=None):
@@ -93,63 +103,89 @@ def _build_paths(archetype, target_event, converted):
     return marketing_path, app_path, end_path
 
 
+
+
+def _campaign_targets():
+    dataset = generate_campaign_dataset()
+    campaigns = dataset["campaigns"]
+    lookup = {item["id"]: item for item in campaigns}
+    purchases = defaultdict(int)
+    revenue = defaultdict(int)
+    start, end = DEFAULT_START.isoformat(), DEFAULT_END.isoformat()
+    for row in dataset["rows"]:
+        if start <= row[0] <= end:
+            channel = lookup[row[1]]["channel"]
+            purchases[channel] += row[7]
+            revenue[channel] += row[8]
+    by_channel = defaultdict(list)
+    for item in campaigns:
+        by_channel[item["channel"]].append(item)
+    return purchases, revenue, by_channel
+
+
 def generate_mta_dataset():
     rng = random.Random(20260825)
-    group_rows = []
-    dates = list(_date_range(DEFAULT_START, DEFAULT_END))
+    campaign_purchases, campaign_revenue, campaigns_by_channel = _campaign_targets()
+    dates = list(date_range(DEFAULT_START, DEFAULT_END))
 
+    group_rows = []
     for day_index, current_date in enumerate(dates):
         weekday = 0.92 if current_date.weekday() >= 5 else 1.04
         seasonal = 1 + 0.12 * math.sin(day_index / 18 * math.tau)
         payday = 1.18 if current_date.day in {1, 2, 15, 16, 25} else 1
-
         for archetype_index, archetype in enumerate(PATH_ARCHETYPES):
             channel = archetype["channels"][0]
-            objective = CAMPAIGN_OBJECTIVES[(day_index + archetype_index * 3) % len(CAMPAIGN_OBJECTIVES)]
-            media_plan = MEDIA_PLANS[(day_index // 9 + archetype_index) % len(MEDIA_PLANS)]
+            pool = campaigns_by_channel[channel]
+            campaign = pool[(day_index * 7 + archetype_index * 3) % len(pool)]
             target_event = TARGET_EVENTS[(day_index // 12 + archetype_index) % len(TARGET_EVENTS)]
-            placement_options = CHANNEL_CONFIG[channel]["placements"]
-            placement = placement_options[(day_index + archetype_index) % len(placement_options)]
-            user_type = USER_TYPES[(day_index // 7 + archetype_index) % len(USER_TYPES)]
-            campaign = (
-                f"{media_plan.replace('AON-', '').replace(' ', '-').upper()}_"
-                f"{channel.upper()}_{objective.replace(' ', '-').upper()}_{(archetype_index % 8) + 1:02d}"
-            )
-            raw_journeys = (
-                archetype["weight"] * weekday * seasonal * payday * rng.uniform(0.82, 1.18)
-            )
-            conversion_modifier = {
-                "Awareness": 0.72,
-                "Consideration": 0.91,
-                "Conversion": 1.22,
-                "Social Media Engagement": 0.81,
-            }[objective]
-            conversion_rate = min(0.68, archetype["conversionRate"] * conversion_modifier * rng.uniform(0.9, 1.1))
+            cvr = min(0.68, archetype["conversionRate"] * OBJECTIVE_CVR[campaign["funnel"]] * rng.uniform(0.9, 1.1))
             group_rows.append(
                 {
                     "date": current_date.isoformat(),
-                    "product": "Prepaid",
-                    "mediaPlan": media_plan,
-                    "objective": objective,
-                    "placement": placement,
-                    "campaign": campaign,
-                    "userType": user_type,
+                    "product": campaign["product"],
+                    "mediaPlan": campaign["mediaPlan"],
+                    "objective": campaign["funnel"],
+                    "placement": campaign["placement"],
+                    "campaign": campaign["campaign"],
+                    "userType": USER_TYPES[(day_index // 7 + archetype_index) % len(USER_TYPES)],
                     "targetEvent": target_event,
                     "archetype": archetype,
-                    "rawJourneys": raw_journeys,
-                    "conversionRate": conversion_rate,
+                    "lastChannel": archetype["channels"][-1],
+                    "weight": archetype["weight"] * weekday * seasonal * payday * rng.uniform(0.82, 1.18),
+                    "conversionRate": cvr,
                     "durationHours": max(0.2, rng.lognormvariate(1.15, 0.7)),
-                    "quality": rng.uniform(0.88, 1.14),
+                    "valueFactor": rng.uniform(0.95, 1.05),
                 }
             )
 
-    journeys = _allocate([row["rawJourneys"] for row in group_rows], TARGET_JOURNEYS)
-    raw_conversions = [journeys[index] * row["conversionRate"] for index, row in enumerate(group_rows)]
-    conversions = _allocate(raw_conversions, TARGET_CONVERSIONS, caps=journeys)
+    # Package purchases: last-touch conversions and revenue per channel = coverage x Campaign.
+    conversions = [0] * len(group_rows)
+    revenue = [0] * len(group_rows)
+    purchase_total = 0
+    for channel, config in CHANNELS.items():
+        indices = [i for i, row in enumerate(group_rows) if row["targetEvent"] == "Package Purchase" and row["lastChannel"] == channel]
+        target = round(campaign_purchases[channel] * MTA_TRACKED_COVERAGE)
+        purchase_total += target
+        allocated = allocate_integers([group_rows[i]["weight"] * group_rows[i]["conversionRate"] for i in indices], target)
+        for i, value in zip(indices, allocated):
+            conversions[i] = value
+        revenue_target = round(campaign_revenue[channel] * MTA_TRACKED_COVERAGE)
+        revenue_parts = allocate_integers([conversions[i] * config["aov"] * group_rows[i]["valueFactor"] for i in indices], revenue_target)
+        for i, value in zip(indices, revenue_parts):
+            revenue[i] = value
+
+    for event, ratio, value in (("Recharge", RECHARGE_TO_PURCHASE, RECHARGE_VALUE), ("App Install", INSTALL_TO_PURCHASE, 0)):
+        indices = [i for i, row in enumerate(group_rows) if row["targetEvent"] == event]
+        allocated = allocate_integers([group_rows[i]["weight"] * group_rows[i]["conversionRate"] for i in indices], round(purchase_total * ratio))
+        for i, amount in zip(indices, allocated):
+            conversions[i] = amount
+            revenue[i] = round(amount * value * group_rows[i]["valueFactor"]) if value else 0
 
     expanded = []
     for index, row in enumerate(group_rows):
-        for converted, count in ((True, conversions[index]), (False, journeys[index] - conversions[index])):
+        converted_count = conversions[index]
+        journeys = max(converted_count, round(converted_count / row["conversionRate"])) if converted_count else 0
+        for converted, count in ((True, converted_count), (False, journeys - converted_count)):
             if count <= 0:
                 continue
             marketing_path, app_path, end_path = _build_paths(row["archetype"], row["targetEvent"], converted)
@@ -173,40 +209,34 @@ def generate_mta_dataset():
                     "users": 0,
                     "touchpoints": 0,
                     "conversions": count if converted else 0,
-                    "revenue": 0,
+                    "revenue": revenue[index] if converted else 0,
                     "marketingPath": marketing_path,
                     "appPath": app_path,
                     "endToEndPath": end_path,
-                    "quality": row["quality"],
                 }
             )
 
+    total_journeys = sum(row["journeys"] for row in expanded)
     user_raw = [row["journeys"] * (0.61 if row["outcome"] == "Converted" else 0.47) for row in expanded]
-    users = _allocate(user_raw, TARGET_USERS, caps=[row["journeys"] for row in expanded])
+    users = _allocate(user_raw, round(sum(user_raw)), caps=[row["journeys"] for row in expanded])
     touch_raw = [row["journeys"] * (len(row["channels"]) + 1.18) for row in expanded]
-    touchpoints = _allocate(touch_raw, TARGET_TOUCHPOINTS)
-    revenue_raw = [
-        row["conversions"] * (72_000 + 13_500 * row["quality"])
-        if row["conversions"] and row["targetEvent"] != "App Install" else 0
-        for row in expanded
-    ]
-    revenues = _allocate(revenue_raw, TARGET_REVENUE)
-
+    touchpoints = _allocate(touch_raw, round(sum(touch_raw)))
     for index, row in enumerate(expanded):
         row["users"] = users[index]
         row["touchpoints"] = touchpoints[index]
-        row["revenue"] = revenues[index]
-        row.pop("quality")
 
     return {
         "meta": {
-            "dataset": "Deterministic MTA demo data",
+            "dataset": "Deterministic MTA demo data (master model)",
             "defaultStart": DEFAULT_START.isoformat(),
             "defaultEnd": DEFAULT_END.isoformat(),
             "defaultTargetEvent": "Package Purchase",
-            "lastUpdated": "2026-08-24T23:59:00+07:00",
+            "lastUpdated": LAST_UPDATED,
             "currency": "IDR",
             "methodology": "Observed journey attribution; not incremental impact",
+            "trackedCoverage": MTA_TRACKED_COVERAGE,
+            "coverageNote": "Tracked journeys cover about 40% of platform-reported package purchases; last-touch purchases and revenue reconcile to Campaign Performance x 40%.",
+            "totalJourneys": total_journeys,
         },
         "rows": expanded,
     }

@@ -73,88 +73,72 @@ class DashboardRendererTest(unittest.TestCase):
         self.assertIn("data-learning-objective", page)
         self.assertIn("Campaign Performance Table", page)
 
-    def test_mmm_page_contains_locked_decision_workflow(self):
+    def test_mmm_page_contains_decision_workflow(self):
         page = render_page("mmm")
         self.assertEqual(page.count('aria-current="page"'), 1)
         self.assertIn("data-mmm-dashboard", page)
-        self.assertNotIn("Marketing Impact Overview", page)
-        self.assertNotIn("Channel Effectiveness", page)
-        self.assertIn("01 · Business Planner", page)
-        self.assertNotIn("03 · Business Planner", page)
-        self.assertNotIn("Advanced Model Details", page)
-        self.assertNotIn("Interpretation guardrail", page)
-        self.assertIn('data-planner-mode="budget"', page)
-        self.assertIn('data-planner-mode="target"', page)
-        self.assertIn('data-planner-mode="roi"', page)
-        self.assertIn('data-planner-mode="manual"', page)
-        self.assertIn('data-planning-unit="week"', page)
-        self.assertIn('data-planning-unit="month"', page)
-        self.assertIn('data-planning-unit="year"', page)
-        self.assertIn("data-planning-start", page)
-        self.assertIn("data-planning-periods", page)
-        self.assertIn("data-planning-end-date", page)
-        self.assertIn('data-hiatus-preset="4"', page)
-        self.assertIn("data-hiatus-trajectory", page)
-        self.assertIn("data-planner-active-summary", page)
-        self.assertIn("data-planner-channel-selector", page)
-        self.assertIn("data-select-all-channels", page)
-        self.assertIn("The full scenario budget", page)
-        self.assertIn("data-planner-recommendation", page)
-        self.assertIn("Channel Response Curve", page)
-        self.assertIn("data-response-insight", page)
-        self.assertIn("Efficiency lens", page)
-        self.assertIn("iROAS guide", page)
-        self.assertIn("mROI guide", page)
-        self.assertIn("Saved Scenario Comparison", page)
-        self.assertIn("data-saved-scenario-panel", page)
-        self.assertIn("save-scenario", page)
-        self.assertIn("channel-by-channel allocation shifts", page)
-        self.assertIn("±10% budget sensitivity", page)
-        self.assertIn("Carryover Decay", page)
-        self.assertIn("Timing &amp; continuity planner", page)
-        self.assertIn("Allowed KPI decline threshold", page)
-        self.assertIn("data-response-labels", page)
-        self.assertIn("data-carryover-labels", page)
-        self.assertNotIn("Budget Phasing", page)
-        self.assertNotIn("data-planner-horizon", page)
-        self.assertNotIn("data-planner-phasing", page)
+        self.assertIn("01 · Diminishing Return", page)
+        self.assertIn("02 · Budget Scenario Planner", page)
+        self.assertIn("03 · Pause Planner", page)
+        self.assertIn("04 · Saved Scenario Comparison", page)
+        for hook in ("data-dr-charts", "data-dr-insights", "data-dr-recommendation", "data-dr-table",
+                     "data-planner-kpis", "data-planner-allocation", "data-planner-banner",
+                     "data-horizon-start", "data-horizon-months", "data-guardrails",
+                     "data-hiatus-channels", "data-hiatus-trajectory", "data-mmm-carryover-curve",
+                     "data-saved-scenario-panel", "data-save-scenario"):
+            self.assertIn(hook, page)
+        for mode in ("budget", "target"):
+            self.assertIn(f'data-planner-mode="{mode}"', page)
+        for removed_mode in ("roi", "manual"):
+            self.assertNotIn(f'data-planner-mode="{removed_mode}"', page)
+        self.assertNotIn("data-manual-inputs", page)
+        self.assertIn("Available Budget", page)
+        self.assertIn("Target KPI", page)
+        self.assertIn("Efficient range", page)
+        self.assertIn("Observed vs incremental return", page)
+        self.assertIn("Available media budget per month", page)
         self.assertNotIn("Campaign Name", page)
         self.assertNotIn("Placement", page)
+        self.assertNotIn("Budget Phasing", page)
 
         script = Path("app/static/js/mmm.js").read_text(encoding="utf-8")
-        self.assertIn("Key Allocation Shift", script)
-        self.assertIn("Saved scenario output", script)
-        self.assertIn("Scenario Channel Budget", script)
-        self.assertIn("Matches Scenario output", script)
-        self.assertIn("mmm-scenario-table-shell", script)
-        self.assertIn("data-saved-scenario-panel", script)
-        self.assertIn("Baseline mix", script)
-        self.assertIn("No selected-channel shift", script)
-        self.assertIn("— No change", script)
-        self.assertIn("scenario.constraints?.selectedChannels", script)
-        self.assertIn("buildScenarioChannelPlans", script)
-        self.assertIn("scenario.channelPlans[channel.name]", script)
-        self.assertIn("allocationScaleMaximum", script)
-        self.assertIn("maximumScenarioIncreaseRatio", script)
-        self.assertIn("selectedChannels: new Set()", script)
-        self.assertIn("selectedPlannerChannels", script)
-        self.assertIn("selectedForAllocation", script)
-        self.assertIn("unselected channels receive Rp0", script)
-        self.assertIn("Fixed 0–", script)
-        self.assertNotIn("scenario.reference.channels.flatMap", script)
-        self.assertNotIn(".slice(0, 2)", script)
+        for snippet in ("function optimize(", "function proportional(", "function buildCurves(",
+                        "Invest more", "Test & learn", "Revenue lost after restart",
+                        "Equal % change (outside guardrails)", "funded past break-even",
+                        "xl-mmm-saved-scenarios-v3", "function poolReference(", "Channel breakdown",
+                        "Reference budget / month", "Not in pool"):
+            self.assertIn(snippet, script)
+        for removed in ("renderChannelMatrix", "renderDecomposition", "renderModelMetrics", "allocateRemaining",
+                        "Minimum iROAS", "Manual mix", "state.manual"):
+            self.assertNotIn(removed, script)
 
-    def test_mmm_dataset_matches_channel_level_model_scope(self):
+    def test_mmm_dataset_is_derived_from_campaign_spend(self):
         dataset = generate_mmm_dataset()
+        campaign = generate_campaign_dataset()
         self.assertEqual(len(dataset["rows"]), 144)
         self.assertEqual(len(dataset["channels"]), 4)
         self.assertEqual(sum(sum(row["spend"].values()) for row in dataset["rows"]), 19_468_400_000)
-        self.assertEqual(sum(sum(row["media"].values()) for row in dataset["rows"]), 49_990_782_480)
-        self.assertEqual(sum(row["actual"] for row in dataset["rows"]), 144_120_000_000)
         self.assertEqual(dataset["meta"]["grain"], "Channel × Day")
         self.assertEqual(dataset["meta"]["businessKpis"], ["Revenue"])
-        self.assertNotIn("demoAnnualPhasing", dataset["meta"])
-        self.assertNotIn("annualSeasonality", dataset)
+        signals = {channel["name"]: channel["signal"] for channel in dataset["channels"]}
+        self.assertEqual(signals, {"Google": "Reduce", "Meta": "Invest more", "TikTok": "Hold", "X": "Test & learn"})
+        for channel in dataset["channels"]:
+            self.assertLess(channel["incrementalShare"], 1)
+            self.assertLess(channel["efficientRange"]["low"], channel["efficientRange"]["high"])
+            media = sum(row["media"][channel["name"]] for row in dataset["rows"])
+            self.assertEqual(media, channel["incrementalRevenue"])
+        lookup = {item["id"]: item["channel"] for item in campaign["campaigns"]}
+        observed = {}
+        for row in campaign["rows"]:
+            if dataset["meta"]["defaultStart"] <= row[0] <= dataset["meta"]["defaultEnd"]:
+                observed[lookup[row[1]]] = observed.get(lookup[row[1]], 0) + row[8]
+        for channel in dataset["channels"]:
+            self.assertEqual(sum(row["observed"][channel["name"]] for row in dataset["rows"]), observed[channel["name"]])
+
+    def test_cross_module_consistency_report_passes(self):
+        from scripts.validate_data import run_checks
+        failures = [name for name, passed, _ in run_checks() if not passed]
+        self.assertEqual(failures, [])
 
     def test_geo_page_contains_locked_opportunity_workflow(self):
         page = render_page("geo-intelligence")
@@ -203,10 +187,12 @@ class DashboardRendererTest(unittest.TestCase):
         self.assertEqual(len(dataset["channels"]), 4)
         self.assertEqual(dataset["meta"]["defaultStart"], GEO_DEFAULT_START.isoformat())
         self.assertEqual(dataset["meta"]["defaultEnd"], GEO_DEFAULT_END.isoformat())
-        self.assertEqual(dataset["meta"]["grain"], "City × Channel × Week")
-        self.assertEqual({row["product"] for row in dataset["rows"]}, {"Prepaid"})
-        self.assertEqual({row["channel"] for row in dataset["rows"]}, {"Google", "Meta", "TikTok", "X"})
-        self.assertEqual({row["objective"] for row in dataset["rows"]}, {"Awareness", "Consideration", "Conversion", "Social Media Engagement"})
+        self.assertEqual(dataset["meta"]["grain"], "City × Campaign × Week")
+        campaigns = {item["id"]: item for item in dataset["campaigns"]}
+        self.assertEqual({campaigns[row[2]]["product"] for row in dataset["rows"]}, {"Prepaid"})
+        self.assertEqual({campaigns[row[2]]["channel"] for row in dataset["rows"]}, {"Google", "Meta", "TikTok", "X"})
+        self.assertEqual({campaigns[row[2]]["funnel"] for row in dataset["rows"]}, {"Awareness", "Consideration", "Conversion", "Social Media Engagement"})
+        self.assertEqual({row[1] for row in dataset["rows"]}, set(range(50)))
 
     def test_demo_dataset_supports_locked_campaign_scope(self):
         dataset = generate_campaign_dataset()
@@ -221,20 +207,29 @@ class DashboardRendererTest(unittest.TestCase):
         self.assertEqual(len(dataset["targets"]), 138 * 144)
         self.assertEqual(dataset["meta"]["targetSource"], "Illustrative media plan and business targets")
         self.assertTrue(all(len(row) == len(dataset["meta"]["rowFields"]) for row in dataset["targets"]))
+        lookup = {item["id"]: item["channel"] for item in dataset["campaigns"]}
+        spend, revenue = {}, {}
+        for row in dataset["rows"]:
+            if dataset["meta"]["defaultStart"] <= row[0] <= dataset["meta"]["defaultEnd"]:
+                spend[lookup[row[1]]] = spend.get(lookup[row[1]], 0) + row[2]
+                revenue[lookup[row[1]]] = revenue.get(lookup[row[1]], 0) + row[8]
+        self.assertEqual(sum(spend.values()), 19_468_400_000)
+        self.assertEqual(sum(revenue.values()), 68_286_150_000)
 
-    def test_mta_demo_dataset_matches_locked_journey_totals(self):
+    def test_mta_demo_dataset_is_tracked_subset_of_campaign(self):
         dataset = generate_mta_dataset()
         rows = dataset["rows"]
-        self.assertEqual(sum(row["journeys"] for row in rows), 30_000)
-        self.assertEqual(sum(row["users"] for row in rows), 15_561)
-        self.assertEqual(sum(row["touchpoints"] for row in rows), 67_894)
-        self.assertEqual(sum(row["conversions"] for row in rows), 9_952)
-        self.assertEqual(sum(row["revenue"] for row in rows), 759_710_000)
+        purchases = [row for row in rows if row["targetEvent"] == "Package Purchase"]
+        self.assertEqual(sum(row["conversions"] for row in purchases), 367_984)
+        self.assertEqual(sum(row["revenue"] for row in purchases), 27_314_460_000)
         self.assertEqual(dataset["meta"]["methodology"], "Observed journey attribution; not incremental impact")
         self.assertEqual(dataset["meta"]["defaultTargetEvent"], "Package Purchase")
+        self.assertEqual(dataset["meta"]["trackedCoverage"], 0.40)
         self.assertTrue(all(row["revenue"] == 0 for row in rows if row["targetEvent"] == "App Install"))
         self.assertTrue(all(row["channel"] == row["channels"][0] for row in rows))
         self.assertEqual({row["channel"] for row in rows}, {"Google", "Meta", "TikTok", "X"})
+        campaign_names = {item["campaign"] for item in generate_campaign_dataset()["campaigns"]}
+        self.assertTrue(all(row["campaign"] in campaign_names for row in rows))
 
 
 if __name__ == "__main__":

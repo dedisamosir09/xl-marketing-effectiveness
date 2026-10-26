@@ -2,1541 +2,1184 @@
   const root = document.querySelector("[data-mmm-dashboard]");
   if (!root) return;
 
+  const STORAGE_KEY = "xl-mmm-saved-scenarios-v3";
+  const MAX_SAVED = 3;
+  const MODE_LABELS = { budget: "Available budget", target: "Target KPI" };
+  const MODE_COPY = {
+    budget: "Spend an available monthly budget across the selected channels. The planner moves money to the channels whose next rupiah returns the most, within the guardrails.",
+    target: "Set a monthly revenue target (baseline + media). The planner finds the smallest budget across the selected channels that reaches it.",
+  };
+  const SIGNAL_CLASS = { "Invest more": "invest", Hold: "hold", Reduce: "reduce", "Test & learn": "test" };
+
   const state = {
     dateStart: "2026-04-03",
     dateEnd: "2026-08-24",
-    product: "Prepaid",
-    kpi: "Revenue",
-    responseChannel: "Meta",
-    plannerMode: "budget",
-    planningUnit: "month",
-    planningStart: "2026-08-25",
-    planningPeriods: 3,
+    mode: "budget",
+    primaryValue: null,
+    preset: 1,
+    horizonStart: "2026-08-25",
+    horizonMonths: 3,
+    selected: new Set(),
+    locked: new Set(),
     maxDecrease: 30,
     maxIncrease: 60,
-    primaryValue: 0,
-    selectedChannels: new Set(),
-    locked: new Set(),
-    manualBudgets: {},
-    lastScenario: null,
-    savedScenarios: [],
+    hiatusChannel: "Meta",
+    hiatusWeeks: 2,
+    tolerance: 3,
+    saved: [],
   };
 
-  const SAVED_SCENARIO_STORAGE_KEY = "xl-mmm-saved-scenarios-v2";
-
-  const elements = {
-    status: root.querySelector("[data-mmm-status]"),
-    scopeCopy: root.querySelector("[data-mmm-scope-copy]"),
-    scorecards: root.querySelector("[data-mmm-scorecards]"),
-    trend: root.querySelector("[data-mmm-trend]"),
-    decomposition: root.querySelector("[data-mmm-decomposition]"),
-    channelMatrix: root.querySelector("[data-mmm-channel-matrix]"),
-    channelTable: root.querySelector("[data-mmm-channel-table]"),
-    responseChannel: root.querySelector("[data-mmm-response-channel]"),
-    responseSummary: root.querySelector("[data-mmm-response-summary]"),
-    responseCurve: root.querySelector("[data-mmm-response-curve]"),
-    responseInsight: root.querySelector("[data-response-insight]"),
-    carryoverCurve: root.querySelector("[data-mmm-carryover-curve]"),
-    responseLabels: root.querySelector("[data-response-labels]"),
-    carryoverLabels: root.querySelector("[data-carryover-labels]"),
-    responseUsage: root.querySelector("[data-response-usage]"),
-    carryoverUsage: root.querySelector("[data-carryover-usage]"),
-    hiatusPanel: root.querySelector("[data-hiatus-panel]"),
-    hiatusWeeks: root.querySelector("[data-hiatus-weeks]"),
-    hiatusWeeksOutput: root.querySelector("[data-hiatus-weeks-output]"),
-    hiatusTolerance: root.querySelector("[data-hiatus-tolerance]"),
-    hiatusToleranceOutput: root.querySelector("[data-hiatus-tolerance-output]"),
-    hiatusResults: root.querySelector("[data-hiatus-results]"),
-    hiatusFeedback: root.querySelector("[data-hiatus-feedback]"),
-    hiatusTrajectory: root.querySelector("[data-hiatus-trajectory]"),
-    plannerWorkspace: root.querySelector("[data-planner-workspace]"),
-    plannerActiveSummary: root.querySelector("[data-planner-active-summary]"),
-    plannerPresets: root.querySelector("[data-planner-presets]"),
-    plannerPrimary: root.querySelector("[data-planner-primary]"),
-    plannerPrimaryLabel: root.querySelector("[data-planner-primary-label]"),
-    plannerPrimaryPrefix: root.querySelector("[data-planner-primary-prefix]"),
-    plannerPrimarySuffix: root.querySelector("[data-planner-primary-suffix]"),
-    channelPool: root.querySelector("[data-planner-channel-pool]"),
-    channelSelector: root.querySelector("[data-planner-channel-selector]"),
-    channelSummary: root.querySelector("[data-planner-channel-summary]"),
-    selectAllChannels: root.querySelector("[data-select-all-channels]"),
-    planningStart: root.querySelector("[data-planning-start]"),
-    planningPeriods: root.querySelector("[data-planning-periods]"),
-    planningPeriodSuffix: root.querySelector("[data-planning-period-suffix]"),
-    planningEndDate: root.querySelector("[data-planning-end-date]"),
-    planningPeriodSummary: root.querySelector("[data-planning-period-summary]"),
-    maxDecrease: root.querySelector("[data-max-decrease]"),
-    maxDecreaseOutput: root.querySelector("[data-max-decrease-output]"),
-    maxIncrease: root.querySelector("[data-max-increase]"),
-    maxIncreaseOutput: root.querySelector("[data-max-increase-output]"),
-    constraints: root.querySelector("[data-planner-constraints]"),
-    manualInputs: root.querySelector("[data-manual-inputs]"),
-    runScenario: root.querySelector("[data-run-scenario]"),
-    resultCopy: root.querySelector("[data-planner-result-copy]"),
-    plannerResults: root.querySelector("[data-planner-results]"),
-    allocation: root.querySelector("[data-planner-allocation]"),
-    recommendation: root.querySelector("[data-planner-recommendation]"),
-    saveScenario: root.querySelector("[data-save-scenario]"),
-    savedScenarios: root.querySelector("[data-saved-scenarios]"),
-    modelMetrics: root.querySelector("[data-mmm-model-metrics]"),
+  const q = (selector) => root.querySelector(selector);
+  const el = {
+    status: q("[data-mmm-status]"),
+    scopeCopy: q("[data-mmm-scope-copy]"),
+    dateStart: q('[data-mmm-filter="dateStart"]'),
+    dateEnd: q('[data-mmm-filter="dateEnd"]'),
+    reset: q("[data-mmm-reset]"),
+    drHeadline: q("[data-dr-headline]"),
+    drCharts: q("[data-dr-charts]"),
+    drInsights: q("[data-dr-insights]"),
+    drRecommendation: q("[data-dr-recommendation]"),
+    drTable: q("[data-dr-table]"),
+    modeCopy: q("[data-planner-mode-copy]"),
+    primary: q("[data-planner-primary]"),
+    primaryLabel: q("[data-planner-primary-label]"),
+    primaryPrefix: q("[data-planner-primary-prefix]"),
+    primarySuffix: q("[data-planner-primary-suffix]"),
+    primaryHelper: q("[data-planner-primary-helper]"),
+    presets: q("[data-planner-presets]"),
+    horizonStart: q("[data-horizon-start]"),
+    horizonMonths: q("[data-horizon-months]"),
+    horizonEnd: q("[data-horizon-end]"),
+    channels: q("[data-planner-channels]"),
+    guardrailSummary: q("[data-guardrail-summary]"),
+    maxDecrease: q("[data-max-decrease]"),
+    maxDecreaseOutput: q("[data-max-decrease-output]"),
+    maxIncrease: q("[data-max-increase]"),
+    maxIncreaseOutput: q("[data-max-increase-output]"),
+    resultTitle: q("[data-planner-result-title]"),
+    horizonCopy: q("[data-planner-horizon-copy]"),
+    banner: q("[data-planner-banner]"),
+    kpis: q("[data-planner-kpis]"),
+    allocation: q("[data-planner-allocation]"),
+    recommendation: q("[data-planner-recommendation]"),
+    save: q("[data-save-scenario]"),
+    hiatusPanel: q("[data-hiatus-panel]"),
+    hiatusChannels: q("[data-hiatus-channels]"),
+    tolerance: q("[data-hiatus-tolerance]"),
+    toleranceOutput: q("[data-hiatus-tolerance-output]"),
+    carryover: q("[data-mmm-carryover-curve]"),
+    carryoverCaption: q("[data-carryover-caption]"),
+    hiatusResults: q("[data-hiatus-results]"),
+    hiatusFeedback: q("[data-hiatus-feedback]"),
+    hiatusTrajectory: q("[data-hiatus-trajectory]"),
+    saved: q("[data-saved-scenarios]"),
   };
 
   let dataset = null;
-  let currentSummary = null;
+  let DPM = 30.4375;
+  let curves = {};
+  let reference = null;
+  let scenario = null;
   let tooltip = null;
-  let plannerSolveTimer = null;
+  let solveTimer = null;
 
+  // ---------- formatting ----------
   function escapeHtml(value) {
-    return String(value).replace(/[&<>"']/g, (character) => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;",
-    })[character]);
+    return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[character]);
   }
+  const sum = (items, accessor) => items.reduce((total, item) => total + (Number(accessor(item)) || 0), 0);
+  const safeDivide = (a, b) => (b ? a / b : 0);
+  const clamp = (value, low, high) => Math.min(Math.max(value, low), high);
 
-  function tooltipText(lines) {
-    return escapeHtml(lines.filter(Boolean).join("\n"));
-  }
-
-  function pulse(element) {
-    if (!element) return;
-    element.classList.remove("is-updated");
-    window.requestAnimationFrame(() => {
-      element.classList.add("is-updated");
-      window.setTimeout(() => element.classList.remove("is-updated"), 460);
-    });
-  }
-
-  function positionTooltip(clientX, clientY) {
-    if (!tooltip || tooltip.hidden) return;
-    const gap = 14;
-    const bounds = tooltip.getBoundingClientRect();
-    let left = clientX + gap;
-    let top = clientY + gap;
-    if (left + bounds.width > window.innerWidth - 10) left = clientX - bounds.width - gap;
-    if (top + bounds.height > window.innerHeight - 10) top = clientY - bounds.height - gap;
-    tooltip.style.left = `${Math.max(10, left)}px`;
-    tooltip.style.top = `${Math.max(10, top)}px`;
-  }
-
-  function showTooltip(target, clientX, clientY) {
-    if (!target || !target.dataset.tooltipText) return;
-    tooltip.textContent = target.dataset.tooltipText;
-    tooltip.hidden = false;
-    positionTooltip(clientX, clientY);
-  }
-
-  function bindChartTooltips() {
-    tooltip = document.createElement("div");
-    tooltip.className = "mmm-tooltip";
-    tooltip.setAttribute("role", "tooltip");
-    tooltip.hidden = true;
-    document.body.appendChild(tooltip);
-
-    root.addEventListener("pointerover", (event) => {
-      const target = event.target.closest?.("[data-tooltip-text]");
-      if (target) showTooltip(target, event.clientX, event.clientY);
-    });
-    root.addEventListener("pointermove", (event) => {
-      if (!tooltip.hidden) positionTooltip(event.clientX, event.clientY);
-    });
-    root.addEventListener("pointerout", (event) => {
-      const target = event.target.closest?.("[data-tooltip-text]");
-      if (!target || (event.relatedTarget && target.contains(event.relatedTarget))) return;
-      tooltip.hidden = true;
-    });
-    root.addEventListener("focusin", (event) => {
-      const target = event.target.closest?.("[data-tooltip-text]");
-      if (!target) return;
-      const bounds = target.getBoundingClientRect();
-      showTooltip(target, bounds.left + bounds.width / 2, bounds.top + bounds.height / 2);
-    });
-    root.addEventListener("focusout", (event) => {
-      if (event.target.closest?.("[data-tooltip-text]")) tooltip.hidden = true;
-    });
-  }
-
-  function queuePlannerSolve(delay = 120) {
-    window.clearTimeout(plannerSolveTimer);
-    plannerSolveTimer = window.setTimeout(() => {
-      solvePlanner();
-      pulse(elements.plannerWorkspace?.querySelector(".mmm-planner-output"));
-    }, delay);
-  }
-
-  function safeDivide(numerator, denominator) {
-    return denominator ? numerator / denominator : 0;
-  }
-
-  function clamp(value, minimum, maximum) {
-    return Math.min(Math.max(value, minimum), maximum);
-  }
-
-  function compactNumber(value, digits = 1) {
+  function compact(value, digits = 2) {
     const number = Number.isFinite(value) ? value : 0;
     const absolute = Math.abs(number);
-    if (absolute >= 1e12) return `${(number / 1e12).toFixed(digits).replace(/\.0$/, "")}T`;
-    if (absolute >= 1e9) return `${(number / 1e9).toFixed(digits).replace(/\.0$/, "")}B`;
-    if (absolute >= 1e6) return `${(number / 1e6).toFixed(digits).replace(/\.0$/, "")}M`;
-    if (absolute >= 1e3) return `${(number / 1e3).toFixed(digits).replace(/\.0$/, "")}K`;
-    return Math.round(number).toLocaleString("en-US");
+    if (absolute >= 1e12) return `${(number / 1e12).toFixed(digits)}T`;
+    if (absolute >= 1e9) return `${(number / 1e9).toFixed(digits)}B`;
+    if (absolute >= 1e6) return `${(number / 1e6).toFixed(absolute >= 1e8 ? 0 : 1)}M`;
+    if (absolute >= 1e3) return `${(number / 1e3).toFixed(0)}K`;
+    return `${Math.round(number)}`;
   }
-
-  function formatCurrency(value, digits = 2) {
-    return `Rp${compactNumber(value, digits)}`;
-  }
-
-  function formatPlannerCurrency(value) {
-    return formatCurrency(value, Math.abs(value) >= 1e9 ? 3 : 2);
-  }
-
-  function formatSignedCurrency(value, digits = 2) {
-    const sign = value > 1 ? "+" : value < -1 ? "−" : "";
-    return `${sign}${formatCurrency(Math.abs(value), digits)}`;
-  }
-
-  function formatPercent(value, digits = 1) {
-    return `${(Number.isFinite(value) ? value : 0).toFixed(digits)}%`;
-  }
-
-  function formatSignedPercent(value, digits = 1) {
+  const rp = (value, digits = 2) => `${value < 0 ? "−" : ""}Rp${compact(Math.abs(value), digits)}`;
+  const signedRp = (value, digits = 2) => (Math.abs(value) < 1 ? "Rp0" : `${value > 0 ? "+" : "−"}Rp${compact(Math.abs(value), digits)}`);
+  const pct = (value, digits = 1) => `${(Number.isFinite(value) ? value : 0).toFixed(digits)}%`;
+  const signedPct = (value, digits = 1) => {
     const number = Number.isFinite(value) ? value : 0;
-    const sign = number > .0001 ? "+" : number < -.0001 ? "−" : "";
-    return `${sign}${Math.abs(number).toFixed(digits)}%`;
+    if (Math.abs(number) < 0.05) return "0.0%";
+    return `${number > 0 ? "+" : "−"}${Math.abs(number).toFixed(digits)}%`;
+  };
+  const ratio = (value) => `${(Number.isFinite(value) ? value : 0).toFixed(2)}x`;
+  const axisRp = (value) => {
+    if (value === 0) return "0";
+    if (Math.abs(value) >= 1e9) return `${Number((value / 1e9).toFixed(2))}B`;
+    if (Math.abs(value) >= 1e6) return `${Number((value / 1e6).toFixed(1))}M`;
+    return compact(value, 0);
+  };
+
+  function niceTicks(maximum, count = 4) {
+    const raw = (maximum > 0 ? maximum : 1) / count;
+    const exponent = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map((f) => f * exponent).find((candidate) => candidate >= raw);
+    const top = Math.ceil(maximum / step - 1e-9) * step;
+    const ticks = [];
+    for (let value = 0; value <= top + step / 2; value += step) ticks.push(value);
+    return { max: top, ticks };
   }
 
-  function formatRatio(value) {
-    return `${(Number.isFinite(value) ? value : 0).toFixed(2)}x`;
+  function niceCeil(value) {
+    if (!(value > 0)) return 1;
+    const exponent = Math.pow(10, Math.floor(Math.log10(value)));
+    for (const step of [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]) {
+      if (step * exponent >= value) return step * exponent;
+    }
+    return 10 * exponent;
   }
 
-  function dayCount(start, end) {
-    return Math.max(1, Math.round((new Date(`${end}T00:00:00Z`) - new Date(`${start}T00:00:00Z`)) / 86400000) + 1);
+  function utcDate(value) { return new Date(`${value}T00:00:00Z`); }
+  function isoDate(date) { return date.toISOString().slice(0, 10); }
+  function formatDate(value) {
+    return utcDate(value).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
   }
-
-  function isoDate(date) {
-    return date.toISOString().slice(0, 10);
+  function addMonths(value, months) {
+    const date = utcDate(value);
+    const target = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, date.getUTCDate()));
+    target.setUTCDate(target.getUTCDate() - 1);
+    return isoDate(target);
   }
-
-  function utcDate(value) {
-    const date = new Date(`${value}T00:00:00Z`);
-    return Number.isNaN(date.getTime()) ? new Date("2026-08-25T00:00:00Z") : date;
-  }
-
-  function addUtcMonths(date, months) {
-    const monthIndex = date.getUTCMonth() + months;
-    const year = date.getUTCFullYear() + Math.floor(monthIndex / 12);
-    const month = ((monthIndex % 12) + 12) % 12;
-    const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-    return new Date(Date.UTC(year, month, Math.min(date.getUTCDate(), lastDay)));
-  }
-
-  function formatCalendarDate(date) {
-    return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
-  }
-
   function nextDay(value) {
     const date = utcDate(value);
     date.setUTCDate(date.getUTCDate() + 1);
     return isoDate(date);
   }
 
-  function planningWindow() {
-    const limits = { week: 52, month: 24, year: 5 };
-    const periods = clamp(Math.round(Number(state.planningPeriods) || 1), 1, limits[state.planningUnit]);
-    const start = utcDate(state.planningStart);
-    let endExclusive;
-    if (state.planningUnit === "week") endExclusive = new Date(start.getTime() + periods * 7 * 86400000);
-    else if (state.planningUnit === "year") endExclusive = addUtcMonths(start, periods * 12);
-    else endExclusive = addUtcMonths(start, periods);
-    const end = new Date(endExclusive.getTime() - 86400000);
-    const days = Math.max(1, Math.round((endExclusive - start) / 86400000));
-    const unitLabel = `${state.planningUnit}${periods === 1 ? "" : "s"}`;
-    return {
-      start,
-      end,
-      days,
-      periods,
-      unitLabel,
-      label: `${periods} ${unitLabel}`,
-      rangeLabel: `${formatCalendarDate(start)} – ${formatCalendarDate(end)}`,
-    };
+  // ---------- response curves ----------
+  function response(name, spend) {
+    const c = curves[name];
+    if (!c || spend <= 0) return 0;
+    const sa = Math.pow(spend, c.alpha);
+    return c.m * sa / (sa + c.ka);
   }
-
-  function renderPlanningPeriod() {
-    const limits = { week: 52, month: 24, year: 5 };
-    const window = planningWindow();
-    state.planningPeriods = window.periods;
-    elements.planningStart.value = state.planningStart;
-    elements.planningPeriods.value = String(window.periods);
-    elements.planningPeriods.max = String(limits[state.planningUnit]);
-    elements.planningPeriodSuffix.textContent = window.unitLabel;
-    elements.planningEndDate.textContent = formatCalendarDate(window.end);
-    elements.planningPeriodSummary.innerHTML = `<strong>${escapeHtml(window.label)} · ${window.days} days</strong><span>${escapeHtml(window.rangeLabel)}. Budget and KPI references are scaled from the selected analysis window to this exact duration.</span>`;
-    root.querySelectorAll("[data-planning-unit]").forEach((button) => {
-      const active = button.dataset.planningUnit === state.planningUnit;
-      button.classList.toggle("active", active);
-      button.setAttribute("aria-checked", String(active));
-    });
+  function marginal(name, spend) {
+    const c = curves[name];
+    if (!c || spend <= 0) return 0;
+    const sa = Math.pow(spend, c.alpha);
+    return c.m * c.alpha * c.ka * Math.pow(spend, c.alpha - 1) / Math.pow(sa + c.ka, 2);
   }
+  function averageReturn(name, spend) { return spend > 0 ? response(name, spend) / spend : 0; }
 
-  function filteredRows() {
-    return dataset.rows.filter((row) => row.date >= state.dateStart && row.date <= state.dateEnd);
-  }
-
-  function summarize(rows) {
-    const summary = {
-      actual: 0, predicted: 0, baseline: 0, promotion: 0, seasonality: 0, other: 0,
-      spend: {}, media: {}, totalSpend: 0, totalMedia: 0,
-    };
+  function buildCurves() {
+    const share = dataset.meta.efficientRangeShare || 0.98;
+    curves = {};
     dataset.channels.forEach((channel) => {
-      summary.spend[channel.name] = 0;
-      summary.media[channel.name] = 0;
-    });
-    rows.forEach((row) => {
-      ["actual", "predicted", "baseline", "promotion", "seasonality", "other"].forEach((key) => {
-        summary[key] += row[key];
-      });
-      dataset.channels.forEach((channel) => {
-        summary.spend[channel.name] += row.spend[channel.name] || 0;
-        summary.media[channel.name] += row.media[channel.name] || 0;
-      });
-    });
-    summary.totalSpend = Object.values(summary.spend).reduce((total, value) => total + value, 0);
-    summary.totalMedia = Object.values(summary.media).reduce((total, value) => total + value, 0);
-    return summary;
-  }
-
-  function scorecard(label, value, note, emphasis = false) {
-    return `<article class="mmm-scorecard${emphasis ? " emphasis" : ""}"><span class="mmm-scorecard-label">${escapeHtml(label)}</span><strong class="mmm-scorecard-value">${escapeHtml(value)}</strong><span class="mmm-scorecard-note">${escapeHtml(note)}</span></article>`;
-  }
-
-  function renderScorecards(summary) {
-    if (!elements.scorecards) return;
-    const contribution = safeDivide(summary.totalMedia, summary.predicted) * 100;
-    const iROAS = safeDivide(summary.totalMedia, summary.totalSpend);
-    elements.scorecards.innerHTML = [
-      scorecard("Actual Business KPI", formatCurrency(summary.actual), `${state.kpi} observed in the selected period`),
-      scorecard("Baseline / Organic KPI", formatCurrency(summary.baseline), "Demand expected without modeled media"),
-      scorecard("Incremental Marketing KPI", formatCurrency(summary.totalMedia), "Modeled channel contribution", true),
-      scorecard("Marketing Contribution", formatPercent(contribution), "Share of modeled business outcome"),
-      scorecard("Total Media Spend", formatCurrency(summary.totalSpend), "Investment included in the model"),
-      scorecard("Overall iROAS", formatRatio(iROAS), "Incremental revenue divided by spend", true),
-    ].join("");
-  }
-
-  function aggregateWeeks(rows) {
-    const groups = [];
-    rows.forEach((row, index) => {
-      const bucket = Math.floor(index / 7);
-      if (!groups[bucket]) groups[bucket] = { date: row.date, actual: 0, predicted: 0 };
-      groups[bucket].actual += row.actual;
-      groups[bucket].predicted += row.predicted;
-    });
-    return groups;
-  }
-
-  function svgPath(points) {
-    return points.map((point, index) => `${index ? "L" : "M"}${point[0].toFixed(1)},${point[1].toFixed(1)}`).join(" ");
-  }
-
-  function renderTrend(rows) {
-    if (!elements.trend) return;
-    const groups = aggregateWeeks(rows);
-    if (!groups.length) {
-      elements.trend.innerHTML = '<div class="mmm-empty-chart">No model output for this period.</div>';
-      return;
-    }
-    const width = 760;
-    const height = 270;
-    const margin = { left: 56, right: 18, top: 18, bottom: 36 };
-    const plotWidth = width - margin.left - margin.right;
-    const plotHeight = height - margin.top - margin.bottom;
-    const maxValue = Math.max(...groups.flatMap((group) => [group.actual, group.predicted])) * 1.08;
-    const x = (index) => margin.left + safeDivide(index, Math.max(groups.length - 1, 1)) * plotWidth;
-    const y = (value) => margin.top + plotHeight - safeDivide(value, maxValue) * plotHeight;
-    const actualPoints = groups.map((group, index) => [x(index), y(group.actual)]);
-    const predictedPoints = groups.map((group, index) => [x(index), y(group.predicted)]);
-    const grid = [0, .25, .5, .75, 1].map((ratio) => {
-      const gy = margin.top + plotHeight * (1 - ratio);
-      return `<line x1="${margin.left}" y1="${gy}" x2="${width - margin.right}" y2="${gy}" stroke="#e9ecf3"/><text x="${margin.left - 8}" y="${gy + 4}" text-anchor="end" fill="#8a94a8" font-size="10">${compactNumber(maxValue * ratio, 1)}</text>`;
-    }).join("");
-    const labels = groups.map((group, index) => {
-      if (index !== 0 && index !== groups.length - 1 && index % Math.ceil(groups.length / 5) !== 0) return "";
-      const label = new Date(`${group.date}T00:00:00Z`).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
-      return `<text x="${x(index)}" y="${height - 10}" text-anchor="middle" fill="#8a94a8" font-size="10">${label}</text>`;
-    }).join("");
-    const areaPath = `${svgPath(actualPoints)} L${actualPoints.at(-1)[0]},${margin.top + plotHeight} L${actualPoints[0][0]},${margin.top + plotHeight} Z`;
-    const dots = actualPoints.map((point, index) => `<circle cx="${point[0]}" cy="${point[1]}" r="9" fill="transparent" tabindex="0" aria-label="Week of ${groups[index].date}" data-tooltip-text="${tooltipText([`Week of ${groups[index].date}`, `Actual: ${formatCurrency(groups[index].actual)}`, `Predicted: ${formatCurrency(groups[index].predicted)}`, `Variance: ${formatPercent(safeDivide(groups[index].actual - groups[index].predicted, groups[index].predicted) * 100)}`])}"></circle>`).join("");
-    elements.trend.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Actual and predicted revenue trend"><defs><linearGradient id="mmmTrendArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ec0a68" stop-opacity=".18"/><stop offset="1" stop-color="#ec0a68" stop-opacity="0"/></linearGradient></defs>${grid}<path d="${areaPath}" fill="url(#mmmTrendArea)"/><path d="${svgPath(predictedPoints)}" fill="none" stroke="#172a91" stroke-width="2.4" stroke-dasharray="6 5"/><path d="${svgPath(actualPoints)}" fill="none" stroke="#ec0a68" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${dots}${labels}</svg>`;
-  }
-
-  function renderDecomposition(summary) {
-    if (!elements.decomposition) return;
-    const items = [
-      ["Baseline / Organic", summary.baseline, "#172a91"],
-      ["Marketing", summary.totalMedia, "#ec0a68"],
-      ["Promotion", summary.promotion, "#7355dc"],
-      ["Seasonality", summary.seasonality, "#16a4c2"],
-      ["Other Controls", summary.other, "#a1acc1"],
-    ];
-    const total = items.reduce((sum, item) => sum + item[1], 0);
-    const maximum = Math.max(...items.map((item) => item[1]), 1);
-    elements.decomposition.innerHTML = items.map(([label, value, color]) => {
-      const share = safeDivide(value, total) * 100;
-      return `<div class="mmm-decomp-row" tabindex="0" data-tooltip-text="${tooltipText([label, `Modeled value: ${formatCurrency(value)}`, `Share of outcome: ${formatPercent(share)}`])}"><div class="mmm-decomp-meta"><strong>${label}</strong><span>${formatCurrency(value)}</span></div><div class="mmm-decomp-track"><div class="mmm-decomp-bar" style="width:${safeDivide(value, maximum) * 100}%;background:${color}"></div></div><span class="mmm-decomp-share">${formatPercent(share)} of modeled outcome</span></div>`;
-    }).join("");
-  }
-
-  function channelMetrics(summary) {
-    return dataset.channels.map((channel) => {
-      const spend = summary.spend[channel.name] || 0;
-      const incremental = summary.media[channel.name] || 0;
-      const iROAS = safeDivide(incremental, spend);
-      const mROI = iROAS * safeDivide(channel.mROI, channel.iROAS);
-      return { ...channel, spend, incremental, iROAS, mROI, contribution: safeDivide(incremental, summary.totalMedia) * 100 };
-    });
-  }
-
-  function renderChannelMatrix(metrics) {
-    if (!elements.channelMatrix) return;
-    const width = 520;
-    const height = 320;
-    const margin = { left: 52, right: 22, top: 24, bottom: 46 };
-    const plotWidth = width - margin.left - margin.right;
-    const plotHeight = height - margin.top - margin.bottom;
-    const maxX = Math.max(4.5, ...metrics.map((item) => item.mROI)) * 1.12;
-    const maxY = Math.max(5.5, ...metrics.map((item) => item.iROAS)) * 1.12;
-    const x = (value) => margin.left + safeDivide(value, maxX) * plotWidth;
-    const y = (value) => margin.top + plotHeight - safeDivide(value, maxY) * plotHeight;
-    const maxSpend = Math.max(...metrics.map((item) => item.spend), 1);
-    const grid = [0, .25, .5, .75, 1].map((ratio) => `<line x1="${x(maxX * ratio)}" y1="${margin.top}" x2="${x(maxX * ratio)}" y2="${margin.top + plotHeight}" stroke="#edf0f5"/><line x1="${margin.left}" y1="${y(maxY * ratio)}" x2="${margin.left + plotWidth}" y2="${y(maxY * ratio)}" stroke="#edf0f5"/>`).join("");
-    const bubbles = metrics.map((item) => {
-      const radius = 10 + Math.sqrt(safeDivide(item.spend, maxSpend)) * 18;
-      const selected = item.name === state.responseChannel;
-      return `<g data-channel-point="${item.name}" tabindex="0" role="button" aria-label="Select ${item.name}" data-tooltip-text="${tooltipText([item.name, `Spend: ${formatCurrency(item.spend)}`, `Incremental revenue: ${formatCurrency(item.incremental)}`, `iROAS: ${formatRatio(item.iROAS)}`, `Marginal ROI: ${formatRatio(item.mROI)}`, `Decision: ${item.action}`])}" style="cursor:pointer"><circle cx="${x(item.mROI)}" cy="${y(item.iROAS)}" r="${radius + (selected ? 4 : 0)}" fill="${item.color}" fill-opacity="${selected ? .2 : .12}"/><circle cx="${x(item.mROI)}" cy="${y(item.iROAS)}" r="${radius}" fill="${item.color}" fill-opacity=".83" stroke="#fff" stroke-width="3"/><text x="${x(item.mROI)}" y="${y(item.iROAS) + 4}" text-anchor="middle" fill="#fff" font-size="10" font-weight="800" pointer-events="none">${item.name}</text></g>`;
-    }).join("");
-    elements.channelMatrix.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Channel iROAS and marginal ROI matrix"><rect x="${x(1)}" y="${margin.top}" width="${Math.max(0, x(maxX) - x(1))}" height="${Math.max(0, y(1) - margin.top)}" rx="8" fill="#eef9f5"/>${grid}<line x1="${x(1)}" y1="${margin.top}" x2="${x(1)}" y2="${margin.top + plotHeight}" stroke="#9bacbd" stroke-dasharray="4 4"/><line x1="${margin.left}" y1="${y(1)}" x2="${margin.left + plotWidth}" y2="${y(1)}" stroke="#9bacbd" stroke-dasharray="4 4"/>${bubbles}<text x="${margin.left + plotWidth / 2}" y="${height - 8}" text-anchor="middle" fill="#69758d" font-size="11" font-weight="700">Marginal ROI · next unit of spend</text><text x="14" y="${margin.top + plotHeight / 2}" transform="rotate(-90 14 ${margin.top + plotHeight / 2})" text-anchor="middle" fill="#69758d" font-size="11" font-weight="700">Average iROAS</text></svg>`;
-    elements.channelMatrix.querySelectorAll("[data-channel-point]").forEach((node) => {
-      node.addEventListener("click", () => selectResponseChannel(node.dataset.channelPoint));
-      node.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          selectResponseChannel(node.dataset.channelPoint);
+      const { alpha, k, m } = channel.curve;
+      curves[channel.name] = { alpha, k, m, ka: Math.pow(k, alpha) };
+      const peakSpend = k * Math.pow(alpha - 1, 1 / alpha);
+      const peak = averageReturn(channel.name, peakSpend);
+      const bisect = (lo, hi, rising) => {
+        for (let i = 0; i < 70; i += 1) {
+          const mid = (lo + hi) / 2;
+          const below = averageReturn(channel.name, mid) < share * peak;
+          if (below === rising) lo = mid; else hi = mid;
         }
+        return (lo + hi) / 2;
+      };
+      let breakEven = null;
+      let lo = k * Math.pow((alpha - 1) / (alpha + 1), 1 / alpha);
+      if (marginal(channel.name, lo) > 1) {
+        let hi = k * 60;
+        for (let i = 0; i < 80; i += 1) {
+          const mid = (lo + hi) / 2;
+          if (marginal(channel.name, mid) > 1) lo = mid; else hi = mid;
+        }
+        breakEven = (lo + hi) / 2;
+      }
+      Object.assign(curves[channel.name], {
+        color: channel.color,
+        halfLife: channel.halfLifeDays,
+        band: { low: bisect(peakSpend * 1e-3, peakSpend, true), high: bisect(peakSpend, peakSpend * 50, false), peakSpend, peakIroas: peak },
+        breakEven,
       });
     });
   }
 
-  function renderChannelTable(metrics) {
-    if (!elements.channelTable) return;
-    elements.channelTable.innerHTML = metrics.map((item) => `<tr data-channel-row="${item.name}" class="${item.name === state.responseChannel ? "selected" : ""}" tabindex="0" data-tooltip-text="${tooltipText([`${item.name} · ${item.action}`, item.reason, `Average iROAS: ${formatRatio(item.iROAS)}`, `Next-spend mROI: ${formatRatio(item.mROI)}`, `Directional headroom: ${formatPercent(item.headroom, 0)}`])}"><td><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${item.color}"></i>${item.name}</span></td><td class="numeric">${formatCurrency(item.spend)}</td><td class="numeric">${formatCurrency(item.incremental)}</td><td class="numeric">${formatPercent(item.contribution)}</td><td class="numeric">${formatRatio(item.iROAS)}</td><td class="numeric">${formatRatio(item.mROI)}</td><td class="numeric">${formatPercent(item.headroom, 0)}</td><td><span class="mmm-action-badge ${item.action.toLowerCase()}">${item.action}</span></td></tr>`).join("");
-    elements.channelTable.querySelectorAll("[data-channel-row]").forEach((row) => {
-      row.addEventListener("click", () => selectResponseChannel(row.dataset.channelRow));
-      row.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") selectResponseChannel(row.dataset.channelRow);
-      });
+  function channelSignal(monthly, totalMonthly, name) {
+    const band = curves[name].band;
+    const mroi = marginal(name, monthly);
+    const share = safeDivide(monthly, totalMonthly);
+    if (share < (dataset.meta.smallChannelShare || 0.05)) return "Test & learn";
+    if (monthly < band.low && mroi > 1) return "Invest more";
+    if (monthly > band.high || mroi < 1) return "Reduce";
+    return "Hold";
+  }
+
+  function buildReference() {
+    const rows = dataset.rows.filter((row) => row.date >= state.dateStart && row.date <= state.dateEnd);
+    const days = Math.max(rows.length, 1);
+    const toMonth = DPM / days;
+    const channels = dataset.channels.map((channel) => {
+      const spend = sum(rows, (row) => row.spend[channel.name]);
+      const observed = sum(rows, (row) => (row.observed || {})[channel.name]);
+      const monthly = spend * toMonth;
+      const incr = response(channel.name, monthly);
+      const observedRoas = safeDivide(observed, spend);
+      return {
+        name: channel.name,
+        color: channel.color,
+        monthly,
+        incr,
+        iroas: safeDivide(incr, monthly),
+        mroi: marginal(channel.name, monthly),
+        observedRoas,
+        incrementalShare: safeDivide(safeDivide(incr, monthly), observedRoas),
+        band: curves[channel.name].band,
+        breakEven: curves[channel.name].breakEven,
+        halfLife: curves[channel.name].halfLife,
+      };
     });
-  }
-
-  function responseParameters(channel, spend, incremental) {
-    const alpha = channel.alpha;
-    const iROAS = safeDivide(incremental, spend);
-    const mROI = iROAS * safeDivide(channel.mROI, channel.iROAS);
-    const ratio = clamp(safeDivide(mROI, iROAS), .08, alpha - .05);
-    const t = Math.max(.03, alpha / ratio - 1);
-    const halfSaturation = spend / Math.pow(t, 1 / alpha);
-    const maxOutcome = incremental * (1 + t) / t;
-    return { alpha, halfSaturation, maxOutcome };
-  }
-
-  function responseValue(spend, parameters) {
-    if (spend <= 0) return 0;
-    const spendPower = Math.pow(spend, parameters.alpha);
-    const halfPower = Math.pow(parameters.halfSaturation, parameters.alpha);
-    return parameters.maxOutcome * spendPower / (spendPower + halfPower);
-  }
-
-  function marginalValue(spend, parameters) {
-    if (spend <= 0) return Number.POSITIVE_INFINITY;
-    const alpha = parameters.alpha;
-    const halfPower = Math.pow(parameters.halfSaturation, alpha);
-    const spendPower = Math.pow(spend, alpha);
-    return parameters.maxOutcome * alpha * halfPower * Math.pow(spend, alpha - 1) / Math.pow(spendPower + halfPower, 2);
-  }
-
-  function selectedMetric() {
-    return channelMetrics(currentSummary).find((channel) => channel.name === state.responseChannel) || channelMetrics(currentSummary)[0];
-  }
-
-  function plannerChannelPoint(metric) {
-    const reference = state.lastScenario?.reference?.channels?.find((channel) => channel.name === metric.name);
-    const spend = reference?.currentSpend ?? metric.spend;
-    const incremental = reference?.currentOutcome ?? metric.incremental;
-    const parameters = reference?.parameters ?? responseParameters(metric, spend, incremental);
-    return { spend, incremental, parameters, iROAS: safeDivide(incremental, spend), mROI: marginalValue(spend, parameters) };
-  }
-
-  function responseScenarioSnapshot(metric) {
-    const current = plannerChannelPoint(metric);
-    const channelPlan = state.lastScenario?.channelPlans?.[metric.name];
-    const scenarioSpend = channelPlan?.scenarioSpend ?? current.spend;
-    const scenarioOutcome = channelPlan?.scenarioOutcome ?? responseValue(scenarioSpend, current.parameters);
-    const budgetDelta = channelPlan?.budgetDelta ?? scenarioSpend - current.spend;
-    const outcomeDelta = channelPlan?.outcomeDelta ?? scenarioOutcome - current.incremental;
-    const budgetChange = channelPlan?.budgetChange ?? safeDivide(budgetDelta, current.spend) * 100;
-    const outcomeChange = channelPlan?.outcomeChange ?? safeDivide(outcomeDelta, current.incremental) * 100;
-    const scenarioIROAS = channelPlan?.scenarioIROAS ?? safeDivide(scenarioOutcome, scenarioSpend);
-    const scenarioMROI = channelPlan?.scenarioMROI ?? marginalValue(scenarioSpend, current.parameters);
-    const changeReturn = channelPlan?.changeReturn ?? (Math.abs(budgetDelta) > 1 ? safeDivide(outcomeDelta, budgetDelta) : null);
+    const totalMonthly = sum(channels, (channel) => channel.monthly);
+    channels.forEach((channel) => { channel.signal = channelSignal(channel.monthly, totalMonthly, channel.name); });
+    const media = sum(channels, (channel) => channel.incr);
+    const nonMedia = sum(rows, (row) => row.baseline + row.promotion + row.seasonality + row.other) * toMonth;
     return {
-      current,
-      scenarioSpend,
-      scenarioOutcome,
-      budgetDelta,
-      outcomeDelta,
-      budgetChange,
-      outcomeChange,
-      scenarioIROAS,
-      scenarioMROI,
-      changeReturn,
+      rows,
+      days,
+      channels,
+      byName: Object.fromEntries(channels.map((channel) => [channel.name, channel])),
+      totalMonthly,
+      media,
+      nonMedia,
+      totalKpi: nonMedia + media,
+      iroas: safeDivide(media, totalMonthly),
     };
   }
 
-  function renderResponseSummary(metric) {
-    const snapshot = responseScenarioSnapshot(metric);
-    const {
-      current,
-      scenarioSpend,
-      scenarioOutcome,
-      budgetDelta,
-      outcomeDelta,
-      budgetChange,
-      outcomeChange,
-      scenarioMROI,
-      changeReturn,
-    } = snapshot;
-    const horizon = state.lastScenario?.horizonLabel ?? "Selected analysis period";
-    elements.responseSummary.innerHTML = [
-      ["Current Channel Budget", formatPlannerCurrency(current.spend), `${formatCurrency(current.incremental)} total incremental revenue`],
-      ["Scenario Channel Budget", formatPlannerCurrency(scenarioSpend), `Matches Scenario output for ${metric.name}`],
-      ["Budget Δ", formatSignedCurrency(budgetDelta), Math.abs(budgetChange) < .05 ? "No change from reference" : `${budgetChange >= 0 ? "+" : ""}${formatPercent(budgetChange)} vs reference`],
-      ["Revenue Δ", formatSignedCurrency(outcomeDelta), Math.abs(outcomeChange) < .05 ? "No modeled change" : `${outcomeChange >= 0 ? "+" : ""}${formatPercent(outcomeChange)} incremental revenue, not budget`],
-    ].map(([label, value, note]) => `<div class="mmm-mini-card"><span>${label}</span><strong>${value}</strong><small>${escapeHtml(note)}</small></div>`).join("");
-
-    let headline;
-    let story;
-    let plannerConnection;
-    const movementLabel = budgetDelta > 1 ? "Scenario increase" : budgetDelta < -1 ? "Scenario decrease" : "No scenario change";
-    const movementClass = budgetDelta > 1 ? "increase" : budgetDelta < -1 ? "decrease" : "hold";
-    if (budgetDelta > 1) {
-      headline = budgetChange > outcomeChange + .1
-        ? "Spend grows faster than impact—diminishing return is visible."
-        : "Additional budget is still translating into proportionate impact.";
-      story = `Budget increases ${formatPercent(budgetChange)}, while incremental revenue increases ${formatPercent(outcomeChange)}. The added ${formatCurrency(budgetDelta)} is modeled to add ${formatCurrency(outcomeDelta)}—a ${formatRatio(changeReturn)} revenue return on this exact change.`;
-      plannerConnection = `${metric.name} moves from ${formatPlannerCurrency(current.spend)} to ${formatPlannerCurrency(scenarioSpend)} for the ${horizon}. This scenario budget matches the ${metric.name} row in Scenario output; ${formatCurrency(outcomeDelta)} is the modeled incremental revenue change.`;
-    } else if (budgetDelta < -1) {
-      headline = "The budget cut saves cash, but also gives up modeled impact.";
-      story = `The scenario saves ${formatCurrency(Math.abs(budgetDelta))} and is modeled to forgo ${formatCurrency(Math.abs(outcomeDelta))} incremental revenue. Each Rp1 saved puts about Rp${Math.abs(changeReturn).toFixed(2)} of incremental revenue at risk.`;
-      plannerConnection = `${metric.name} moves from ${formatPlannerCurrency(current.spend)} to ${formatPlannerCurrency(scenarioSpend)} for the ${horizon}. This scenario budget matches the ${metric.name} row in Scenario output; the exact-change ratio shows the modeled revenue trade-off from this reduction.`;
-    } else {
-      headline = "The scenario keeps this channel at its reference budget.";
-      story = `No budget movement is selected. At the reference point, the next Rp1 of spend is modeled to add Rp${current.mROI.toFixed(2)} of incremental revenue.`;
-      plannerConnection = `${metric.name} remains at ${formatPlannerCurrency(current.spend)} for the ${horizon}; reference and scenario markers overlap because no change is recommended.`;
-    }
-
-    elements.responseInsight.innerHTML = `<div class="mmm-response-insight-main"><div class="mmm-response-badges"><span class="mmm-scenario-move ${movementClass}">${movementLabel}</span><span class="mmm-base-signal">Base signal · ${metric.action}</span></div><div><strong>${headline}</strong><p>${story}</p></div></div><div class="mmm-next-rupiah"><span>At scenario</span><strong>Rp1 → Rp${scenarioMROI.toFixed(2)}</strong><small>mROI · incremental revenue, not profit</small></div>`;
-    elements.responseUsage.textContent = plannerConnection;
-  }
-
-  function renderResponseCurve(metric) {
-    const width = 680;
-    const height = 330;
-    const margin = { left: 72, right: 24, top: 30, bottom: 58 };
-    const plotWidth = width - margin.left - margin.right;
-    const plotHeight = height - margin.top - margin.bottom;
-    const snapshot = responseScenarioSnapshot(metric);
-    const {
-      current,
-      scenarioSpend,
-      scenarioOutcome,
-      budgetDelta,
-      outcomeDelta,
-      budgetChange,
-      outcomeChange,
-      scenarioIROAS,
-      scenarioMROI,
-      changeReturn,
-    } = snapshot;
-    const parameters = current.parameters;
-    const maxSpend = Math.max(current.spend * maximumScenarioIncreaseRatio(), scenarioSpend * 1.08, 1);
-    const points = Array.from({ length: 81 }, (_, index) => {
-      const spend = maxSpend * index / 80;
-      return { spend, outcome: responseValue(spend, parameters) };
-    });
-    const maxOutcome = Math.max(...points.map((point) => point.outcome), 1) * 1.08;
-    const x = (value) => margin.left + safeDivide(value, maxSpend) * plotWidth;
-    const y = (value) => margin.top + plotHeight - safeDivide(value, maxOutcome) * plotHeight;
-    const line = svgPath(points.map((point) => [x(point.spend), y(point.outcome)]));
-    const area = `${line} L${x(maxSpend)},${margin.top + plotHeight} L${x(0)},${margin.top + plotHeight} Z`;
-    const grid = [0, .5, 1].map((ratio) => `<line x1="${margin.left}" y1="${y(maxOutcome * ratio)}" x2="${margin.left + plotWidth}" y2="${y(maxOutcome * ratio)}" stroke="#ebedf4"/><text x="${margin.left - 8}" y="${y(maxOutcome * ratio) + 4}" text-anchor="end" fill="#8b95a8" font-size="10">${compactNumber(maxOutcome * ratio, 1)}</text>`).join("");
-    const xTicks = [0, .5, 1].map((ratio) => `<text x="${x(maxSpend * ratio)}" y="${margin.top + plotHeight + 18}" text-anchor="middle" fill="#8b95a8" font-size="9">${compactNumber(maxSpend * ratio, 1)}</text>`).join("");
-    const hoverPoints = points.filter((_, index) => index % 8 === 0).map((point) => {
-      const marginal = marginalValue(Math.max(point.spend, maxSpend / 1000), parameters);
-      return `<circle cx="${x(point.spend)}" cy="${y(point.outcome)}" r="8" fill="transparent" tabindex="0" aria-label="Spend ${formatCurrency(point.spend)}" data-tooltip-text="${tooltipText([`${metric.name} response`, `Spend: ${formatCurrency(point.spend)}`, `Total incremental revenue: ${formatCurrency(point.outcome)}`, `Average iROAS: ${formatRatio(safeDivide(point.outcome, point.spend))}`, `mROI for the next rupiah: ${formatRatio(marginal)}`])}"></circle>`;
-    }).join("");
-    const guideSpend = Math.max(scenarioSpend, maxSpend / 1000);
-    const tangentRadius = maxSpend * .11;
-    const tangentStartSpend = Math.max(0, guideSpend - tangentRadius);
-    const tangentEndSpend = Math.min(maxSpend, guideSpend + tangentRadius);
-    const tangentStartOutcome = clamp(scenarioOutcome + scenarioMROI * (tangentStartSpend - guideSpend), 0, maxOutcome);
-    const tangentEndOutcome = clamp(scenarioOutcome + scenarioMROI * (tangentEndSpend - guideSpend), 0, maxOutcome);
-    const iROASLabelX = x(guideSpend * .52);
-    const iROASLabelY = y(scenarioOutcome * .52) - 7;
-    const mroiLabelX = x(tangentEndSpend);
-    const mroiLabelY = Math.max(margin.top + 12, y(tangentEndOutcome) - 8);
-    const exactChangeLabel = changeReturn === null ? "No budget change" : `${formatRatio(changeReturn)} on change`;
-    elements.responseCurve.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${metric.name} response curve with average iROAS and marginal ROI guides"><defs><linearGradient id="mmmResponseArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${metric.color}" stop-opacity=".24"/><stop offset="1" stop-color="${metric.color}" stop-opacity=".02"/></linearGradient></defs>${grid}${xTicks}<path d="${area}" fill="url(#mmmResponseArea)"/><path d="${line}" fill="none" stroke="${metric.color}" stroke-width="3.4" stroke-linecap="round"/>${hoverPoints}<line x1="${x(0)}" y1="${y(0)}" x2="${x(scenarioSpend)}" y2="${y(scenarioOutcome)}" stroke="#d88712" stroke-width="2" stroke-dasharray="7 5"/><text x="${iROASLabelX}" y="${iROASLabelY}" text-anchor="middle" fill="#a56608" font-size="9" font-weight="800">iROAS ${formatRatio(scenarioIROAS)}</text><line x1="${x(tangentStartSpend)}" y1="${y(tangentStartOutcome)}" x2="${x(tangentEndSpend)}" y2="${y(tangentEndOutcome)}" stroke="#168a74" stroke-width="3" stroke-linecap="round"/><text x="${mroiLabelX}" y="${mroiLabelY}" text-anchor="end" fill="#0d7462" font-size="9" font-weight="800">mROI ${formatRatio(scenarioMROI)}</text><line x1="${x(current.spend)}" y1="${y(current.incremental)}" x2="${x(current.spend)}" y2="${margin.top + plotHeight}" stroke="#172a91" stroke-dasharray="5 4"/><line x1="${x(scenarioSpend)}" y1="${y(scenarioOutcome)}" x2="${x(scenarioSpend)}" y2="${margin.top + plotHeight}" stroke="#ec0a68" stroke-dasharray="3 4"/><circle cx="${x(current.spend)}" cy="${y(current.incremental)}" r="6" fill="#172a91" stroke="#fff" stroke-width="2.5" tabindex="0" data-tooltip-text="${tooltipText(["Exact reference point", `Budget: ${formatPlannerCurrency(current.spend)}`, `Total incremental revenue: ${formatCurrency(current.incremental)}`, `Average iROAS: ${formatRatio(current.iROAS)}`, `Next-rupiah mROI: ${formatRatio(current.mROI)}`])}"></circle><circle cx="${x(scenarioSpend)}" cy="${y(scenarioOutcome)}" r="${Math.abs(budgetDelta) < 1 ? 9 : 6.5}" fill="${Math.abs(budgetDelta) < 1 ? "none" : "#ec0a68"}" stroke="#ec0a68" stroke-width="2.8" tabindex="0" data-tooltip-text="${tooltipText(["Exact planner scenario", `Budget: ${formatPlannerCurrency(scenarioSpend)}`, `Total incremental revenue: ${formatCurrency(scenarioOutcome)}`, `Incremental revenue change: ${formatSignedCurrency(outcomeDelta)} (${outcomeChange >= 0 ? "+" : ""}${formatPercent(outcomeChange)})`, `Average iROAS: ${formatRatio(scenarioIROAS)}`, `Next-rupiah mROI: ${formatRatio(scenarioMROI)}`, `Exact-change return: ${exactChangeLabel}`])}"></circle><text x="${x(current.spend)}" y="${margin.top + plotHeight + 34}" text-anchor="middle" fill="#172a91" font-size="9" font-weight="800">Reference · ${formatPlannerCurrency(current.spend)}</text><text x="${x(scenarioSpend)}" y="${Math.max(margin.top + 12, y(scenarioOutcome) - 13)}" text-anchor="middle" fill="#ec0a68" font-size="9" font-weight="800">${Math.abs(budgetDelta) < 1 ? "Scenario = reference" : `Scenario · ${formatPlannerCurrency(scenarioSpend)}`}</text><text x="${margin.left + plotWidth / 2}" y="${height - 7}" text-anchor="middle" fill="#6f7b92" font-size="10" font-weight="700">Media spend</text><text x="14" y="${margin.top + plotHeight / 2}" transform="rotate(-90 14 ${margin.top + plotHeight / 2})" text-anchor="middle" fill="#6f7b92" font-size="10" font-weight="700">Incremental revenue</text></svg>`;
-    const efficiencyShift = scenarioIROAS > current.iROAS + .01 ? "Improves" : scenarioIROAS < current.iROAS - .01 ? "Declines" : "Stable";
-    elements.responseLabels.innerHTML = [
-      ["Average iROAS", `${formatRatio(current.iROAS)} → ${formatRatio(scenarioIROAS)}`, "Total incremental revenue ÷ total spend", "iroas"],
-      ["mROI", `${formatRatio(current.mROI)} → ${formatRatio(scenarioMROI)}`, "Return from the next Rp1 at each point", "mroi"],
-      ["Exact-change return", changeReturn === null ? "—" : formatRatio(changeReturn), changeReturn === null ? "No budget movement selected" : "Revenue change ÷ budget change", "change-return"],
-      ["Efficiency signal", efficiencyShift, Math.abs(budgetChange) < .05 ? "Reference and scenario are identical" : `Spend ${budgetChange >= 0 ? "+" : ""}${formatPercent(budgetChange)} · impact ${outcomeChange >= 0 ? "+" : ""}${formatPercent(outcomeChange)}`, efficiencyShift === "Declines" ? "negative" : efficiencyShift === "Improves" ? "positive" : "neutral"],
-    ].map(([label, value, note, className]) => `<div class="mmm-visible-label ${className}"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`).join("");
-  }
-
-  function renderCarryover(metric) {
-    const width = 640;
-    const height = 300;
-    const margin = { left: 54, right: 22, top: 20, bottom: 44 };
-    const plotWidth = width - margin.left - margin.right;
-    const plotHeight = height - margin.top - margin.bottom;
-    const selectedWeeks = Number(elements.hiatusWeeks.value);
-    const selectedDay = selectedWeeks * 7;
-    const maxDays = 56;
-    const points = Array.from({ length: maxDays + 1 }, (_, day) => ({ day, remaining: Math.pow(.5, day / metric.halfLifeDays) * 100 }));
-    const x = (day) => margin.left + day / maxDays * plotWidth;
-    const y = (value) => margin.top + plotHeight - value / 100 * plotHeight;
-    const line = svgPath(points.map((point) => [x(point.day), y(point.remaining)]));
-    const area = `${line} L${x(maxDays)},${margin.top + plotHeight} L${x(0)},${margin.top + plotHeight} Z`;
-    const remainingAtSelected = Math.pow(.5, selectedDay / metric.halfLifeDays) * 100;
-    const recoveryDays = Math.ceil(metric.halfLifeDays * 2);
-    const scenarioBudget = state.lastScenario?.budgets?.[metric.name] ?? metric.spend;
-    const grid = [0, 25, 50, 75, 100].map((value) => `<line x1="${margin.left}" y1="${y(value)}" x2="${margin.left + plotWidth}" y2="${y(value)}" stroke="#ebedf4"/><text x="${margin.left - 8}" y="${y(value) + 4}" text-anchor="end" fill="#8b95a8" font-size="10">${value}%</text>`).join("");
-    const hoverPoints = points.map((point) => `<circle cx="${x(point.day)}" cy="${y(point.remaining)}" r="8" fill="transparent" tabindex="0" aria-label="Day ${point.day}" data-tooltip-text="${tooltipText([`${metric.name} carryover`, `Day after media stops: ${point.day}`, `Estimated effect remaining: ${formatPercent(point.remaining)}`, point.day <= metric.halfLifeDays ? "Within the first half-life" : "Beyond the first half-life"])}"></circle>`).join("");
-    elements.carryoverCurve.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${metric.name} carryover decay through the selected ${selectedWeeks}-week hiatus"><defs><linearGradient id="mmmCarryArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${metric.color}" stop-opacity=".22"/><stop offset="1" stop-color="${metric.color}" stop-opacity=".02"/></linearGradient></defs>${grid}<path d="${area}" fill="url(#mmmCarryArea)"/><path d="${line}" fill="none" stroke="${metric.color}" stroke-width="3"/><line x1="${x(metric.halfLifeDays)}" y1="${margin.top}" x2="${x(metric.halfLifeDays)}" y2="${margin.top + plotHeight}" stroke="#7355dc" stroke-dasharray="5 4"/><circle cx="${x(metric.halfLifeDays)}" cy="${y(50)}" r="5" fill="#7355dc" stroke="#fff" stroke-width="2" data-tooltip-text="${tooltipText([`${metric.name} half-life`, `${metric.halfLifeDays.toFixed(1)} days after media stops`, "50% of the modeled effect remains", "Used by the Hiatus Simulator"])}"></circle><line x1="${x(selectedDay)}" y1="${margin.top}" x2="${x(selectedDay)}" y2="${margin.top + plotHeight}" stroke="#ec0a68" stroke-width="2" stroke-dasharray="3 4"/><circle cx="${x(selectedDay)}" cy="${y(remainingAtSelected)}" r="6" fill="#ec0a68" stroke="#fff" stroke-width="2" data-tooltip-text="${tooltipText([`${selectedWeeks}-week hiatus`, `Day ${selectedDay}`, `Modeled effect remaining: ${formatPercent(remainingAtSelected)}`])}"></circle>${hoverPoints}<text x="${x(metric.halfLifeDays)}" y="${margin.top + 13}" text-anchor="middle" fill="#7355dc" font-size="9" font-weight="700">Half-life ${metric.halfLifeDays.toFixed(1)}d</text><text x="${x(selectedDay)}" y="${Math.max(margin.top + 25, y(remainingAtSelected) - 10)}" text-anchor="${selectedDay === 0 ? "start" : "middle"}" fill="#ec0a68" font-size="9" font-weight="700">Selected ${selectedWeeks}w · ${formatPercent(remainingAtSelected, 0)} left</text>${[0, 14, 28, 42, 56].map((day) => `<text x="${x(day)}" y="${height - 10}" text-anchor="middle" fill="#8993a7" font-size="10">${day / 7}w</text>`).join("")}</svg>`;
-    elements.carryoverLabels.innerHTML = [
-      ["Effect at pause start", "100%", `${metric.name} baseline`, "current"],
-      ["Modeled half-life", `${metric.halfLifeDays.toFixed(1)} days`, "50% effect remains", "scenario"],
-      [`After ${selectedWeeks} week${selectedWeeks === 1 ? "" : "s"}`, formatPercent(remainingAtSelected), `Day ${selectedDay}`, remainingAtSelected >= 50 ? "positive" : "negative"],
-      ["Recovery guide", `${recoveryDays} days`, "Approx. two half-lives", "neutral"],
-    ].map(([label, value, note, className]) => `<div class="mmm-visible-label ${className}"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`).join("");
-    elements.carryoverUsage.textContent = `${metric.name} receives ${formatCurrency(scenarioBudget)} in the active planner scenario. After a ${selectedWeeks}-week pause, ${formatPercent(remainingAtSelected)} of the modeled media effect remains; the decay rate comes from the ${metric.halfLifeDays.toFixed(1)}-day half-life, not from budget size.`;
-  }
-
-  function hiatusDecline(metric, weeks) {
-    const days = weeks * 7;
-    if (!days) return 0;
-    const decay = Math.pow(.5, 1 / metric.halfLifeDays);
-    const averageRemaining = safeDivide(1 - Math.pow(decay, days), days * (1 - decay));
-    const lostEffect = 1 - averageRemaining;
-    const scenarioContribution = state.lastScenario?.outcomes?.[metric.name] ?? metric.incremental;
-    const scenarioKpi = state.lastScenario?.totalKpi ?? currentSummary.predicted;
-    return safeDivide(scenarioContribution, scenarioKpi) * lostEffect * 100;
-  }
-
-  function renderHiatus(metric) {
-    const weeks = Number(elements.hiatusWeeks.value);
-    const tolerance = Number(elements.hiatusTolerance.value);
-    elements.hiatusWeeksOutput.textContent = `${weeks} week${weeks === 1 ? "" : "s"}`;
-    elements.hiatusToleranceOutput.textContent = `${tolerance}%`;
-    const decline = hiatusDecline(metric, weeks);
-    let safeWeeks = 0;
-    for (let candidate = 0; candidate <= 8; candidate += 1) {
-      if (hiatusDecline(metric, candidate) <= tolerance) safeWeeks = candidate;
-    }
-    const daysInScope = state.lastScenario?.reference?.planningDays ?? Math.max(filteredRows().length, 1);
-    const scenarioBudget = state.lastScenario?.budgets?.[metric.name] ?? metric.spend;
-    const savings = scenarioBudget / daysInScope * weeks * 7;
-    const isSafe = decline <= tolerance;
-    const recoveryDays = Math.ceil(metric.halfLifeDays * 2);
-    const values = [
-      ["Projected KPI decline", formatPercent(decline), isSafe ? "safe" : "risk"],
-      ["Tolerance status", isSafe ? "Within limit" : "Above limit", isSafe ? "safe" : "risk"],
-      ["Directional safe hiatus", `${safeWeeks} weeks`, ""],
-      ["Estimated media savings", formatCurrency(savings), ""],
-    ];
-    elements.hiatusResults.innerHTML = values.map(([label, value, className]) => `<div class="mmm-hiatus-metric ${className}"><span>${label}</span><strong>${value}</strong></div>`).join("");
-    root.querySelectorAll("[data-hiatus-preset]").forEach((button) => button.classList.toggle("active", Number(button.dataset.hiatusPreset) === weeks));
-    elements.hiatusFeedback.className = `mmm-hiatus-feedback ${isSafe ? "safe" : "risk"}`;
-    elements.hiatusFeedback.innerHTML = isSafe
-      ? `<strong>${metric.name} pause remains within tolerance.</strong> A ${weeks}-week pause is estimated to reduce total KPI by ${formatPercent(decline)} versus the ${formatPercent(tolerance, 0)} limit. Allow approximately ${recoveryDays} days after reactivation for the modeled effect to rebuild.`
-      : `<strong>${metric.name} pause exceeds tolerance.</strong> Reduce the pause to about ${safeWeeks} weeks or retain a maintenance budget. The projected decline is ${formatPercent(decline)} versus the ${formatPercent(tolerance, 0)} limit.`;
-
-    const trajectory = Array.from({ length: 9 }, (_, week) => ({ week, decline: hiatusDecline(metric, week) }));
-    const width = 720;
-    const height = 230;
-    const margin = { left: 42, right: 18, top: 30, bottom: 34 };
-    const plotWidth = width - margin.left - margin.right;
-    const plotHeight = height - margin.top - margin.bottom;
-    const maxDecline = Math.max(tolerance, ...trajectory.map((item) => item.decline), 1) * 1.2;
-    const x = (week) => margin.left + (week + .5) / trajectory.length * plotWidth;
-    const y = (value) => margin.top + plotHeight - safeDivide(value, maxDecline) * plotHeight;
-    const barWidth = plotWidth / trajectory.length * .56;
-    const thresholdY = y(tolerance);
-    const bars = trajectory.map((item) => {
-      const aboveTolerance = item.decline > tolerance;
-      const selected = item.week === weeks;
-      const barY = y(item.decline);
-      const barHeight = Math.max(2, margin.top + plotHeight - barY);
-      const color = aboveTolerance ? "#ec0a68" : selected ? "#4f38bc" : "#8879dc";
-      return `<g tabindex="0" data-tooltip-text="${tooltipText([`${metric.name} · ${item.week}-week pause`, `Projected KPI decline: ${formatPercent(item.decline)}`, `Allowed decline: ${formatPercent(tolerance, 0)}`, aboveTolerance ? "Above tolerance" : "Within tolerance"])}"><rect x="${x(item.week) - barWidth / 2}" y="${barY}" width="${barWidth}" height="${barHeight}" rx="5" fill="${color}" opacity="${selected ? "1" : ".82"}"/>${selected ? `<rect x="${x(item.week) - barWidth / 2 - 4}" y="${Math.max(margin.top, barY - 4)}" width="${barWidth + 8}" height="${barHeight + 8}" rx="7" fill="none" stroke="#172a91" stroke-width="2"/>` : ""}<text x="${x(item.week)}" y="${Math.max(margin.top + 10, barY - 7)}" text-anchor="middle" fill="${aboveTolerance ? "#b92568" : "#4f4a83"}" font-size="10" font-weight="750">${formatPercent(item.decline)}</text><text x="${x(item.week)}" y="${height - 11}" text-anchor="middle" fill="${selected ? "#172a91" : "#8993a7"}" font-size="10" font-weight="${selected ? "800" : "600"}">${item.week}w</text></g>`;
-    }).join("");
-    elements.hiatusTrajectory.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Projected KPI decline by hiatus week with a ${tolerance}% allowed decline threshold"><line x1="${margin.left}" y1="${margin.top + plotHeight}" x2="${width - margin.right}" y2="${margin.top + plotHeight}" stroke="#dfe3ed"/><line x1="${margin.left}" y1="${thresholdY}" x2="${width - margin.right}" y2="${thresholdY}" stroke="#ec0a68" stroke-width="2" stroke-dasharray="6 5"/><rect x="${width - margin.right - 108}" y="${Math.max(margin.top, thresholdY - 20)}" width="108" height="17" rx="8.5" fill="#fff0f5"/><text x="${width - margin.right - 8}" y="${Math.max(margin.top + 12, thresholdY - 8)}" text-anchor="end" fill="#b92568" font-size="10" font-weight="800">Allowed ${formatPercent(tolerance, 0)}</text>${bars}</svg>`;
-  }
-
-  function selectResponseChannel(channelName) {
-    state.responseChannel = channelName;
-    elements.responseChannel.value = channelName;
-    renderChannelsAndResponse();
-    root.querySelectorAll("[data-allocation-channel]").forEach((button) => button.classList.toggle("selected", button.dataset.allocationChannel === channelName));
-    pulse(elements.responseCurve.closest(".mmm-panel"));
-    pulse(elements.carryoverCurve.closest(".mmm-panel"));
-  }
-
-  function renderChannelsAndResponse() {
-    const metrics = channelMetrics(currentSummary);
-    renderChannelMatrix(metrics);
-    renderChannelTable(metrics);
-    const metric = selectedMetric();
-    renderResponseSummary(metric);
-    renderResponseCurve(metric);
-    renderCarryover(metric);
-    renderHiatus(metric);
-  }
-
-  function plannerReference() {
-    const rows = filteredRows();
-    const summary = summarize(rows);
-    const selectedDays = Math.max(rows.length, 1);
-    const window = planningWindow();
-    const factor = window.days / selectedDays;
-    const channels = dataset.channels.map((channel) => {
-      const currentSpend = summary.spend[channel.name] * factor;
-      const currentOutcome = summary.media[channel.name] * factor;
-      return { ...channel, currentSpend, currentOutcome, parameters: responseParameters(channel, currentSpend, currentOutcome) };
-    });
-    const nonMedia = (summary.baseline + summary.promotion + summary.seasonality + summary.other) * factor;
-    return { channels, nonMedia, factor, selectedDays, planningDays: window.days, planningWindow: window, currentBudget: channels.reduce((sum, channel) => sum + channel.currentSpend, 0), currentMedia: channels.reduce((sum, channel) => sum + channel.currentOutcome, 0) };
-  }
-
-  function selectedPlannerChannels(reference) {
-    if (state.plannerMode === "manual") return reference.channels;
-    const selected = reference.channels.filter((channel) => state.selectedChannels.has(channel.name));
-    return selected.length ? selected : reference.channels.slice(0, 1);
-  }
-
-  function plannerBounds(reference) {
+  // ---------- optimizer ----------
+  function guardrailBounds() {
     const bounds = {};
-    const selectedNames = new Set(selectedPlannerChannels(reference).map((channel) => channel.name));
     reference.channels.forEach((channel) => {
-      if (!selectedNames.has(channel.name)) {
-        bounds[channel.name] = { floor: 0, ceiling: 0, selected: false, locked: false };
-      } else if (state.locked.has(channel.name)) {
-        bounds[channel.name] = { floor: channel.currentSpend, ceiling: channel.currentSpend, selected: true, locked: true };
-      } else {
-        bounds[channel.name] = {
-          floor: channel.currentSpend * (1 - state.maxDecrease / 100),
-          ceiling: channel.currentSpend * (1 + state.maxIncrease / 100),
-          selected: true,
-          locked: false,
-        };
-      }
+      const selected = state.selected.has(channel.name);
+      const locked = selected && state.locked.has(channel.name);
+      if (!selected) bounds[channel.name] = { floor: 0, ceil: 0, selected, locked: false };
+      else if (locked) bounds[channel.name] = { floor: channel.monthly, ceil: channel.monthly, selected, locked };
+      else bounds[channel.name] = { floor: channel.monthly * (1 - state.maxDecrease / 100), ceil: channel.monthly * (1 + state.maxIncrease / 100), selected, locked };
     });
     return bounds;
   }
 
-  function evaluatePlan(reference, budgets) {
-    const outcomes = {};
-    const marginals = {};
-    reference.channels.forEach((channel) => {
-      outcomes[channel.name] = responseValue(budgets[channel.name], channel.parameters);
-      marginals[channel.name] = marginalValue(budgets[channel.name], channel.parameters);
+  // Global optimum for separable S-shaped curves: dynamic programming over the budget above the channel floors.
+  // Floors, locks and the total are always respected exactly; ceilings are respected to grid precision.
+  function optimize(budget, bounds, grid = 1000) {
+    const names = reference.channels.map((channel) => channel.name);
+    const floors = names.map((name) => bounds[name].floor);
+    const allocation = Object.fromEntries(names.map((name, index) => [name, floors[index]]));
+    const slack = budget - floors.reduce((total, value) => total + value, 0);
+    if (!(slack > 1)) return allocation;
+    const unit = slack / grid;
+    const caps = names.map((name, index) => Math.max(0, Math.min(grid, Math.floor((bounds[name].ceil - floors[index]) / unit + 1e-6))));
+    if (caps.reduce((total, value) => total + value, 0) < grid) {
+      const shortfall = grid - caps.reduce((total, value) => total + value, 0);
+      const widest = caps.indexOf(Math.max(...caps));
+      caps[widest] += shortfall;
+    }
+    let previous = new Float64Array(grid + 1).fill(-Infinity);
+    previous[0] = 0;
+    const choices = [];
+    names.forEach((name, index) => {
+      const cap = caps[index];
+      const values = new Float64Array(cap + 1);
+      for (let x = 0; x <= cap; x += 1) values[x] = response(name, floors[index] + x * unit);
+      const next = new Float64Array(grid + 1).fill(-Infinity);
+      const choice = new Int32Array(grid + 1).fill(-1);
+      for (let g = 0; g <= grid; g += 1) {
+        if (previous[g] === -Infinity) continue;
+        const limit = Math.min(cap, grid - g);
+        for (let x = 0; x <= limit; x += 1) {
+          const value = previous[g] + values[x];
+          if (value > next[g + x]) { next[g + x] = value; choice[g + x] = x; }
+        }
+      }
+      choices.push(choice);
+      previous = next;
     });
-    const budget = Object.values(budgets).reduce((sum, value) => sum + value, 0);
-    const media = Object.values(outcomes).reduce((sum, value) => sum + value, 0);
-    const blendedMarginal = safeDivide(reference.channels.reduce((sum, channel) => sum + marginals[channel.name] * budgets[channel.name], 0), budget);
-    return { budgets, outcomes, budget, media, totalKpi: reference.nonMedia + media, iROAS: safeDivide(media, budget), mROI: blendedMarginal };
+    let g = grid;
+    for (let index = names.length - 1; index >= 0; index -= 1) {
+      const x = Math.max(choices[index][g], 0);
+      allocation[names[index]] = floors[index] + x * unit;
+      g -= x;
+    }
+    return allocation;
   }
 
-  function buildScenarioChannelPlan(channel, scenarioBudget, scenarioOutcome) {
-    const plannedSpend = Number.isFinite(Number(scenarioBudget)) ? Number(scenarioBudget) : channel.currentSpend;
-    const plannedOutcome = Number.isFinite(Number(scenarioOutcome)) ? Number(scenarioOutcome) : responseValue(plannedSpend, channel.parameters);
-    const budgetDelta = plannedSpend - channel.currentSpend;
-    const outcomeDelta = plannedOutcome - channel.currentOutcome;
+  function mediaOf(allocation) {
+    return sum(Object.entries(allocation), ([name, spend]) => response(name, spend));
+  }
+
+  function proportional(budget, bounds) {
+    const allocation = {};
+    let fixed = 0;
+    let flexible = 0;
+    reference.channels.forEach((channel) => {
+      const bound = bounds[channel.name];
+      if (!bound.selected) return;
+      if (bound.locked) fixed += channel.monthly; else flexible += channel.monthly;
+    });
+    const factor = flexible ? Math.max(0, (budget - fixed) / flexible) : 0;
+    reference.channels.forEach((channel) => {
+      const bound = bounds[channel.name];
+      allocation[channel.name] = !bound.selected ? 0 : bound.locked ? channel.monthly : channel.monthly * factor;
+    });
+    return { allocation, factor };
+  }
+
+  // Reference for the channels selected in the planner (the "pool").
+  function poolReference() {
+    const channels = reference.channels.filter((channel) => state.selected.has(channel.name));
+    const excluded = reference.channels.filter((channel) => !state.selected.has(channel.name));
     return {
-      ...channel,
-      scenarioSpend: plannedSpend,
-      scenarioOutcome: plannedOutcome,
-      budgetDelta,
-      outcomeDelta,
-      budgetChange: safeDivide(budgetDelta, channel.currentSpend) * 100,
-      outcomeChange: safeDivide(outcomeDelta, channel.currentOutcome) * 100,
-      scenarioIROAS: safeDivide(plannedOutcome, plannedSpend),
-      scenarioMROI: marginalValue(plannedSpend, channel.parameters),
-      changeReturn: Math.abs(budgetDelta) > 1 ? safeDivide(outcomeDelta, budgetDelta) : null,
-      selectedForAllocation: state.plannerMode === "manual" || state.selectedChannels.has(channel.name),
+      names: channels.map((channel) => channel.name),
+      budget: sum(channels, (channel) => channel.monthly),
+      media: sum(channels, (channel) => channel.incr),
+      excluded,
+      label: channels.length === reference.channels.length ? `all ${channels.length} channels` : channels.map((channel) => channel.name).join(" + "),
     };
   }
 
-  function buildScenarioChannelPlans(reference, budgets, outcomes) {
-    return Object.fromEntries(reference.channels.map((channel) => [channel.name, buildScenarioChannelPlan(channel, budgets[channel.name], outcomes[channel.name])]));
-  }
+  function planScenario() {
+    const bounds = guardrailBounds();
+    const pool = poolReference();
+    const floorTotal = sum(Object.values(bounds), (bound) => bound.floor);
+    const ceilTotal = sum(Object.values(bounds), (bound) => bound.ceil);
+    const tolerance = Math.max(pool.budget * 0.001, 1);
+    const notes = [];
+    let allocation;
+    let status = "optimized";
 
-  function allocationConstraintStatus(channel) {
-    if (!channel.selectedForAllocation) return { label: "Excluded from allocation pool", action: "Excluded", className: "excluded" };
-    if (state.locked.has(channel.name)) return { label: "Locked at current budget", action: "Locked", className: "locked" };
-
-    const minimumBudget = channel.currentSpend * (1 - state.maxDecrease / 100);
-    const maximumBudget = channel.currentSpend * (1 + state.maxIncrease / 100);
-    const tolerance = Math.max(channel.currentSpend * .001, 1);
-    if (channel.budgetDelta > 1 && Math.abs(channel.scenarioSpend - maximumBudget) <= tolerance) {
-      return { label: `At max +${state.maxIncrease}% channel cap`, action: "Max cap", className: "capped" };
-    }
-    if (channel.budgetDelta < -1 && Math.abs(channel.scenarioSpend - minimumBudget) <= tolerance) {
-      return { label: `At min −${state.maxDecrease}% channel cap`, action: "Min cap", className: "capped" };
-    }
-    if (Math.abs(channel.budgetChange) < .05) return { label: "No material movement", action: "No change", className: "neutral" };
-    return { label: "Optimizer reallocated this channel", action: channel.budgetChange > 0 ? "Increase" : "Decrease", className: channel.budgetChange > 0 ? "positive" : "negative" };
-  }
-
-  function maximumScenarioIncreaseRatio() {
-    const maximumIncrease = Number(elements.maxIncrease?.max) || 150;
-    return 1 + maximumIncrease / 100;
-  }
-
-  function allocationScaleMaximum(reference) {
-    return Math.max(...reference.channels.map((channel) => channel.currentSpend * maximumScenarioIncreaseRatio()), 1);
-  }
-
-  function allocateToBudget(reference, targetBudget, bounds) {
-    const budgets = Object.fromEntries(reference.channels.map((channel) => [channel.name, 0]));
-    const selected = reference.channels.filter((channel) => bounds[channel.name].selected);
-    const exactTarget = Math.max(Number(targetBudget) || 0, 0);
-    const floorTotal = selected.reduce((sum, channel) => sum + bounds[channel.name].floor, 0);
-    const ceilingTotal = selected.reduce((sum, channel) => sum + bounds[channel.name].ceiling, 0);
-    const warnings = [];
-
-    const allocateRemaining = (pool, amount, capFor) => {
-      let remaining = Math.max(amount, 0);
-      const step = Math.max(exactTarget / 1600, 1);
-      let guard = 0;
-      while (remaining > 1 && guard < 7000) {
-        const eligible = pool.filter((channel) => budgets[channel.name] < capFor(channel) - 1);
-        if (!eligible.length) break;
-        eligible.sort((a, b) => marginalValue(budgets[b.name], b.parameters) - marginalValue(budgets[a.name], a.parameters));
-        const chosen = eligible[0];
-        const addition = Math.min(step, remaining, capFor(chosen) - budgets[chosen.name]);
-        budgets[chosen.name] += addition;
-        remaining -= addition;
-        guard += 1;
+    if (state.mode === "budget") {
+      const budget = Math.max(0, (Number(state.primaryValue) || 0) * 1e9);
+      if (budget >= floorTotal - tolerance && budget <= ceilTotal + tolerance) {
+        allocation = optimize(budget, bounds);
+      } else {
+        const result = proportional(budget, bounds);
+        allocation = result.allocation;
+        status = budget < floorTotal ? "below" : "above";
+        const change = (result.factor - 1) * 100;
+        notes.push(status === "below"
+          ? `Budget is below the lowest total the guardrails allow for ${pool.label} (${rp(floorTotal)}/month). Every unlocked channel is cut by ${pct(Math.abs(change), 0)} instead of optimized — this is outside the modeled range, treat it as directional.`
+          : `Budget is above the highest total the guardrails allow for ${pool.label} (${rp(ceilTotal)}/month). Every unlocked channel is raised by ${pct(change, 0)} instead of optimized — this is outside the modeled range, treat it as directional.`);
       }
-      return remaining;
+    } else {
+      const target = Math.max(0, (Number(state.primaryValue) || 0) * 1e9);
+      const needed = target - reference.nonMedia;
+      const maxPlan = optimize(ceilTotal, bounds, 300);
+      if (needed <= mediaOf(optimize(floorTotal, bounds, 300))) {
+        allocation = optimize(floorTotal, bounds);
+        notes.push(`The target is already reached at the lowest budget the guardrails allow for ${pool.label} (${rp(floorTotal)}/month).`);
+      } else if (mediaOf(maxPlan) < needed) {
+        allocation = optimize(ceilTotal, bounds);
+        status = "unreachable";
+        notes.push(`The target needs ${rp(needed)}/month of incremental revenue from ${pool.label}, more than the curves can deliver within the guardrails (${rp(mediaOf(maxPlan))}/month). Showing the maximum-guardrail plan.`);
+      } else {
+        let low = floorTotal;
+        let high = ceilTotal;
+        for (let i = 0; i < 22; i += 1) {
+          const mid = (low + high) / 2;
+          if (mediaOf(optimize(mid, bounds, 200)) >= needed) high = mid; else low = mid;
+        }
+        allocation = optimize(high, bounds);
+      }
+    }
+    return evaluate(allocation, bounds, status, notes, pool);
+  }
+
+  function position(channel, spend) {
+    if (spend <= 0) return { label: "Not funded", className: "muted" };
+    const mroi = marginal(channel.name, spend);
+    if (spend > channel.band.high && mroi < 1) return { label: "Past break-even", className: "danger" };
+    if (spend > channel.band.high) return { label: "Above efficient range", className: "warn" };
+    if (spend < channel.band.low) return { label: "Below efficient range", className: "info" };
+    return { label: "In efficient range", className: "good" };
+  }
+
+  function guardLabel(channel, spend, bound) {
+    if (!bound.selected) return "Not in pool";
+    if (bound.locked) return "Locked";
+    const tolerance = Math.max(channel.monthly * 0.006, 1);
+    if (spend > bound.ceil + tolerance || spend < bound.floor - tolerance) return "Outside guardrail";
+    if (Math.abs(spend - bound.ceil) <= tolerance && spend > channel.monthly + tolerance) return `At +${state.maxIncrease}% cap`;
+    if (Math.abs(spend - bound.floor) <= tolerance && spend < channel.monthly - tolerance) return `At −${state.maxDecrease}% floor`;
+    return "";
+  }
+
+  function evaluate(allocation, bounds, status, notes, pool) {
+    const plans = reference.channels.map((channel) => {
+      const spend = allocation[channel.name] || 0;
+      const incr = response(channel.name, spend);
+      return {
+        ...channel,
+        inPool: bounds[channel.name].selected,
+        scenario: spend,
+        scenarioIncr: incr,
+        delta: spend - channel.monthly,
+        deltaPct: safeDivide(spend - channel.monthly, channel.monthly) * 100,
+        incrDelta: incr - channel.incr,
+        scenarioIroas: safeDivide(incr, spend),
+        scenarioMroi: marginal(channel.name, spend),
+        position: position(channel, spend),
+        guard: guardLabel(channel, spend, bounds[channel.name]),
+      };
+    });
+    const budget = sum(plans, (plan) => plan.scenario);
+    const media = sum(plans, (plan) => plan.scenarioIncr);
+    const isPast = (plan) => plan.scenario > 0 && plan.scenarioMroi < 1 && plan.scenario > plan.band.high;
+    const lockedPast = plans.filter((plan) => isPast(plan) && bounds[plan.name]?.locked);
+    const pastBreakEven = plans.filter((plan) => isPast(plan) && !bounds[plan.name]?.locked);
+    if (lockedPast.length) {
+      notes.push(`${lockedPast.map((plan) => `${plan.name} is locked at ${rp(plan.scenario)}/month, past break-even (next Rp1 returns ${ratio(plan.scenarioMroi)})`).join("; ")}. Unlock it to let the planner rebalance.`);
+    }
+    if (pastBreakEven.length) {
+      notes.push(`${pastBreakEven.map((plan) => plan.name).join(" and ")} ${pastBreakEven.length > 1 ? "are" : "is"} funded past break-even (next Rp1 returns less than Rp1) because the budget must be fully spent and stronger channels are at their caps. Consider a smaller budget or wider caps.`);
+    }
+    if (pool.excluded.length) {
+      notes.push(`Not in this scenario: ${pool.excluded.map((channel) => `${channel.name} (reference ${rp(channel.monthly)}/month, ${rp(channel.incr)} incremental revenue)`).join(", ")}. Comparisons use the reference of the selected channels only (${rp(pool.budget)}/month).`);
+    }
+    return {
+      mode: state.mode,
+      status,
+      notes,
+      plans,
+      pool,
+      byName: Object.fromEntries(plans.map((plan) => [plan.name, plan])),
+      budget,
+      media,
+      totalKpi: reference.nonMedia + media,
+      iroas: safeDivide(media, budget),
+      mroi: safeDivide(sum(plans, (plan) => plan.scenarioMroi * plan.scenario), budget),
+      poolBudget: pool.budget,
+      poolMedia: pool.media,
+      budgetDelta: budget - pool.budget,
+      mediaDelta: media - pool.media,
+      mediaDeltaPct: safeDivide(media - pool.media, pool.media) * 100,
+      months: state.horizonMonths,
     };
-
-    if (exactTarget < floorTotal - 1) {
-      warnings.push(`Reduction guardrails were relaxed so the selected channels still total exactly ${formatCurrency(exactTarget)}.`);
-      allocateRemaining(selected, exactTarget, (channel) => bounds[channel.name].floor);
-    } else {
-      selected.forEach((channel) => { budgets[channel.name] = bounds[channel.name].floor; });
-      let remaining = exactTarget - floorTotal;
-      remaining = allocateRemaining(selected, remaining, (channel) => bounds[channel.name].ceiling);
-      if (remaining > 1) {
-        warnings.push(`Increase guardrails were relaxed so the selected channels absorb the full ${formatCurrency(exactTarget)} budget.`);
-        const scalable = selected.filter((channel) => !bounds[channel.name].locked);
-        remaining = allocateRemaining(scalable.length ? scalable : selected, remaining, () => exactTarget);
-      }
-    }
-
-    const allocated = Object.values(budgets).reduce((sum, value) => sum + value, 0);
-    const residual = exactTarget - allocated;
-    if (Math.abs(residual) > 1 && selected.length) {
-      const fallback = [...selected].sort((a, b) => marginalValue(budgets[b.name], b.parameters) - marginalValue(budgets[a.name], a.parameters))[0];
-      budgets[fallback.name] = Math.max(0, budgets[fallback.name] + residual);
-    }
-    return { budgets, warnings };
   }
 
-  function solvePlanner() {
-    const reference = plannerReference();
-    const bounds = plannerBounds(reference);
-    const warnings = [];
-    let budgets = {};
-    let label = "Available Budget";
-    let targetNote = "Budget allocated to the highest modeled marginal returns within constraints.";
+  // ---------- tooltips ----------
+  function ensureTooltip() {
+    if (tooltip) return tooltip;
+    tooltip = document.createElement("div");
+    tooltip.className = "mmm-tooltip";
+    tooltip.setAttribute("role", "tooltip");
+    tooltip.hidden = true;
+    document.body.appendChild(tooltip);
+    return tooltip;
+  }
+  function placeTooltip(x, y) {
+    if (!tooltip || tooltip.hidden) return;
+    const box = tooltip.getBoundingClientRect();
+    let left = x + 14;
+    let top = y + 14;
+    if (left + box.width > window.innerWidth - 8) left = x - box.width - 14;
+    if (top + box.height > window.innerHeight - 8) top = y - box.height - 14;
+    tooltip.style.left = `${Math.max(8, left)}px`;
+    tooltip.style.top = `${Math.max(8, top)}px`;
+  }
+  function showTooltip(html, x, y) {
+    ensureTooltip();
+    tooltip.innerHTML = html;
+    tooltip.hidden = false;
+    placeTooltip(x, y);
+  }
+  function hideTooltip() { if (tooltip) tooltip.hidden = true; }
 
-    if (state.plannerMode === "budget") {
-      const allocation = allocateToBudget(reference, state.primaryValue * 1e9, bounds);
-      budgets = allocation.budgets;
-      warnings.push(...allocation.warnings);
-      const selectedNames = selectedPlannerChannels(reference).map((channel) => channel.name);
-      targetNote = `The full entered budget is allocated across ${selectedNames.join(", ")} only; unselected channels receive Rp0.`;
-    } else if (state.plannerMode === "target") {
-      label = "Target KPI";
-      targetNote = "Minimum modeled media allocation required to pursue the KPI target.";
-      reference.channels.forEach((channel) => { budgets[channel.name] = bounds[channel.name].floor; });
-      const targetKpi = state.primaryValue * 1e9;
-      const step = Math.max(reference.currentBudget / 1500, 1);
-      let evaluation = evaluatePlan(reference, budgets);
-      let guard = 0;
-      while (evaluation.totalKpi < targetKpi && guard < 6000) {
-        const eligible = reference.channels.filter((channel) => budgets[channel.name] < bounds[channel.name].ceiling - 1);
-        if (!eligible.length) break;
-        eligible.sort((a, b) => marginalValue(budgets[b.name], b.parameters) - marginalValue(budgets[a.name], a.parameters));
-        const chosen = eligible[0];
-        budgets[chosen.name] += Math.min(step, bounds[chosen.name].ceiling - budgets[chosen.name]);
-        evaluation = evaluatePlan(reference, budgets);
-        guard += 1;
-      }
-      if (evaluatePlan(reference, budgets).totalKpi < targetKpi) warnings.push("Target KPI is outside the modeled range under the active constraints.");
-    } else if (state.plannerMode === "roi") {
-      label = "Target ROI";
-      targetNote = "Largest modeled allocation that preserves the requested portfolio iROAS.";
-      reference.channels.forEach((channel) => { budgets[channel.name] = bounds[channel.name].floor; });
-      const targetROI = state.primaryValue;
-      const step = Math.max(reference.currentBudget / 1600, 1);
-      let guard = 0;
-      while (guard < 6000) {
-        const eligible = reference.channels.filter((channel) => budgets[channel.name] < bounds[channel.name].ceiling - 1);
-        const candidates = eligible.map((channel) => {
-          const trial = { ...budgets, [channel.name]: Math.min(bounds[channel.name].ceiling, budgets[channel.name] + step) };
-          return { channel, trial, evaluation: evaluatePlan(reference, trial) };
-        }).filter((candidate) => candidate.evaluation.iROAS >= targetROI);
-        if (!candidates.length) break;
-        candidates.sort((a, b) => b.evaluation.media - a.evaluation.media);
-        budgets = candidates[0].trial;
-        guard += 1;
-      }
-      if (evaluatePlan(reference, budgets).iROAS < targetROI) warnings.push("Target ROI cannot be reached at the active channel floors.");
-    } else {
-      label = "Manual What-If";
-      targetNote = "User-defined allocation evaluated against the same response curves.";
-      reference.channels.forEach((channel) => {
-        const requested = (Number(state.manualBudgets[channel.name]) || 0) * 1e9;
-        budgets[channel.name] = clamp(requested, bounds[channel.name].floor, bounds[channel.name].ceiling);
-        if (Math.abs(budgets[channel.name] - requested) > 1) warnings.push(`${channel.name} was adjusted to the active min/max constraint.`);
+  function bindStaticTooltips() {
+    root.addEventListener("pointerover", (event) => {
+      const target = event.target.closest?.("[data-tooltip-text]");
+      if (target) showTooltip(escapeHtml(target.dataset.tooltipText).replace(/\n/g, "<br>"), event.clientX, event.clientY);
+    });
+    root.addEventListener("pointermove", (event) => {
+      if (event.target.closest?.("[data-tooltip-text]")) placeTooltip(event.clientX, event.clientY);
+    });
+    root.addEventListener("pointerout", (event) => {
+      const target = event.target.closest?.("[data-tooltip-text]");
+      if (target && !(event.relatedTarget && target.contains(event.relatedTarget))) hideTooltip();
+    });
+  }
+
+  // ---------- section 01: diminishing return ----------
+  function diminishingChart(channel) {
+    const W = 560;
+    const H = 292;
+    const m = { l: 56, r: 50, t: 26, b: 42 };
+    const pw = W - m.l - m.r;
+    const ph = H - m.t - m.b;
+    const plan = scenario?.byName[channel.name];
+    const scenarioSpend = plan ? plan.scenario : null;
+    const xAxis = niceTicks(Math.max(channel.monthly * 1.9, channel.band.high * 1.5, (scenarioSpend || 0) * 1.15), 4);
+    const xMax = xAxis.max;
+    const samples = Array.from({ length: 141 }, (_, i) => {
+      const spend = (xMax * i) / 140;
+      return { spend, incr: response(channel.name, spend), roas: averageReturn(channel.name, spend) };
+    });
+    const yAxis = niceTicks(Math.max(...samples.map((s) => s.incr)) * 1.05, 4);
+    const rAxis = niceTicks(channel.band.peakIroas * 1.3, 4);
+    const yMax = yAxis.max;
+    const rMax = rAxis.max;
+    const x = (v) => m.l + (v / xMax) * pw;
+    const y = (v) => m.t + ph - (v / yMax) * ph;
+    const yr = (v) => m.t + ph - (v / rMax) * ph;
+    const path = (points) => points.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+    const incrPath = path(samples.map((s) => [x(s.spend), y(s.incr)]));
+    const roasPath = path(samples.filter((s) => s.spend > 0).map((s) => [x(s.spend), yr(s.roas)]));
+    const grid = yAxis.ticks.map((v) => `<line x1="${m.l}" x2="${m.l + pw}" y1="${y(v)}" y2="${y(v)}" class="dr-grid"/><text x="${m.l - 8}" y="${y(v) + 3.5}" text-anchor="end" class="dr-axis">${axisRp(v)}</text>`).join("")
+      + rAxis.ticks.map((v) => `<text x="${m.l + pw + 8}" y="${yr(v) + 3.5}" class="dr-axis">${Number(v.toFixed(2))}x</text>`).join("");
+    const xTicks = xAxis.ticks.map((v) => `<text x="${x(v)}" y="${m.t + ph + 16}" text-anchor="middle" class="dr-axis">${axisRp(v)}</text>`).join("");
+    const bx1 = x(channel.band.low);
+    const bx2 = x(Math.min(channel.band.high, xMax));
+    const box = `<rect x="${bx1}" y="${m.t}" width="${Math.max(0, bx2 - bx1)}" height="${ph}" class="dr-box"/><text x="${(bx1 + bx2) / 2}" y="${m.t + 12}" text-anchor="middle" class="dr-box-label">Efficient range</text>`;
+    const cx = x(channel.monthly);
+    const cy = y(channel.incr);
+    const current = `<line x1="${cx}" x2="${cx}" y1="${cy}" y2="${m.t + ph}" class="dr-current-line"/><circle cx="${cx}" cy="${cy}" r="5.5" class="dr-current-dot" data-tooltip-text="${escapeHtml(`Current budget ${rp(channel.monthly)}/month\nIncremental revenue ${rp(channel.incr)}/month\niROAS ${ratio(channel.iroas)} · next Rp1 ${ratio(channel.mroi)}`)}"/><text x="${cx}" y="${m.t + ph - 6}" text-anchor="middle" class="dr-marker-label current">Current ${rp(channel.monthly)}</text>`;
+    let scenarioMarker = "";
+    if (plan && plan.inPool && Math.abs(plan.scenario - channel.monthly) > channel.monthly * 0.005) {
+      const sx = x(plan.scenario);
+      const sy = y(plan.scenarioIncr);
+      const labelY = Math.max(m.t + 24, sy - 12);
+      scenarioMarker = `<line x1="${sx}" x2="${sx}" y1="${sy}" y2="${m.t + ph}" class="dr-scenario-line"/><circle cx="${sx}" cy="${sy}" r="6.5" class="dr-scenario-dot" data-tooltip-text="${escapeHtml(`Scenario budget ${rp(plan.scenario)}/month (${signedPct(plan.deltaPct)})\nIncremental revenue ${rp(plan.scenarioIncr)}/month (${signedRp(plan.incrDelta)})\niROAS ${ratio(plan.scenarioIroas)} · next Rp1 ${ratio(plan.scenarioMroi)}`)}"/><text x="${sx}" y="${labelY}" text-anchor="middle" class="dr-marker-label scenario">Scenario ${rp(plan.scenario)}</text>`;
+    }
+    const signalClass = SIGNAL_CLASS[channel.signal];
+    return `<article class="mmm-panel mmm-dr-card" data-dr-channel="${channel.name}">
+      <header><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span><span class="mmm-signal ${signalClass}">${channel.signal}</span></header>
+      <p class="mmm-dr-card-copy">Efficient range <strong>${rp(channel.band.low)}–${rp(channel.band.high)}</strong>/month · peak iROAS ${ratio(channel.band.peakIroas)}${plan && !plan.inPool ? ' · <em class="mmm-not-in-pool">not in scenario pool</em>' : ""}</p>
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${channel.name} incremental revenue and iROAS by monthly budget" data-dr-svg="${channel.name}" data-xmax="${xMax}" data-ymax="${yMax}">
+        ${box}${grid}${xTicks}
+        <path d="${incrPath}" class="dr-incr" style="stroke:${channel.color}"/>
+        <path d="${roasPath}" class="dr-roas" style="stroke:${channel.color}"/>
+        ${current}${scenarioMarker}
+        <line class="dr-hover-line" x1="0" x2="0" y1="${m.t}" y2="${m.t + ph}" opacity="0"/>
+        <rect class="dr-hit" x="${m.l}" y="${m.t}" width="${pw}" height="${ph}" fill="transparent"/>
+        <text x="${m.l + pw / 2}" y="${H - 4}" text-anchor="middle" class="dr-axis-title">Budget per month (Rp)</text>
+        <text x="12" y="${m.t + ph / 2}" transform="rotate(-90 12 ${m.t + ph / 2})" text-anchor="middle" class="dr-axis-title">Incremental revenue / month</text>
+        <text x="${W - 8}" y="${m.t + ph / 2}" transform="rotate(90 ${W - 8} ${m.t + ph / 2})" text-anchor="middle" class="dr-axis-title">iROAS</text>
+      </svg>
+    </article>`;
+  }
+
+  function bindDiminishingHover() {
+    el.drCharts.querySelectorAll("[data-dr-svg]").forEach((svg) => {
+      const name = svg.dataset.drSvg;
+      const xMax = Number(svg.dataset.xmax);
+      const hit = svg.querySelector(".dr-hit");
+      const line = svg.querySelector(".dr-hover-line");
+      const m = { l: 56, r: 50 };
+      const W = 560;
+      hit.addEventListener("pointermove", (event) => {
+        const box = svg.getBoundingClientRect();
+        const vx = ((event.clientX - box.left) / box.width) * W;
+        const spend = clamp(((vx - m.l) / (W - m.l - m.r)) * xMax, 0, xMax);
+        line.setAttribute("x1", vx);
+        line.setAttribute("x2", vx);
+        line.setAttribute("opacity", "1");
+        const incr = response(name, spend);
+        showTooltip(`<strong>${escapeHtml(name)} · ${rp(spend)}/month</strong><br>Incremental revenue ${rp(incr)}/month<br>iROAS ${ratio(averageReturn(name, spend))} · next Rp1 ${ratio(marginal(name, spend))}`, event.clientX, event.clientY);
       });
-    }
+      hit.addEventListener("pointerleave", () => { line.setAttribute("opacity", "0"); hideTooltip(); });
+    });
+  }
 
-    const evaluation = evaluatePlan(reference, budgets);
-    const currentPlan = evaluatePlan(reference, Object.fromEntries(reference.channels.map((channel) => [channel.name, channel.currentSpend])));
-    evaluation.reference = reference;
-    evaluation.currentPlan = currentPlan;
-    evaluation.uplift = safeDivide(evaluation.totalKpi - currentPlan.totalKpi, currentPlan.totalKpi) * 100;
-    evaluation.warnings = [...new Set(warnings)];
-    evaluation.modeLabel = label;
-    evaluation.targetNote = targetNote;
-    evaluation.selectedChannels = selectedPlannerChannels(reference).map((channel) => channel.name);
-    evaluation.horizonLabel = `${reference.planningWindow.label} · ${reference.planningDays} days`;
-    evaluation.channelPlans = buildScenarioChannelPlans(reference, evaluation.budgets, evaluation.outcomes);
-    state.lastScenario = evaluation;
-    renderPlannerOutput(evaluation);
-    const metric = selectedMetric();
-    renderResponseSummary(metric);
-    renderResponseCurve(metric);
-    renderCarryover(metric);
-    renderHiatus(metric);
-    elements.saveScenario.disabled = false;
+  function channelInsight(channel) {
+    const range = `${rp(channel.band.low)}–${rp(channel.band.high)}/month`;
+    const peak = ratio(channel.band.peakIroas);
+    if (channel.signal === "Reduce") return `<strong>${channel.name} is past its efficient range.</strong> Efficiency peaks at ${range} (iROAS ≈${peak}); the current ${rp(channel.monthly)}/month earns ${ratio(channel.iroas)} on average and only ${ratio(channel.mroi)} on the next rupiah.`;
+    if (channel.signal === "Invest more") return `<strong>${channel.name} still has headroom.</strong> Efficiency peaks at ${range} (iROAS ≈${peak}); the current ${rp(channel.monthly)}/month is below that range and the next rupiah returns ${ratio(channel.mroi)}.`;
+    if (channel.signal === "Test & learn") return `<strong>${channel.name} reaches peak efficiency quickly on a small base.</strong> The efficient range is ${range} (iROAS ≈${peak}); the current ${rp(channel.monthly)}/month returns ${ratio(channel.mroi)} on the next rupiah — validate with a controlled test.`;
+    return `<strong>${channel.name} is operating inside its efficient range</strong> (${range}, iROAS ≈${peak}); keep spend within that range — it can fund reallocation without leaving it.`;
+  }
+
+  function renderDiminishing() {
+    const channels = reference.channels;
+    const invest = channels.filter((channel) => channel.signal === "Invest more").sort((a, b) => b.mroi - a.mroi);
+    const reduce = channels.filter((channel) => channel.signal === "Reduce").sort((a, b) => (b.monthly - b.band.high) - (a.monthly - a.band.high));
+    const test = channels.filter((channel) => channel.signal === "Test & learn");
+    const hold = channels.filter((channel) => channel.signal === "Hold");
+    if (invest.length && reduce.length) el.drHeadline.textContent = `${invest[0].name} has the most headroom, while ${reduce[0].name} is already past its efficient range`;
+    else if (invest.length) el.drHeadline.textContent = `${invest[0].name} has the most headroom for additional investment`;
+    else if (reduce.length) el.drHeadline.textContent = `${reduce[0].name} is past its efficient range — rebalance before adding budget`;
+    else el.drHeadline.textContent = "Every channel is operating close to its efficient range";
+
+    el.drCharts.innerHTML = channels.map(diminishingChart).join("");
+    bindDiminishingHover();
+    el.drInsights.innerHTML = channels.map((channel) => `<li style="--channel-color:${channel.color}">${channelInsight(channel)}</li>`).join("");
+
+    const bullets = [];
+    if (invest.length) bullets.push(`Direct additional investment to ${invest.map((c) => c.name).join(" and ")} first — the next rupiah returns ${invest.map((c) => `${ratio(c.mroi)} (${c.name})`).join(", ")}.`);
+    if (reduce.length) bullets.push(`Bring ${reduce.map((c) => c.name).join(" and ")} back toward ${reduce.length > 1 ? "their" : "its"} efficient range (${reduce.map((c) => `${rp(c.band.high)}/month`).join(", ")}) before adding budget.`);
+    if (test.length) bullets.push(`Fund ${test.map((c) => c.name).join(" and ")} as a controlled test within ${test.map((c) => `${rp(c.band.low)}–${rp(c.band.high)}/month`).join(", ")}.`);
+    if (hold.length) bullets.push(`Keep ${hold.map((c) => c.name).join(" and ")} inside ${hold.length > 1 ? "their" : "its"} efficient range (${hold.map((c) => `${rp(c.band.low)}–${rp(c.band.high)}/month`).join(", ")}); trimming within that range is acceptable when reallocating.`);
+    el.drRecommendation.innerHTML = `<p class="mmm-kicker">Recommendation</p><ul>${bullets.map((b) => `<li>${b}</li>`).join("")}</ul>`;
+
+    el.drTable.innerHTML = channels.map((channel) => `<tr>
+      <td><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span></td>
+      <td class="numeric">${ratio(channel.observedRoas)}</td>
+      <td class="numeric">${ratio(channel.iroas)}</td>
+      <td class="numeric">${pct(channel.incrementalShare * 100, 0)}</td>
+      <td class="numeric">${rp(channel.monthly)}</td>
+      <td class="numeric">${rp(channel.band.low)}–${rp(channel.band.high)}</td>
+      <td class="numeric">${ratio(channel.mroi)}</td>
+      <td><span class="mmm-signal ${SIGNAL_CLASS[channel.signal]}">${channel.signal}</span></td>
+    </tr>`).join("") + `<tr class="total"><td><strong>Portfolio</strong></td><td class="numeric">${ratio(safeDivide(sum(channels, (c) => c.observedRoas * c.monthly), reference.totalMonthly))}</td><td class="numeric">${ratio(reference.iroas)}</td><td class="numeric">${pct(safeDivide(reference.iroas, safeDivide(sum(channels, (c) => c.observedRoas * c.monthly), reference.totalMonthly)) * 100, 0)}</td><td class="numeric">${rp(reference.totalMonthly)}</td><td></td><td class="numeric">${ratio(safeDivide(sum(channels, (c) => c.mroi * c.monthly), reference.totalMonthly))}</td><td></td></tr>`;
+  }
+
+  // ---------- section 02: planner ----------
+  function defaultPrimary() {
+    const pool = poolReference();
+    if (state.mode === "budget") return pool.budget / 1e9 * (state.preset ?? 1);
+    return Math.round((reference.nonMedia + pool.media) * 1.03 / 1e8) / 10;
   }
 
   function renderPlannerControls() {
-    const reference = plannerReference();
-    const selectedChannels = selectedPlannerChannels(reference);
-    const selectedNames = selectedChannels.map((channel) => channel.name);
-    const modeConfig = {
-      budget: ["Available Media Budget", "Rp", "B", reference.currentBudget / 1e9 * 1.15],
-      target: ["Target Business KPI", "Rp", "B", reference.nonMedia / 1e9 + reference.currentMedia / 1e9 * 1.06],
-      roi: ["Minimum Portfolio iROAS", "", "x", Math.max(1, safeDivide(reference.currentMedia, reference.currentBudget) - .15)],
-      manual: ["Total Manual Budget", "Rp", "B", reference.currentBudget / 1e9],
-    };
-    const modeSummary = {
-      budget: "The planner reallocates a fixed media budget toward the strongest marginal returns.",
-      target: "The planner finds the minimum modeled spend needed to pursue the selected business KPI target.",
-      roi: "The planner maximizes scalable investment while protecting the minimum portfolio iROAS.",
-      manual: "The planner evaluates your channel-level budget choices using the same response curves.",
-    };
-    const config = modeConfig[state.plannerMode];
-    if (!state.primaryValue || state.plannerMode === "manual") state.primaryValue = config[3];
-    elements.plannerPrimaryLabel.textContent = config[0];
-    elements.plannerPrimaryPrefix.textContent = config[1];
-    elements.plannerPrimarySuffix.textContent = config[2];
-    elements.plannerPrimary.value = state.primaryValue.toFixed(state.plannerMode === "roi" ? 2 : 1);
-    elements.plannerPrimary.disabled = state.plannerMode === "manual";
-    elements.maxDecreaseOutput.textContent = `${state.maxDecrease}%`;
-    elements.maxIncreaseOutput.textContent = `${state.maxIncrease}%`;
+    const pool = poolReference();
     root.querySelectorAll("[data-planner-mode]").forEach((button) => {
-      const active = button.dataset.plannerMode === state.plannerMode;
+      const active = button.dataset.plannerMode === state.mode;
       button.classList.toggle("active", active);
       button.setAttribute("aria-selected", String(active));
     });
-    elements.plannerActiveSummary.innerHTML = `<strong>${config[0]}:</strong> ${modeSummary[state.plannerMode]} <span>${escapeHtml(reference.planningWindow.label)} planning horizon · ${reference.planningDays} days · ${state.plannerMode === "manual" ? "manual channel mix" : `allocation pool: ${escapeHtml(selectedNames.join(", "))}`}</span>`;
-    elements.plannerPresets.hidden = state.plannerMode !== "budget";
-    if (state.plannerMode === "budget") {
-      const factor = safeDivide(state.primaryValue * 1e9, reference.currentBudget);
+    el.modeCopy.textContent = MODE_COPY[state.mode];
+    if (state.primaryValue === null) state.primaryValue = defaultPrimary();
+    el.presets.hidden = state.mode !== "budget";
+    const bounds = guardrailBounds();
+    const poolText = `Reference for ${pool.label}: ${rp(pool.budget)}/month${pool.excluded.length ? ` (all channels ${rp(reference.totalMonthly)})` : ""}.`;
+    if (state.mode === "budget") {
+      el.primaryLabel.textContent = "Available media budget per month";
+      el.primarySuffix.textContent = "B / month";
+      el.primary.step = "0.05";
+      el.primary.value = Number(state.primaryValue).toFixed(2);
+      el.primaryHelper.textContent = `${poolText} Guardrails allow ${rp(sum(Object.values(bounds), (b) => b.floor))}–${rp(sum(Object.values(bounds), (b) => b.ceil))}/month.`;
       root.querySelectorAll("[data-budget-multiplier]").forEach((button) => {
-        button.classList.toggle("active", Math.abs(Number(button.dataset.budgetMultiplier) - factor) < .011);
+        button.classList.toggle("active", state.preset !== null && Number(button.dataset.budgetMultiplier) === state.preset);
       });
-    }
-
-    elements.channelPool.hidden = state.plannerMode === "manual";
-    if (state.plannerMode !== "manual") {
-      elements.channelSelector.innerHTML = reference.channels.map((channel) => {
-        const selected = state.selectedChannels.has(channel.name);
-        return `<label class="mmm-channel-choice${selected ? " selected" : ""}"><span><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span><small>${selected ? "Included" : "Excluded"}</small><input type="checkbox" data-allocation-pool-channel="${channel.name}" ${selected ? "checked" : ""}></label>`;
-      }).join("");
-      elements.channelSummary.innerHTML = `<strong>${selectedNames.length} of ${reference.channels.length} channels selected.</strong> The full scenario budget is allocated only across ${escapeHtml(selectedNames.join(", "))}; unselected channels receive Rp0.`;
-      elements.selectAllChannels.textContent = selectedNames.length === reference.channels.length ? "All selected" : "Select all";
-      elements.selectAllChannels.disabled = selectedNames.length === reference.channels.length;
-      elements.channelSelector.querySelectorAll("[data-allocation-pool-channel]").forEach((input) => input.addEventListener("change", () => {
-        const channelName = input.dataset.allocationPoolChannel;
-        if (!input.checked && state.selectedChannels.size === 1) {
-          input.checked = true;
-          elements.channelSummary.innerHTML = `<strong>Keep at least one channel selected.</strong> The scenario budget needs an allocation destination.`;
-          return;
-        }
-        if (input.checked) state.selectedChannels.add(channelName);
-        else {
-          state.selectedChannels.delete(channelName);
-          state.locked.delete(channelName);
-        }
-        renderPlannerControls();
-        solvePlanner();
-        pulse(elements.plannerWorkspace.querySelector(".mmm-planner-output"));
-      }));
-    }
-
-    elements.constraints.innerHTML = reference.channels.map((channel) => {
-      const selected = state.plannerMode === "manual" || state.selectedChannels.has(channel.name);
-      return `<div class="mmm-constraint-row${selected ? "" : " excluded"}"><strong><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</strong><span>${selected ? `${formatCurrency(channel.currentSpend)} current` : "Excluded · scenario Rp0"}</span><label class="mmm-lock"><input type="checkbox" data-channel-lock="${channel.name}" ${state.locked.has(channel.name) && selected ? "checked" : ""} ${selected ? "" : "disabled"}>Lock</label></div>`;
-    }).join("");
-    elements.constraints.querySelectorAll("[data-channel-lock]").forEach((input) => input.addEventListener("change", () => {
-      if (input.checked) state.locked.add(input.dataset.channelLock); else state.locked.delete(input.dataset.channelLock);
-      solvePlanner();
-      pulse(elements.plannerWorkspace.querySelector(".mmm-planner-output"));
-    }));
-
-    if (state.plannerMode === "manual") {
-      elements.manualInputs.hidden = false;
-      reference.channels.forEach((channel) => {
-        if (!(channel.name in state.manualBudgets)) state.manualBudgets[channel.name] = channel.currentSpend / 1e9;
-      });
-      elements.manualInputs.innerHTML = reference.channels.map((channel) => `<label class="mmm-field"><span>${channel.name} Budget · RpB</span><input type="number" min="0" step="0.1" value="${Number(state.manualBudgets[channel.name]).toFixed(1)}" data-manual-channel="${channel.name}"></label>`).join("");
-      elements.manualInputs.querySelectorAll("[data-manual-channel]").forEach((input) => input.addEventListener("input", () => {
-        state.manualBudgets[input.dataset.manualChannel] = input.value;
-        queuePlannerSolve();
-      }));
     } else {
-      elements.manualInputs.hidden = true;
-      elements.manualInputs.innerHTML = "";
+      el.primaryLabel.textContent = "Target KPI: revenue per month (baseline + media)";
+      el.primarySuffix.textContent = "B / month";
+      el.primary.step = "0.1";
+      el.primary.value = Number(state.primaryValue).toFixed(1);
+      el.primaryHelper.textContent = `Current with ${pool.label}: ${rp(reference.nonMedia + pool.media)}/month = baseline & other drivers ${rp(reference.nonMedia)} + media ${rp(pool.media)}. ${poolText}`;
     }
+
+    el.horizonStart.value = state.horizonStart;
+    el.horizonMonths.value = String(state.horizonMonths);
+    el.horizonEnd.textContent = formatDate(addMonths(state.horizonStart, state.horizonMonths));
+
+    el.channels.innerHTML = `<div class="mmm-channel-table-head"><span>Channel</span><span>Reference / month</span><span>Include</span><span>Lock</span></div>` + reference.channels.map((channel) => {
+      const selected = state.selected.has(channel.name);
+      return `<div class="mmm-channel-row${selected ? "" : " excluded"}">
+        <span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span>
+        <span>${rp(channel.monthly)}</span>
+        <label class="mmm-toggle"><input type="checkbox" data-include-channel="${channel.name}" ${selected ? "checked" : ""}><span class="sr-only">Include ${channel.name}</span></label>
+        <label class="mmm-toggle lock"><input type="checkbox" data-lock-channel="${channel.name}" ${state.locked.has(channel.name) && selected ? "checked" : ""} ${selected ? "" : "disabled"}><span class="sr-only">Lock ${channel.name}</span></label>
+      </div>`;
+    }).join("") + `<div class="mmm-channel-row total"><span>Reference · ${pool.names.length} selected</span><span>${rp(pool.budget)}</span><span></span><span></span></div>`;
+
+    el.maxDecrease.value = state.maxDecrease;
+    el.maxIncrease.value = state.maxIncrease;
+    el.maxDecreaseOutput.textContent = `${state.maxDecrease}%`;
+    el.maxIncreaseOutput.textContent = `${state.maxIncrease}%`;
+    el.guardrailSummary.textContent = `−${state.maxDecrease}% / +${state.maxIncrease}%`;
   }
 
-  function renderPlannerOutput(scenario) {
-    elements.resultCopy.textContent = scenario.targetNote;
-    const values = [
-      ["Scenario Budget", formatCurrency(scenario.budget), scenario.horizonLabel, true],
-      ["Expected KPI", formatCurrency(scenario.totalKpi), `${formatPercent(scenario.uplift)} vs current plan`],
-      ["Incremental Revenue", formatCurrency(scenario.media), "Modeled media contribution"],
-      ["Portfolio iROAS", formatRatio(scenario.iROAS), "Incremental revenue / spend"],
-      ["Blended mROI", formatRatio(scenario.mROI), "Marginal efficiency at scenario"],
+  function renderPlannerOutput() {
+    const s = scenario;
+    const pool = s.pool;
+    el.resultTitle.textContent = s.status === "below" || s.status === "above" ? "Equal % change (outside guardrails)" : "Recommended channel mix";
+    el.horizonCopy.textContent = `${MODE_LABELS[s.mode]} · ${pool.label} · ${state.horizonMonths} month${state.horizonMonths === 1 ? "" : "s"} (${formatDate(state.horizonStart)} – ${formatDate(addMonths(state.horizonStart, state.horizonMonths))})`;
+    el.banner.hidden = !s.notes.length;
+    el.banner.className = `mmm-planner-banner ${s.status === "optimized" ? "info" : "warn"}`;
+    el.banner.innerHTML = s.notes.map((note) => `<p>${escapeHtml(note)}</p>`).join("");
+
+    const months = state.horizonMonths;
+    const cards = [
+      ["Reference budget / month", rp(s.poolBudget), `${pool.label} · ${rp(s.poolBudget * months)} over ${months} mo`, ""],
+      ["Scenario budget / month", rp(s.budget), `${signedRp(s.budgetDelta)} (${signedPct(safeDivide(s.budgetDelta, s.poolBudget) * 100)}) vs reference · ${rp(s.budget * months)} over ${months} mo`, "primary"],
+      ["Incremental revenue / month", rp(s.media), `${signedRp(s.mediaDelta)} (${signedPct(s.mediaDeltaPct)}) vs reference ${rp(s.poolMedia)} · ${rp(s.media * months)} over ${months} mo`, s.mediaDelta >= 0 ? "good" : "bad"],
+      ["Portfolio iROAS · mROI", `${ratio(s.iroas)} · ${ratio(s.mroi)}`, `Reference iROAS ${ratio(safeDivide(s.poolMedia, s.poolBudget))} · mROI = return on the next Rp1`, s.mroi >= 1 ? "" : "bad"],
     ];
-    elements.plannerResults.innerHTML = values.map(([label, value, note, primary]) => `<div class="mmm-result-card${primary ? " primary" : ""}" tabindex="0" data-tooltip-text="${tooltipText([label, value, note])}"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`).join("");
+    el.kpis.innerHTML = cards.map(([label, value, note, cls]) => `<div class="mmm-kpi ${cls}"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`).join("");
 
-    const channelPlans = scenario.reference.channels.map((channel) => scenario.channelPlans[channel.name]);
-    const maxBudget = allocationScaleMaximum(scenario.reference);
-    elements.allocation.innerHTML = `<div class="mmm-allocation-heading"><div><strong>Current vs Scenario Allocation</strong><small>Fixed 0–${formatCurrency(maxBudget)} scale across scenarios · select a channel to inspect its response curve</small></div><div class="mmm-allocation-legend"><span><i class="current"></i>Current</span><span><i class="scenario"></i>Scenario</span></div></div><div class="mmm-allocation-list">${channelPlans.map((channel) => {
-      const scenarioBudget = channel.scenarioSpend;
-      const absoluteChange = channel.budgetDelta;
-      const change = channel.budgetChange;
-      const excluded = !channel.selectedForAllocation;
-      const status = allocationConstraintStatus(channel);
-      const changeClass = status.className;
-      const action = status.action;
-      const selected = channel.name === state.responseChannel ? " selected" : "";
-      const currentWidth = clamp(safeDivide(channel.currentSpend, maxBudget) * 100, 0, 100);
-      const scenarioWidth = clamp(safeDivide(scenarioBudget, maxBudget) * 100, 0, 100);
-      return `<button type="button" class="mmm-allocation-channel-card${selected}" data-allocation-channel="${channel.name}" data-current-budget="${Math.round(channel.currentSpend)}" data-scenario-budget="${Math.round(scenarioBudget)}" data-tooltip-text="${tooltipText([channel.name, `Allocation status: ${status.label}`, `Current: ${formatPlannerCurrency(channel.currentSpend)}`, `Scenario: ${formatPlannerCurrency(scenarioBudget)}`, `Delta: ${formatSignedCurrency(absoluteChange)} (${change >= 0 ? "+" : ""}${formatPercent(change)})`, `Expected incremental revenue: ${formatCurrency(channel.scenarioOutcome)}`])}"><span class="mmm-allocation-card-header"><strong><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</strong><em class="${changeClass}">${action}</em></span><span class="mmm-allocation-pair"><span class="mmm-allocation-line"><small>Current</small><span class="mmm-allocation-track"><i class="current" style="width:${currentWidth}%"></i></span><b>${formatPlannerCurrency(channel.currentSpend)}</b></span><span class="mmm-allocation-line"><small>Scenario</small><span class="mmm-allocation-track"><i class="scenario" style="width:${scenarioWidth}%;background:linear-gradient(90deg,${channel.color},#7355dc)"></i></span><b>${formatPlannerCurrency(scenarioBudget)}</b></span></span><span class="mmm-allocation-delta ${changeClass}">${excluded ? "Not in allocation pool · Scenario Rp0" : `Delta ${formatSignedCurrency(absoluteChange)} · ${Math.abs(change) < .05 ? "0.0% · No change" : `${change >= 0 ? "+" : ""}${formatPercent(change)}`}`}</span><span class="mmm-allocation-status ${changeClass}">${status.label}</span></button>`;
-    }).join("")}</div>${scenario.warnings.length ? `<div class="mmm-warning-row"><strong>Constraint note:</strong> ${scenario.warnings.map(escapeHtml).join(" ")}</div>` : ""}`;
+    const scaleMax = Math.max(...s.plans.map((plan) => Math.max(plan.monthly, plan.scenario)), 1) * 1.05;
+    el.allocation.innerHTML = s.plans.map((plan) => `<tr class="${plan.inPool ? "" : "excluded"}">
+      <td><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${plan.color}"></i>${plan.name}</span>${plan.guard ? `<small class="mmm-guard">${plan.guard}</small>` : ""}</td>
+      <td class="numeric">${rp(plan.monthly)}</td>
+      <td><div class="mmm-bar-pair"><span class="current" style="width:${(plan.monthly / scaleMax) * 100}%"></span><span class="scenario" style="width:${(plan.scenario / scaleMax) * 100}%;background:${plan.color}"></span></div><strong class="mmm-bar-value">${rp(plan.scenario)}</strong></td>
+      <td class="numeric ${plan.inPool && plan.delta > 1 ? "up" : plan.inPool && plan.delta < -1 ? "down" : ""}">${plan.inPool ? signedPct(plan.deltaPct) : "—"}<small>${plan.inPool ? signedRp(plan.delta) : "not in pool"}</small></td>
+      <td class="numeric ${plan.inPool && plan.incrDelta > 1 ? "up" : plan.inPool && plan.incrDelta < -1 ? "down" : ""}">${plan.inPool ? signedRp(plan.incrDelta) : "—"}</td>
+      <td class="numeric">${plan.scenario > 0 ? ratio(plan.scenarioMroi) : "—"}</td>
+      <td><span class="mmm-position ${plan.position.className}">${plan.inPool ? plan.position.label : "Not in pool"}</span></td>
+    </tr>`).join("") + `<tr class="total"><td><strong>Selected channels</strong><small>${escapeHtml(pool.label)}</small></td><td class="numeric"><strong>${rp(s.poolBudget)}</strong></td><td><strong class="mmm-bar-value">${rp(s.budget)}</strong></td><td class="numeric">${signedPct(safeDivide(s.budgetDelta, s.poolBudget) * 100)}<small>${signedRp(s.budgetDelta)}</small></td><td class="numeric ${s.mediaDelta >= 0 ? "up" : "down"}">${signedRp(s.mediaDelta)}</td><td class="numeric">${ratio(s.mroi)}</td><td></td></tr>`;
 
-    elements.allocation.querySelectorAll("[data-allocation-channel]").forEach((button) => button.addEventListener("click", () => {
-      selectResponseChannel(button.dataset.allocationChannel);
-      elements.responseCurve.closest(".mmm-panel").scrollIntoView({ behavior: "smooth", block: "center" });
-    }));
-
-    const movements = channelPlans.filter((channel) => channel.selectedForAllocation).map((channel) => ({ ...channel, scenarioBudget: channel.scenarioSpend, change: channel.budgetChange }));
-    const poolLabel = scenario.selectedChannels.join(", ");
-    const increase = [...movements].sort((a, b) => b.change - a.change)[0];
-    const decrease = [...movements].sort((a, b) => a.change - b.change)[0];
-    if (Math.abs(increase.change) < .1 && Math.abs(decrease.change) < .1) {
-      elements.recommendation.innerHTML = `<span class="mmm-recommendation-title">Scenario interpretation</span><strong>Allocation pool: ${escapeHtml(poolLabel)}.</strong> No meaningful reallocation occurs inside the selected pool. Unselected channels remain at Rp0 in this scenario.`;
-    } else if (increase.change <= .1) {
-      elements.recommendation.innerHTML = `<span class="mmm-recommendation-title">Scenario interpretation</span><strong>Allocation pool: ${escapeHtml(poolLabel)}.</strong> Reduce ${decrease.name} most (${formatPercent(Math.abs(decrease.change))}) while protecting ${increase.name}, which retains the strongest relative allocation inside the selected pool.`;
+    const inPool = s.plans.filter((plan) => plan.inPool);
+    const up = inPool.filter((plan) => plan.delta > plan.monthly * 0.01 + 1).sort((a, b) => b.delta - a.delta);
+    const down = inPool.filter((plan) => plan.delta < -(plan.monthly * 0.01 + 1)).sort((a, b) => a.delta - b.delta);
+    const moved = sum(up, (plan) => plan.delta);
+    let text;
+    if (!up.length && !down.length) {
+      text = `The reference mix of ${pool.label} is kept. Modeled incremental revenue stays at ${rp(s.media)}/month.`;
+    } else if (Math.abs(s.budgetDelta) < s.poolBudget * 0.005) {
+      text = `Within the same ${rp(s.budget)}/month for ${pool.label}, move ${rp(moved)} from ${down.map((p) => p.name).join(" and ") || "—"} into ${up.map((p) => p.name).join(" and ") || "—"}. Incremental revenue changes ${signedRp(s.mediaDelta)}/month (${signedPct(s.mediaDeltaPct)}), ${signedRp(s.mediaDelta * months)} over ${months} months.`;
     } else {
-      elements.recommendation.innerHTML = `<span class="mmm-recommendation-title">Scenario interpretation</span><strong>Within ${escapeHtml(poolLabel)}, prioritize ${increase.name} (${increase.change >= 0 ? "+" : ""}${formatPercent(increase.change)}).</strong> Its modeled marginal return supports additional investment. ${decrease.change < -.1 ? `Reduce ${decrease.name} by ${formatPercent(Math.abs(decrease.change))} inside the selected pool.` : "No selected channel requires a material reduction."}`;
+      const moves = `${up.length ? `Increase ${up.map((p) => `${p.name} (${signedPct(p.deltaPct, 0)})`).join(", ")}` : "No channel increases"}${down.length ? `; reduce ${down.map((p) => `${p.name} (${signedPct(p.deltaPct, 0)})`).join(", ")}` : ""}.`;
+      const perRupiah = Math.abs(safeDivide(s.mediaDelta, s.budgetDelta));
+      text = s.budgetDelta > 0
+        ? `Budget rises ${rp(s.budgetDelta)}/month versus the ${pool.label} reference. ${moves} Incremental revenue changes ${signedRp(s.mediaDelta)}/month (${signedPct(s.mediaDeltaPct)}) — about Rp${perRupiah.toFixed(2)} per extra rupiah, including the gain from moving money into higher-return channels.`
+        : s.mediaDelta < 0
+          ? `Budget falls ${rp(Math.abs(s.budgetDelta))}/month versus the ${pool.label} reference. ${moves} Incremental revenue changes ${signedRp(s.mediaDelta)}/month (${signedPct(s.mediaDeltaPct)}) — about Rp${perRupiah.toFixed(2)} of revenue given up per rupiah saved.`
+          : `Budget falls ${rp(Math.abs(s.budgetDelta))}/month, yet incremental revenue still changes ${signedRp(s.mediaDelta)}/month (${signedPct(s.mediaDeltaPct)}) because money moves into higher-return channels. ${moves}`;
     }
-
+    el.recommendation.innerHTML = `<span class="mmm-kicker">Interpretation</span><p>${text}</p>`;
+    el.save.disabled = false;
   }
 
-  function scenarioScopeKey(horizonLabel = state.lastScenario?.horizonLabel ?? "") {
-    return [dataset?.meta?.modelVersion, state.dateStart, state.dateEnd, state.product, state.kpi, state.planningStart, horizonLabel].join("|");
+  function solve({ pulse = false } = {}) {
+    scenario = planScenario();
+    renderPlannerOutput();
+    renderDiminishing();
+    renderHiatus();
+    if (pulse) flash(el.kpis);
   }
 
-  function evaluateScaledScenario(reference, budgets, multiplier) {
-    const scaledBudgets = Object.fromEntries(reference.channels.map((channel) => [channel.name, (budgets[channel.name] ?? 0) * multiplier]));
-    return evaluatePlan(reference, scaledBudgets);
+  function queueSolve() {
+    window.clearTimeout(solveTimer);
+    solveTimer = window.setTimeout(() => solve({ pulse: true }), 140);
   }
 
-  function sensitivitySnapshot(reference, budgets, baseEvaluation) {
-    const downside = evaluateScaledScenario(reference, budgets, .9);
-    const upside = evaluateScaledScenario(reference, budgets, 1.1);
-    return {
-      downsideBudget: downside.budget,
-      downsideMedia: downside.media,
-      downsideKpi: downside.totalKpi,
-      downsideMediaChange: safeDivide(downside.media - baseEvaluation.media, baseEvaluation.media) * 100,
-      upsideBudget: upside.budget,
-      upsideMedia: upside.media,
-      upsideKpi: upside.totalKpi,
-      upsideMediaChange: safeDivide(upside.media - baseEvaluation.media, baseEvaluation.media) * 100,
-    };
-  }
-
-  function currentReferenceRecord() {
-    if (!state.lastScenario) return null;
-    const reference = state.lastScenario.reference;
-    const budgets = Object.fromEntries(reference.channels.map((channel) => [channel.name, channel.currentSpend]));
-    const evaluation = evaluatePlan(reference, budgets);
-    return {
-      name: "Current reference",
-      horizonLabel: state.lastScenario.horizonLabel,
-      budget: evaluation.budget,
-      totalKpi: evaluation.totalKpi,
-      media: evaluation.media,
-      iROAS: evaluation.iROAS,
-      mROI: evaluation.mROI,
-      elasticity: safeDivide(evaluation.mROI, evaluation.iROAS),
-      budgetChange: 0,
-      mediaChange: 0,
-      uplift: 0,
-      sensitivity: sensitivitySnapshot(reference, budgets, evaluation),
-      budgets: { ...budgets },
-      isReference: true,
-    };
-  }
-
-  function savedScenarioBaseName(scenario, budgetChange) {
-    if (scenario.modeLabel === "Available Budget") return `Budget ${formatSignedPercent(budgetChange, 0)}`;
-    if (scenario.modeLabel === "Target KPI") return `KPI target ${formatCurrency(scenario.totalKpi)}`;
-    if (scenario.modeLabel === "Target ROI") return `ROI guardrail ${formatRatio(scenario.iROAS)}`;
-    return "Manual mix";
-  }
-
-  function snapshotCurrentScenario() {
-    const scenario = state.lastScenario;
-    const referencePlan = scenario.currentPlan;
-    const budgetChange = safeDivide(scenario.budget - referencePlan.budget, referencePlan.budget) * 100;
-    const mediaChange = safeDivide(scenario.media - referencePlan.media, referencePlan.media) * 100;
-    const baseName = savedScenarioBaseName(scenario, budgetChange);
-    const matchingNames = state.savedScenarios.filter((item) => item.name === baseName || item.name.startsWith(`${baseName} ·`)).length;
-    const fingerprint = `${scenario.horizonLabel}|${scenario.modeLabel}|${scenario.reference.channels.map((channel) => `${channel.name}:${Math.round(scenario.budgets[channel.name] / 1e6)}`).join("|")}`;
-    return {
-      name: matchingNames ? `${baseName} · ${matchingNames + 1}` : baseName,
-      modeLabel: scenario.modeLabel,
-      horizonLabel: scenario.horizonLabel,
-      budget: scenario.budget,
-      totalKpi: scenario.totalKpi,
-      media: scenario.media,
-      iROAS: scenario.iROAS,
-      mROI: scenario.mROI,
-      elasticity: safeDivide(scenario.mROI, scenario.iROAS),
-      budgetDelta: scenario.budget - referencePlan.budget,
-      mediaDelta: scenario.media - referencePlan.media,
-      budgetChange,
-      mediaChange,
-      uplift: scenario.uplift,
-      sensitivity: sensitivitySnapshot(scenario.reference, scenario.budgets, scenario),
-      budgets: { ...scenario.budgets },
-      constraints: { maxDecrease: state.maxDecrease, maxIncrease: state.maxIncrease, locked: [...state.locked], selectedChannels: [...state.selectedChannels] },
-      scopeKey: scenarioScopeKey(scenario.horizonLabel),
-      fingerprint,
-    };
-  }
-
-  function persistSavedScenarios() {
-    try {
-      window.localStorage.setItem(SAVED_SCENARIO_STORAGE_KEY, JSON.stringify({ scopeKey: scenarioScopeKey(), scenarios: state.savedScenarios }));
-    } catch (_error) {
-      // Local persistence is optional; the active session still works without it.
-    }
-  }
-
-  function restoreSavedScenarios() {
-    try {
-      const saved = JSON.parse(window.localStorage.getItem(SAVED_SCENARIO_STORAGE_KEY) || "null");
-      if (saved?.scopeKey !== scenarioScopeKey() || !Array.isArray(saved.scenarios)) return;
-      state.savedScenarios = saved.scenarios.filter((scenario) => Number.isFinite(scenario.budget) && Number.isFinite(scenario.elasticity) && scenario.sensitivity && scenario.budgets).slice(0, 3);
-    } catch (_error) {
-      state.savedScenarios = [];
-    }
-  }
-
-  function invalidateSavedScenarios() {
-    state.savedScenarios = [];
-    try {
-      window.localStorage.removeItem(SAVED_SCENARIO_STORAGE_KEY);
-    } catch (_error) {
-      // The dashboard remains usable if browser storage is unavailable.
-    }
-  }
-
-  function sensitivityChart(records) {
-    const width = 760;
-    const height = 245;
-    const margin = { left: 66, right: 22, top: 30, bottom: 52 };
-    const plotWidth = width - margin.left - margin.right;
-    const plotHeight = height - margin.top - margin.bottom;
-    const maximum = Math.max(...records.map((record) => record.sensitivity.upsideMedia), 1) * 1.12;
-    const x = (index) => margin.left + (index + .5) / records.length * plotWidth;
-    const y = (value) => margin.top + plotHeight - safeDivide(value, maximum) * plotHeight;
-    const grid = [0, .5, 1].map((ratio) => `<line x1="${margin.left}" y1="${y(maximum * ratio)}" x2="${width - margin.right}" y2="${y(maximum * ratio)}" stroke="#e9ecf3"/><text x="${margin.left - 9}" y="${y(maximum * ratio) + 4}" text-anchor="end" fill="#8792a7" font-size="10">${compactNumber(maximum * ratio, 1)}</text>`).join("");
-    const ranges = records.map((record, index) => {
-      const cx = x(index);
-      const lowY = y(record.sensitivity.downsideMedia);
-      const baseY = y(record.media);
-      const highY = y(record.sensitivity.upsideMedia);
-      const color = record.isReference ? "#172a91" : "#7355dc";
-      const name = escapeHtml(record.name.length > 20 ? `${record.name.slice(0, 18)}…` : record.name);
-      const tooltip = tooltipText([record.name, `Budget −10%: ${formatCurrency(record.sensitivity.downsideMedia)} incremental revenue (${formatSignedPercent(record.sensitivity.downsideMediaChange)})`, `Base: ${formatCurrency(record.media)}`, `Budget +10%: ${formatCurrency(record.sensitivity.upsideMedia)} incremental revenue (${formatSignedPercent(record.sensitivity.upsideMediaChange)})`, `Elasticity at base: ${record.elasticity.toFixed(2)}`]);
-      return `<g tabindex="0" data-tooltip-text="${tooltip}"><line x1="${cx}" y1="${lowY}" x2="${cx}" y2="${highY}" stroke="${color}" stroke-width="5" stroke-linecap="round" opacity=".28"/><circle cx="${cx}" cy="${lowY}" r="4.5" fill="#cf4261"/><circle cx="${cx}" cy="${baseY}" r="7" fill="${color}" stroke="#fff" stroke-width="2.5"/><circle cx="${cx}" cy="${highY}" r="4.5" fill="#168a74"/><text x="${cx}" y="${Math.max(margin.top + 10, baseY - 12)}" text-anchor="middle" fill="${color}" font-size="10" font-weight="800">${compactNumber(record.media, 1)}</text><text x="${cx}" y="${height - 17}" text-anchor="middle" fill="#68758e" font-size="10" font-weight="700">${name}</text></g>`;
-    }).join("");
-    return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Incremental revenue sensitivity when each scenario budget changes by minus or plus ten percent">${grid}${ranges}<text x="15" y="${margin.top + plotHeight / 2}" transform="rotate(-90 15 ${margin.top + plotHeight / 2})" text-anchor="middle" fill="#6f7b92" font-size="10" font-weight="700">Incremental revenue</text></svg>`;
-  }
-
-  function keyAllocationShift(scenario, reference) {
-    if (scenario.isReference) return '<span class="mmm-key-shift baseline">Baseline mix</span>';
-    const selectedChannels = Array.isArray(scenario.constraints?.selectedChannels) && scenario.constraints.selectedChannels.length
-      ? new Set(scenario.constraints.selectedChannels)
-      : null;
-    const movements = Object.entries(reference.budgets || {}).filter(([channel]) => {
-      return !selectedChannels || selectedChannels.has(channel);
-    }).map(([channel, currentBudget]) => {
-      const savedBudget = Number(scenario.budgets?.[channel]);
-      const scenarioBudget = Number.isFinite(savedBudget) ? savedBudget : currentBudget;
-      const delta = scenarioBudget - currentBudget;
-      return { channel, delta, relativeChange: safeDivide(delta, currentBudget) * 100 };
+  function flash(node) {
+    if (!node) return;
+    node.classList.remove("is-updated");
+    window.requestAnimationFrame(() => {
+      node.classList.add("is-updated");
+      window.setTimeout(() => node.classList.remove("is-updated"), 450);
     });
-
-    if (!movements.length) return '<span class="mmm-key-shift baseline">No selected-channel shift</span>';
-
-    return `<span class="mmm-key-shift">${movements.map((movement) => {
-      const hasMaterialChange = Math.abs(movement.relativeChange) >= .05;
-      const direction = !hasMaterialChange ? "neutral" : movement.delta > 0 ? "increase" : "decrease";
-      const change = !hasMaterialChange ? "— No change" : `${movement.delta > 0 ? "↑" : "↓"} ${formatSignedCurrency(movement.delta)}`;
-      return `<span class="mmm-key-shift-item ${direction}"><b>${escapeHtml(movement.channel)}</b><span>${change}</span></span>`;
-    }).join("")}</span>`;
   }
 
-  function renderSavedScenarios() {
-    const reference = currentReferenceRecord();
-    if (!reference) {
-      elements.savedScenarios.innerHTML = '<div class="mmm-scenario-empty">Preparing the current planning reference…</div>';
+  // ---------- section 03: pause planner ----------
+  function lostEffect(halfLife, days) {
+    if (!days) return 0;
+    const decay = Math.pow(0.5, 1 / halfLife);
+    const averageRemaining = (1 - Math.pow(decay, days)) / (days * (1 - decay));
+    return 1 - averageRemaining;
+  }
+
+  function renderHiatus() {
+    el.hiatusChannels.innerHTML = reference.channels.map((channel) => `<button type="button" class="${channel.name === state.hiatusChannel ? "active" : ""}" data-hiatus-channel="${channel.name}"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</button>`).join("");
+    root.querySelectorAll("[data-hiatus-preset]").forEach((button) => button.classList.toggle("active", Number(button.dataset.hiatusPreset) === state.hiatusWeeks));
+    el.tolerance.value = state.tolerance;
+    el.toleranceOutput.textContent = `${state.tolerance}%`;
+
+    const plan = scenario.byName[state.hiatusChannel];
+    const halfLife = plan.halfLife;
+    const weeks = state.hiatusWeeks;
+    const days = weeks * 7;
+    el.carryoverCaption.textContent = `${plan.name} · half-life ${halfLife.toFixed(1)} days`;
+    renderCarryover(plan, days);
+
+    if (plan.scenario <= 0) {
+      el.hiatusResults.innerHTML = "";
+      el.hiatusFeedback.className = "mmm-hiatus-feedback";
+      el.hiatusFeedback.innerHTML = `<strong>${plan.name} is not funded in the active scenario.</strong> There is nothing to pause — include it in the planner to evaluate a pause.`;
+      el.hiatusTrajectory.innerHTML = "";
       return;
     }
 
-    const records = [reference, ...state.savedScenarios];
-    const bestOutcome = [...records].sort((a, b) => b.totalKpi - a.totalKpi)[0];
-    const bestEfficiency = [...records].sort((a, b) => b.iROAS - a.iROAS)[0];
-    const mostResponsive = [...records].sort((a, b) => b.elasticity - a.elasticity)[0];
-    let decisionCopy;
-    if (!state.savedScenarios.length) {
-      decisionCopy = '<strong>No alternative saved yet.</strong> Change the planner inputs, click <em>Save scenario</em>, then repeat for up to three options. The current reference is already included automatically.';
-    } else if (state.savedScenarios.length === 1) {
-      const scenario = state.savedScenarios[0];
-      decisionCopy = `<strong>${escapeHtml(scenario.name)} versus reference:</strong> budget ${formatSignedPercent(scenario.budgetChange)}, incremental revenue ${formatSignedPercent(scenario.mediaChange)}, and local elasticity ${scenario.elasticity.toFixed(2)}. An elasticity below 1 means the response grows more slowly than spend at this point.`;
-    } else if (bestOutcome.name === bestEfficiency.name) {
-      decisionCopy = `<strong>${escapeHtml(bestOutcome.name)} leads on both modeled KPI and iROAS.</strong> ${escapeHtml(mostResponsive.name)} is most responsive locally: a 1% proportional budget change produces about ${mostResponsive.elasticity.toFixed(2)}% change in incremental revenue near that plan.`;
+    const share = safeDivide(plan.scenarioIncr, scenario.totalKpi);
+    const declineAt = (w) => share * lostEffect(halfLife, w * 7) * 100;
+    const decline = declineAt(weeks);
+    let safeWeeks = 0;
+    for (let w = 0; w <= 8; w += 1) if (declineAt(w) <= state.tolerance) safeWeeks = w;
+    // Revenue accounting: the paused budget would have produced iROAS x budget of incremental revenue.
+    // Part of that loss shows up during the pause (effect decays), the rest while the effect rebuilds after restart.
+    const daily = plan.scenarioIncr / DPM;
+    const savings = plan.scenario / DPM * days;
+    const lostTotal = daily * days;
+    const lostDuring = lostTotal * lostEffect(halfLife, days);
+    const lostAfter = lostTotal - lostDuring;
+    const net = savings - lostTotal;
+    const within = decline <= state.tolerance;
+    const recovery = Math.ceil(halfLife * 2);
+
+    const cards = [
+      ["KPI decline during pause", pct(decline), within ? "good" : "bad", `Allowed ${state.tolerance}% · ${within ? "within limit" : "above limit"}`],
+      ["Longest pause within limit", `${safeWeeks} week${safeWeeks === 1 ? "" : "s"}`, "", "Whole weeks, directional"],
+      ["Media budget saved", rp(savings), "good", `${rp(plan.scenario)}/month for ${days} days`],
+      ["Revenue lost during pause", rp(lostDuring), "bad", `Effect fades to ${pct(Math.pow(0.5, days / halfLife) * 100, 0)} by restart`],
+      ["Revenue lost after restart", rp(lostAfter), "bad", `While the effect rebuilds (≈${recovery} days)`],
+      ["Net (saved − total lost)", signedRp(net), net >= 0 ? "good" : "bad", `Total lost ${rp(lostTotal)} = iROAS ${ratio(plan.scenarioIroas)} × saved budget`],
+    ];
+    el.hiatusResults.innerHTML = cards.map(([label, value, cls, note]) => `<div class="mmm-hiatus-metric ${cls}"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`).join("");
+    el.hiatusFeedback.className = `mmm-hiatus-feedback ${within ? "safe" : "risk"}`;
+    const economics = net < 0
+      ? `Pausing saves ${rp(savings)} of budget but gives up about ${rp(lostTotal)} of incremental revenue (net ${signedRp(net)}), because every rupiah in ${plan.name} returns ${ratio(plan.scenarioIroas)} on average. Pause only if the budget itself must be released.`
+      : `The paused budget returns less than it costs (iROAS ${ratio(plan.scenarioIroas)}), so the pause is cash-positive (net ${signedRp(net)}).`;
+    if (within) {
+      el.hiatusFeedback.innerHTML = `<strong>A ${weeks}-week ${plan.name} pause keeps the KPI decline within ${state.tolerance}% (${pct(decline)}).</strong> ${economics}`;
     } else {
-      decisionCopy = `<strong>Growth and efficiency point to different choices.</strong> ${escapeHtml(bestOutcome.name)} has the highest expected KPI, while ${escapeHtml(bestEfficiency.name)} has the highest iROAS. Use the first for outcome maximization and the second when efficiency is the binding guardrail.`;
+      el.hiatusFeedback.innerHTML = `<strong>A ${weeks}-week ${plan.name} pause exceeds the ${state.tolerance}% limit (${pct(decline)}).</strong> Shorten it to ${safeWeeks} week${safeWeeks === 1 ? "" : "s"} or keep a maintenance budget. ${economics}`;
     }
 
-    const summaryCards = [
-      ["Highest expected KPI", bestOutcome.name, formatCurrency(bestOutcome.totalKpi)],
-      ["Highest iROAS", bestEfficiency.name, formatRatio(bestEfficiency.iROAS)],
-      ["Most responsive", mostResponsive.name, `Elasticity ${mostResponsive.elasticity.toFixed(2)}`],
-      ["Saved alternatives", `${state.savedScenarios.length} / 3`, "Reference is always included"],
-    ].map(([label, value, note]) => `<div class="mmm-scenario-summary-card"><span>${label}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></div>`).join("");
+    const W = 640;
+    const H = 210;
+    const m = { l: 40, r: 16, t: 28, b: 30 };
+    const pw = W - m.l - m.r;
+    const ph = H - m.t - m.b;
+    const items = Array.from({ length: 8 }, (_, i) => ({ week: i + 1, decline: declineAt(i + 1) }));
+    const maxValue = niceCeil(Math.max(state.tolerance, ...items.map((item) => item.decline)) * 1.18);
+    const x = (week) => m.l + ((week - 0.5) / items.length) * pw;
+    const y = (value) => m.t + ph - (value / maxValue) * ph;
+    const bw = (pw / items.length) * 0.56;
+    const ty = y(state.tolerance);
+    const bars = items.map((item) => {
+      const over = item.decline > state.tolerance;
+      const selected = item.week === weeks;
+      const top = y(item.decline);
+      return `<g data-tooltip-text="${escapeHtml(`${item.week}-week pause\nKPI decline ${pct(item.decline)} (limit ${state.tolerance}%)\nSaved ${rp(plan.scenario / DPM * item.week * 7)} · lost ${rp(daily * item.week * 7 * lostEffect(halfLife, item.week * 7))}`)}"><rect x="${x(item.week) - bw / 2}" y="${top}" width="${bw}" height="${Math.max(1, m.t + ph - top)}" rx="4" class="hb ${over ? "over" : "ok"}${selected ? " selected" : ""}"/><text x="${x(item.week)}" y="${top - 6}" text-anchor="middle" class="hb-label${over ? " over" : ""}">${pct(item.decline)}</text><text x="${x(item.week)}" y="${H - 10}" text-anchor="middle" class="hb-axis${selected ? " selected" : ""}">${item.week}w</text></g>`;
+    }).join("");
+    el.hiatusTrajectory.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Projected KPI decline by pause length">
+      <line x1="${m.l}" x2="${W - m.r}" y1="${m.t + ph}" y2="${m.t + ph}" class="hb-base"/>
+      <line x1="${m.l}" x2="${W - m.r}" y1="${ty}" y2="${ty}" class="hb-threshold"/>
+      ${bars}
+      <text x="${m.l}" y="${m.t - 12}" class="hb-threshold-label">Allowed decline ${state.tolerance}% (dashed line)</text>
+    </svg>`;
+  }
 
-    const rows = records.map((scenario, index) => {
-      const elasticityClass = scenario.elasticity >= 1 ? "elastic" : scenario.elasticity >= .8 ? "balanced" : "diminishing";
-      const elasticityLabel = scenario.elasticity >= 1 ? "Elastic" : scenario.elasticity >= .8 ? "Near proportional" : "Diminishing";
-      const actions = scenario.isReference ? '<span class="mmm-reference-row-label">Baseline</span>' : `<button class="mmm-load-scenario" type="button" data-load-scenario="${index - 1}">Load</button><button class="mmm-remove-scenario" type="button" data-remove-scenario="${index - 1}">Remove</button>`;
-      const rowClass = scenario.isReference ? "reference" : "saved";
-      return `<tr class="${rowClass}"><td class="mmm-scenario-name-cell"><strong>${escapeHtml(scenario.name)}</strong><br><small>${escapeHtml(scenario.horizonLabel)}</small></td><td>${formatCurrency(scenario.budget)}</td><td>${scenario.isReference ? "—" : formatSignedPercent(scenario.budgetChange)}</td><td class="mmm-scenario-shift-cell">${keyAllocationShift(scenario, reference)}</td><td>${formatCurrency(scenario.media)}</td><td>${scenario.isReference ? "—" : formatSignedPercent(scenario.mediaChange)}</td><td>${formatRatio(scenario.iROAS)}</td><td>${formatRatio(scenario.mROI)}</td><td><span class="mmm-elasticity-pill ${elasticityClass}">${scenario.elasticity.toFixed(2)} · ${elasticityLabel}</span></td><td>${formatSignedPercent(scenario.sensitivity.downsideMediaChange)} / ${formatSignedPercent(scenario.sensitivity.upsideMediaChange)}</td><td><div class="mmm-scenario-actions">${actions}</div></td></tr>`;
+  function renderCarryover(plan, days) {
+    const W = 560;
+    const H = 250;
+    const m = { l: 44, r: 16, t: 22, b: 34 };
+    const pw = W - m.l - m.r;
+    const ph = H - m.t - m.b;
+    const maxDays = 56;
+    const x = (day) => m.l + (day / maxDays) * pw;
+    const y = (value) => m.t + ph - (value / 100) * ph;
+    const points = Array.from({ length: maxDays + 1 }, (_, day) => [x(day), y(Math.pow(0.5, day / plan.halfLife) * 100)]);
+    const line = points.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+    const area = `${line} L${x(maxDays)},${m.t + ph} L${x(0)},${m.t + ph} Z`;
+    const remaining = Math.pow(0.5, days / plan.halfLife) * 100;
+    const grid = [0, 25, 50, 75, 100].map((v) => `<line x1="${m.l}" x2="${m.l + pw}" y1="${y(v)}" y2="${y(v)}" class="dr-grid"/><text x="${m.l - 6}" y="${y(v) + 3.5}" text-anchor="end" class="dr-axis">${v}%</text>`).join("");
+    const ticks = [0, 14, 28, 42, 56].map((d) => `<text x="${x(d)}" y="${H - 12}" text-anchor="middle" class="dr-axis">${d / 7}w</text>`).join("");
+    const hx = x(plan.halfLife);
+    const px = x(days);
+    el.carryover.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${plan.name} carryover decay">
+      ${grid}${ticks}
+      <rect x="${x(0)}" y="${m.t}" width="${px - x(0)}" height="${ph}" class="co-pause"/>
+      <path d="${area}" fill="${plan.color}" opacity=".12"/>
+      <path d="${line}" fill="none" stroke="${plan.color}" stroke-width="3"/>
+      <line x1="${hx}" x2="${hx}" y1="${m.t}" y2="${m.t + ph}" class="co-half"/>
+      <circle cx="${hx}" cy="${y(50)}" r="4.5" class="co-half-dot" data-tooltip-text="${escapeHtml(`Half-life ${plan.halfLife.toFixed(1)} days: 50% of the media effect remains`)}"/>
+      <text x="${hx + 6}" y="${y(50) - 8}" class="co-label half">Half-life ${plan.halfLife.toFixed(1)}d · 50%</text>
+      <circle cx="${px}" cy="${y(remaining)}" r="5.5" class="co-pause-dot" data-tooltip-text="${escapeHtml(`Day ${days}: ${pct(remaining)} of the effect remains`)}"/>
+      <text x="${Math.min(px + 8, W - 150)}" y="${Math.max(m.t + 34, y(remaining) - 10)}" class="co-label pause">Restart day ${days} · ${pct(remaining, 0)} left</text>
+      <text x="${x(0) + 6}" y="${m.t + 12}" class="co-label muted">Pause window</text>
+    </svg>`;
+  }
+
+  // ---------- section 04: saved scenarios ----------
+  function scopeKey() { return [dataset.meta.modelVersion, state.dateStart, state.dateEnd].join("|"); }
+
+  function persist() {
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ scope: scopeKey(), saved: state.saved })); } catch (_error) { /* optional */ }
+  }
+  function restore() {
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "null");
+      if (stored && stored.scope === scopeKey() && Array.isArray(stored.saved)) state.saved = stored.saved.slice(0, MAX_SAVED);
+    } catch (_error) { state.saved = []; }
+  }
+  function clearSaved() {
+    state.saved = [];
+    try { window.localStorage.removeItem(STORAGE_KEY); } catch (_error) { /* optional */ }
+  }
+
+  function snapshot() {
+    const s = scenario;
+    const label = s.mode === "budget" ? `Budget ${rp(s.budget)}/mo` : `Target KPI ${rp(Number(state.primaryValue) * 1e9)}/mo`;
+    const poolTag = s.pool.excluded.length ? ` · ${s.pool.names.length} ch` : "";
+    const base = `${label}${poolTag}`;
+    const sameName = state.saved.filter((item) => item.name === base || item.name.startsWith(`${base} ·`)).length;
+    return {
+      name: sameName ? `${base} · ${sameName + 1}` : base,
+      mode: MODE_LABELS[s.mode],
+      months: state.horizonMonths,
+      poolLabel: s.pool.label,
+      poolNames: s.pool.names,
+      poolBudget: s.poolBudget,
+      poolMedia: s.poolMedia,
+      budget: s.budget,
+      media: s.media,
+      iroas: s.iroas,
+      mroi: s.mroi,
+      channels: s.plans.map((plan) => ({
+        name: plan.name,
+        color: plan.color,
+        inPool: plan.inPool,
+        locked: state.locked.has(plan.name) && plan.inPool,
+        refBudget: plan.monthly,
+        budget: plan.scenario,
+        refIncr: plan.incr,
+        incr: plan.scenarioIncr,
+        mroi: plan.scenarioMroi,
+      })),
+      settings: {
+        mode: state.mode,
+        primaryValue: state.primaryValue,
+        preset: state.preset,
+        selected: [...state.selected],
+        locked: [...state.locked],
+        maxDecrease: state.maxDecrease,
+        maxIncrease: state.maxIncrease,
+        horizonStart: state.horizonStart,
+        horizonMonths: state.horizonMonths,
+      },
+      fingerprint: `${s.mode}|${s.plans.map((plan) => `${plan.name}:${plan.inPool ? 1 : 0}:${Math.round(plan.scenario / 1e6)}`).join("|")}`,
+    };
+  }
+
+  function referenceRecord() {
+    return {
+      name: "Current reference",
+      mode: "—",
+      isReference: true,
+      months: state.horizonMonths,
+      poolLabel: `all ${reference.channels.length} channels`,
+      poolNames: reference.channels.map((c) => c.name),
+      poolBudget: reference.totalMonthly,
+      poolMedia: reference.media,
+      budget: reference.totalMonthly,
+      media: reference.media,
+      iroas: reference.iroas,
+      mroi: safeDivide(sum(reference.channels, (c) => c.mroi * c.monthly), reference.totalMonthly),
+      channels: reference.channels.map((c) => ({ name: c.name, color: c.color, inPool: true, locked: false, refBudget: c.monthly, budget: c.monthly, refIncr: c.incr, incr: c.incr, mroi: c.mroi })),
+    };
+  }
+
+  function renderSaved() {
+    const ref = referenceRecord();
+    const records = [ref, ...state.saved];
+    const saved = state.saved;
+    const best = saved.slice().sort((a, b) => b.media - a.media)[0];
+    const efficient = saved.slice().sort((a, b) => b.iroas - a.iroas)[0];
+    let copy;
+    if (!saved.length) copy = "No plan saved yet. Adjust the planner and click <em>Save scenario</em> (up to three). Each saved plan keeps its own reference budget — the current budget of the channels selected in that plan.";
+    else if (saved.length === 1) copy = `<strong>${escapeHtml(saved[0].name)}</strong>: reference ${rp(saved[0].poolBudget)}/month for ${escapeHtml(saved[0].poolLabel)} → scenario ${rp(saved[0].budget)}/month; incremental revenue ${signedRp(saved[0].media - saved[0].poolMedia)}/month versus that reference.`;
+    else if (best.name === efficient.name) copy = `<strong>${escapeHtml(best.name)}</strong> gives both the highest incremental revenue (${rp(best.media)}/month) and the highest iROAS (${ratio(best.iroas)}).`;
+    else copy = `<strong>${escapeHtml(best.name)}</strong> maximizes incremental revenue (${rp(best.media)}/month), while <strong>${escapeHtml(efficient.name)}</strong> is the most efficient (${ratio(efficient.iroas)}). Choose by whether growth or efficiency is the binding goal.`;
+
+    const summaryRows = records.map((record, index) => {
+      const budgetDelta = record.budget - record.poolBudget;
+      const mediaDelta = record.media - record.poolMedia;
+      return `<tr class="${record.isReference ? "reference" : ""}">
+      <td><strong>${escapeHtml(record.name)}</strong><small>${escapeHtml(record.mode)}${record.isReference ? "" : ` · ${record.months} mo`}</small></td>
+      <td>${escapeHtml(record.poolLabel)}</td>
+      <td class="numeric">${rp(record.poolBudget)} → <strong>${rp(record.budget)}</strong><small>${record.isReference ? "reference" : `${signedRp(budgetDelta)} (${signedPct(safeDivide(budgetDelta, record.poolBudget) * 100)})`}</small></td>
+      <td class="numeric">${rp(record.poolMedia)} → <strong>${rp(record.media)}</strong><small class="${record.isReference ? "" : mediaDelta >= 0 ? "up" : "down"}">${record.isReference ? "reference" : `${signedRp(mediaDelta)} (${signedPct(safeDivide(mediaDelta, record.poolMedia) * 100)})`}</small></td>
+      <td class="numeric">${ratio(safeDivide(record.poolMedia, record.poolBudget))} → <strong>${ratio(record.iroas)}</strong></td>
+      <td>${record.isReference ? "" : `<div class="mmm-row-actions"><button type="button" data-load-scenario="${index - 1}">Load</button><button type="button" data-remove-scenario="${index - 1}">Remove</button></div>`}</td>
+    </tr>`;
     }).join("");
 
-    elements.savedScenarios.innerHTML = `<div class="mmm-scenario-summary">${summaryCards}</div><div class="mmm-scenario-decision">${decisionCopy}</div><div class="mmm-sensitivity-card"><div class="mmm-sensitivity-heading"><div><span>Local sensitivity test</span><strong>What happens if every channel budget moves ±10%?</strong></div><div class="mmm-sensitivity-legend"><span><i class="down"></i>−10%</span><span><i class="base"></i>Base</span><span><i class="up"></i>+10%</span></div></div><div class="mmm-sensitivity-chart">${sensitivityChart(records)}</div><p>Channel mix and non-media drivers stay fixed. This is a what-if sensitivity band—not a statistical confidence interval.</p></div><div class="mmm-scenario-table-shell"><div class="mmm-scenario-table-heading"><div><span>Saved scenario output</span><strong>Scenario comparison table</strong></div><em>${records.length} plans</em></div><div class="mmm-scenario-table" role="region" aria-label="Saved scenario output table"><table><thead><tr><th><span>Scenario</span></th><th><span>Budget</span></th><th><span>Δ Budget</span></th><th><span>Key Allocation Shift</span></th><th><span>Incremental Revenue</span></th><th><span>Δ Revenue</span></th><th><span>iROAS</span></th><th><span>mROI</span></th><th><span>Elasticity</span></th><th><span>Sensitivity</span><small>−10% / +10%</small></th><th><span>Actions</span></th></tr></thead><tbody>${rows}</tbody></table></div></div><div class="mmm-scenario-method"><strong>How to read elasticity:</strong> elasticity = mROI ÷ iROAS. A value of 0.60 means a local 1% proportional change in spend is associated with about a 0.60% change in incremental revenue. Values below 1 indicate diminishing return—not negative performance.</div>`;
+    const breakdown = records.map((record) => {
+      const rows = record.channels.map((channel) => {
+        const delta = channel.budget - channel.refBudget;
+        return `<tr class="${channel.inPool ? "" : "excluded"}">
+          <td><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span>${channel.locked ? '<small class="mmm-guard">Locked</small>' : ""}</td>
+          <td>${channel.inPool ? "Included" : "Not in pool"}</td>
+          <td class="numeric">${channel.inPool ? rp(channel.refBudget) : `<span class="struck">${rp(channel.refBudget)}</span>`}</td>
+          <td class="numeric">${rp(channel.budget)}</td>
+          <td class="numeric ${channel.inPool && delta > 1 ? "up" : channel.inPool && delta < -1 ? "down" : ""}">${channel.inPool && !record.isReference ? `${signedPct(safeDivide(delta, channel.refBudget) * 100)}<small>${signedRp(delta)}</small>` : "—"}</td>
+          <td class="numeric">${channel.inPool ? `${rp(channel.refIncr)} → ${rp(channel.incr)}` : "—"}</td>
+          <td class="numeric">${channel.budget > 0 ? ratio(channel.mroi) : "—"}</td>
+        </tr>`;
+      }).join("");
+      const excluded = record.channels.filter((channel) => !channel.inPool);
+      return `<tbody class="mmm-breakdown-group">
+        <tr class="group"><td colspan="7"><strong>${escapeHtml(record.name)}</strong> · reference ${rp(record.poolBudget)}/month for ${escapeHtml(record.poolLabel)}${excluded.length ? ` · not in pool: ${excluded.map((c) => `${c.name} (${rp(c.refBudget)})`).join(", ")}` : ""}</td></tr>
+        ${rows}
+        <tr class="total"><td><strong>Selected channels</strong></td><td>${record.poolNames.length} of ${record.channels.length}</td><td class="numeric"><strong>${rp(record.poolBudget)}</strong></td><td class="numeric"><strong>${rp(record.budget)}</strong></td><td class="numeric">${record.isReference ? "—" : signedPct(safeDivide(record.budget - record.poolBudget, record.poolBudget) * 100)}</td><td class="numeric">${rp(record.poolMedia)} → ${rp(record.media)}</td><td class="numeric">${ratio(record.mroi)}</td></tr>
+      </tbody>`;
+    }).join("");
 
-    elements.savedScenarios.querySelectorAll("[data-remove-scenario]").forEach((button) => button.addEventListener("click", () => {
-      state.savedScenarios.splice(Number(button.dataset.removeScenario), 1);
-      persistSavedScenarios();
-      renderSavedScenarios();
-    }));
-    elements.savedScenarios.querySelectorAll("[data-load-scenario]").forEach((button) => button.addEventListener("click", () => {
-      const scenario = state.savedScenarios[Number(button.dataset.loadScenario)];
-      if (!scenario) return;
-      state.plannerMode = "manual";
-      state.primaryValue = scenario.budget / 1e9;
-      state.manualBudgets = Object.fromEntries(Object.entries(scenario.budgets).map(([channel, budget]) => [channel, budget / 1e9]));
-      if (scenario.constraints) {
-        state.maxDecrease = scenario.constraints.maxDecrease;
-        state.maxIncrease = scenario.constraints.maxIncrease;
-        state.locked = new Set(scenario.constraints.locked || []);
-        state.selectedChannels = new Set(scenario.constraints.selectedChannels?.length ? scenario.constraints.selectedChannels : dataset.channels.map((channel) => channel.name));
-        elements.maxDecrease.value = state.maxDecrease;
-        elements.maxDecreaseOutput.textContent = `${state.maxDecrease}%`;
-        elements.maxIncrease.value = state.maxIncrease;
-        elements.maxIncreaseOutput.textContent = `${state.maxIncrease}%`;
-      }
-      root.querySelectorAll("[data-planner-mode]").forEach((tab) => {
-        const active = tab.dataset.plannerMode === "manual";
-        tab.classList.toggle("active", active);
-        tab.setAttribute("aria-selected", String(active));
+    el.saved.innerHTML = `<p class="mmm-saved-copy">${copy}</p>
+      <div class="mmm-table-wrap"><table><thead><tr><th>Scenario</th><th>Channels in pool</th><th class="numeric">Budget / month<br>reference → scenario</th><th class="numeric">Incremental revenue / month<br>reference → scenario</th><th class="numeric">iROAS<br>reference → scenario</th><th></th></tr></thead><tbody>${summaryRows}</tbody></table></div>
+      <div class="mmm-breakdown-heading"><span class="mmm-kicker">Channel breakdown</span><p>Reference = current monthly budget of each channel in the analysis period. A plan's reference total only counts the channels selected in that plan.</p></div>
+      <div class="mmm-table-wrap mmm-breakdown"><table><thead><tr><th>Channel</th><th>Pool</th><th class="numeric">Reference / month</th><th class="numeric">Scenario / month</th><th class="numeric">Change</th><th class="numeric">Incr. revenue ref → scenario</th><th class="numeric">mROI</th></tr></thead>${breakdown}</table></div>`;
+  }
+
+  // ---------- orchestration ----------
+  function refreshAll({ resetPrimary = false } = {}) {
+    reference = buildReference();
+    if (resetPrimary) state.primaryValue = null;
+    const totalSpend = sum(reference.rows, (row) => sum(Object.values(row.spend), (v) => v));
+    el.scopeCopy.innerHTML = `<span class="mmm-scope-pill"><i></i>Model estimate · Channel × Day</span><span>${reference.days} days selected · total spend ${rp(totalSpend)} → <strong>current budget ${rp(reference.totalMonthly)}/month</strong> · incremental revenue ${rp(reference.media)}/month (${ratio(reference.iroas)})</span>`;
+    renderPlannerControls();
+    solve();
+    renderSaved();
+  }
+
+  function bindEvents() {
+    el.dateStart.min = el.dateEnd.min = dataset.meta.defaultStart;
+    el.dateStart.max = el.dateEnd.max = dataset.meta.defaultEnd;
+    el.dateStart.value = state.dateStart;
+    el.dateEnd.value = state.dateEnd;
+    const onDate = () => {
+      state.dateStart = el.dateStart.value || dataset.meta.defaultStart;
+      state.dateEnd = el.dateEnd.value || dataset.meta.defaultEnd;
+      if (state.dateStart > state.dateEnd) [state.dateStart, state.dateEnd] = [state.dateEnd, state.dateStart];
+      el.dateStart.value = state.dateStart;
+      el.dateEnd.value = state.dateEnd;
+      clearSaved();
+      refreshAll({ resetPrimary: true });
+    };
+    el.dateStart.addEventListener("change", onDate);
+    el.dateEnd.addEventListener("change", onDate);
+
+    el.reset.addEventListener("click", () => {
+      Object.assign(state, {
+        dateStart: dataset.meta.defaultStart,
+        dateEnd: dataset.meta.defaultEnd,
+        mode: "budget",
+        preset: 1,
+        horizonStart: nextDay(dataset.meta.defaultEnd),
+        horizonMonths: 3,
+        selected: new Set(dataset.channels.map((c) => c.name)),
+        locked: new Set(),
+        maxDecrease: 30,
+        maxIncrease: 60,
+        hiatusChannel: "Meta",
+        hiatusWeeks: 2,
+        tolerance: 3,
       });
-      renderPlannerControls();
-      solvePlanner();
-      pulse(elements.plannerWorkspace.querySelector(".mmm-planner-output"));
-      elements.plannerWorkspace.scrollIntoView({ behavior: "smooth", block: "start" });
-    }));
-  }
-
-  function renderModelMetrics() {
-    if (!elements.modelMetrics) return;
-    const meta = dataset.meta;
-    const metrics = [
-      ["Model Version", meta.modelVersion],
-      ["Training Window", meta.trainingWindow],
-      ["Train R²", meta.trainR2.toFixed(3)],
-      ["Test R²", meta.testR2.toFixed(3)],
-      ["wMAPE", formatPercent(meta.wMAPE)],
-    ];
-    elements.modelMetrics.innerHTML = metrics.map(([label, value]) => `<div class="mmm-model-metric"><span>${label}</span><strong>${value}</strong></div>`).join("");
-  }
-
-  function refreshPlanningScenario() {
-    invalidateSavedScenarios();
-    state.primaryValue = 0;
-    state.manualBudgets = {};
-    state.lastScenario = null;
-    renderPlanningPeriod();
-    renderPlannerControls();
-    solvePlanner();
-    renderSavedScenarios();
-    pulse(elements.plannerWorkspace);
-  }
-
-  function renderAll({ resetPlanner = false } = {}) {
-    const rows = filteredRows();
-    currentSummary = summarize(rows);
-    elements.scopeCopy.textContent = `${state.kpi} impact for ${state.product} · ${rows.length} days selected`;
-    renderScorecards(currentSummary);
-    renderTrend(rows);
-    renderDecomposition(currentSummary);
-    renderChannelsAndResponse();
-    if (resetPlanner) {
-      state.primaryValue = 0;
-      state.manualBudgets = {};
-      state.lastScenario = null;
-      elements.saveScenario.disabled = true;
-    }
-    renderPlannerControls();
-    solvePlanner();
-  }
-
-  function bindControls() {
-    const dateStart = root.querySelector('[data-mmm-filter="dateStart"]');
-    const dateEnd = root.querySelector('[data-mmm-filter="dateEnd"]');
-    [dateStart, dateEnd].forEach((input) => {
-      input.min = dataset.meta.defaultStart;
-      input.max = dataset.meta.defaultEnd;
+      el.dateStart.value = state.dateStart;
+      el.dateEnd.value = state.dateEnd;
+      clearSaved();
+      refreshAll({ resetPrimary: true });
     });
-    dateStart.value = state.dateStart;
-    dateEnd.value = state.dateEnd;
-    renderPlanningPeriod();
-    dateStart.addEventListener("change", () => {
-      state.dateStart = dateStart.value <= state.dateEnd ? dateStart.value : state.dateEnd;
-      dateStart.value = state.dateStart;
-      invalidateSavedScenarios();
-      renderAll({ resetPlanner: true });
-      renderSavedScenarios();
-    });
-    dateEnd.addEventListener("change", () => {
-      state.dateEnd = dateEnd.value >= state.dateStart ? dateEnd.value : state.dateStart;
-      dateEnd.value = state.dateEnd;
-      invalidateSavedScenarios();
-      renderAll({ resetPlanner: true });
-      renderSavedScenarios();
-    });
-    root.querySelector('[data-mmm-filter="product"]').addEventListener("change", (event) => { state.product = event.target.value; invalidateSavedScenarios(); renderAll(); renderSavedScenarios(); });
-    root.querySelector('[data-mmm-filter="kpi"]').addEventListener("change", (event) => { state.kpi = event.target.value; invalidateSavedScenarios(); renderAll(); renderSavedScenarios(); });
-    root.querySelector("[data-mmm-reset]").addEventListener("click", () => {
-      state.dateStart = dataset.meta.defaultStart;
-      state.dateEnd = dataset.meta.defaultEnd;
-      state.product = dataset.meta.product;
-      state.kpi = dataset.meta.businessKpis[0];
-      state.responseChannel = "Meta";
-      state.planningUnit = "month";
-      state.planningPeriods = 3;
-      state.planningStart = nextDay(dataset.meta.defaultEnd);
-      dateStart.value = state.dateStart;
-      dateEnd.value = state.dateEnd;
-      elements.responseChannel.value = state.responseChannel;
-      renderPlanningPeriod();
-      invalidateSavedScenarios();
-      renderAll({ resetPlanner: true });
-      renderSavedScenarios();
-    });
-
-    elements.responseChannel.innerHTML = dataset.channels.map((channel) => `<option value="${channel.name}">${channel.name}</option>`).join("");
-    elements.responseChannel.value = state.responseChannel;
-    elements.responseChannel.addEventListener("change", () => selectResponseChannel(elements.responseChannel.value));
-    root.querySelectorAll("[data-planning-unit]").forEach((button) => button.addEventListener("click", () => {
-      state.planningUnit = button.dataset.planningUnit;
-      state.planningPeriods = { week: 4, month: 3, year: 1 }[state.planningUnit];
-      refreshPlanningScenario();
-    }));
-    elements.planningStart.addEventListener("change", () => {
-      if (!elements.planningStart.value) return;
-      state.planningStart = elements.planningStart.value;
-      refreshPlanningScenario();
-    });
-    elements.planningPeriods.addEventListener("change", () => {
-      state.planningPeriods = Number(elements.planningPeriods.value) || 1;
-      refreshPlanningScenario();
-    });
-    elements.hiatusWeeks.addEventListener("input", () => {
-      const metric = selectedMetric();
-      renderCarryover(metric);
-      renderHiatus(metric);
-      pulse(elements.hiatusPanel);
-      pulse(elements.carryoverCurve.closest(".mmm-panel"));
-    });
-    elements.hiatusTolerance.addEventListener("input", () => {
-      renderHiatus(selectedMetric());
-      pulse(elements.hiatusPanel);
-    });
-    root.querySelectorAll("[data-hiatus-preset]").forEach((button) => button.addEventListener("click", () => {
-      elements.hiatusWeeks.value = button.dataset.hiatusPreset;
-      const metric = selectedMetric();
-      renderCarryover(metric);
-      renderHiatus(metric);
-      pulse(elements.hiatusPanel);
-      pulse(elements.carryoverCurve.closest(".mmm-panel"));
-    }));
 
     root.querySelectorAll("[data-planner-mode]").forEach((button) => button.addEventListener("click", () => {
-      state.plannerMode = button.dataset.plannerMode;
-      state.primaryValue = 0;
-      state.lastScenario = null;
+      state.mode = button.dataset.plannerMode;
+      state.primaryValue = null;
+      state.preset = 1;
       renderPlannerControls();
-      solvePlanner();
-      pulse(elements.plannerWorkspace.querySelector(".mmm-planner-output"));
+      solve({ pulse: true });
     }));
-    elements.plannerPrimary.addEventListener("input", () => {
-      state.primaryValue = Number(elements.plannerPrimary.value) || 0;
+    el.primary.addEventListener("input", () => {
+      state.primaryValue = Number(el.primary.value) || 0;
+      if (state.mode === "budget") state.preset = null;
       root.querySelectorAll("[data-budget-multiplier]").forEach((button) => button.classList.remove("active"));
-      queuePlannerSolve();
+      queueSolve();
     });
     root.querySelectorAll("[data-budget-multiplier]").forEach((button) => button.addEventListener("click", () => {
-      const reference = plannerReference();
-      state.primaryValue = reference.currentBudget / 1e9 * Number(button.dataset.budgetMultiplier);
-      elements.plannerPrimary.value = state.primaryValue.toFixed(1);
-      root.querySelectorAll("[data-budget-multiplier]").forEach((item) => item.classList.toggle("active", item === button));
-      solvePlanner();
-      pulse(elements.plannerWorkspace.querySelector(".mmm-planner-output"));
-    }));
-    elements.selectAllChannels.addEventListener("click", () => {
-      state.selectedChannels = new Set(dataset.channels.map((channel) => channel.name));
+      state.preset = Number(button.dataset.budgetMultiplier);
+      state.primaryValue = poolReference().budget / 1e9 * state.preset;
       renderPlannerControls();
-      solvePlanner();
-      pulse(elements.plannerWorkspace.querySelector(".mmm-planner-output"));
+      solve({ pulse: true });
+    }));
+    el.horizonStart.addEventListener("change", () => {
+      if (!el.horizonStart.value) return;
+      state.horizonStart = el.horizonStart.value;
+      renderPlannerControls();
+      solve();
     });
-    elements.maxDecrease.addEventListener("input", () => {
-      state.maxDecrease = Number(elements.maxDecrease.value);
-      elements.maxDecreaseOutput.textContent = `${state.maxDecrease}%`;
-      queuePlannerSolve();
+    el.horizonMonths.addEventListener("change", () => {
+      state.horizonMonths = clamp(Math.round(Number(el.horizonMonths.value) || 1), 1, 12);
+      renderPlannerControls();
+      solve();
     });
-    elements.maxIncrease.addEventListener("input", () => {
-      state.maxIncrease = Number(elements.maxIncrease.value);
-      elements.maxIncreaseOutput.textContent = `${state.maxIncrease}%`;
-      queuePlannerSolve();
-    });
-    elements.runScenario.addEventListener("click", () => {
-      state.primaryValue = Number(elements.plannerPrimary.value) || state.primaryValue;
-      solvePlanner();
-      pulse(elements.plannerWorkspace.querySelector(".mmm-planner-output"));
-      elements.plannerResults.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    });
-    elements.saveScenario.addEventListener("click", () => {
-      if (!state.lastScenario) return;
-      const snapshot = snapshotCurrentScenario();
-      const duplicateIndex = state.savedScenarios.findIndex((scenario) => scenario.fingerprint === snapshot.fingerprint);
-      if (duplicateIndex >= 0) {
-        snapshot.name = state.savedScenarios[duplicateIndex].name;
-        state.savedScenarios.splice(duplicateIndex, 1, snapshot);
-      } else {
-        if (state.savedScenarios.length >= 3) state.savedScenarios.shift();
-        state.savedScenarios.push(snapshot);
+    el.channels.addEventListener("change", (event) => {
+      const include = event.target.closest("[data-include-channel]");
+      const lock = event.target.closest("[data-lock-channel]");
+      if (include) {
+        const name = include.dataset.includeChannel;
+        if (!include.checked && state.selected.size === 1) { include.checked = true; return; }
+        if (include.checked) state.selected.add(name); else { state.selected.delete(name); state.locked.delete(name); }
       }
-      persistSavedScenarios();
-      renderSavedScenarios();
-      const scenarioPanel = elements.savedScenarios.closest("[data-saved-scenario-panel]");
-      pulse(scenarioPanel);
-      scenarioPanel?.scrollIntoView({ behavior: "smooth", block: "start" });
-      const original = elements.saveScenario.textContent;
-      elements.saveScenario.textContent = duplicateIndex >= 0 ? "Scenario updated" : "Scenario saved";
-      window.setTimeout(() => { elements.saveScenario.textContent = original; }, 1200);
+      if (lock) {
+        const name = lock.dataset.lockChannel;
+        if (lock.checked) state.locked.add(name); else state.locked.delete(name);
+      }
+      // Preset budgets and the default revenue target follow the reference of the selected channels.
+      if (include && (state.mode === "target" || state.preset !== null)) state.primaryValue = null;
+      renderPlannerControls();
+      solve({ pulse: true });
     });
+    el.maxDecrease.addEventListener("input", () => { state.maxDecrease = Number(el.maxDecrease.value); renderPlannerControls(); queueSolve(); });
+    el.maxIncrease.addEventListener("input", () => { state.maxIncrease = Number(el.maxIncrease.value); renderPlannerControls(); queueSolve(); });
+
+    el.save.addEventListener("click", () => {
+      const record = snapshot();
+      const duplicate = state.saved.findIndex((item) => item.fingerprint === record.fingerprint);
+      if (duplicate >= 0) { record.name = state.saved[duplicate].name; state.saved.splice(duplicate, 1, record); }
+      else { if (state.saved.length >= MAX_SAVED) state.saved.shift(); state.saved.push(record); }
+      persist();
+      renderSaved();
+      const original = el.save.textContent;
+      el.save.textContent = duplicate >= 0 ? "Scenario updated" : "Scenario saved";
+      window.setTimeout(() => { el.save.textContent = original; }, 1200);
+    });
+    el.saved.addEventListener("click", (event) => {
+      const remove = event.target.closest("[data-remove-scenario]");
+      const load = event.target.closest("[data-load-scenario]");
+      if (remove) { state.saved.splice(Number(remove.dataset.removeScenario), 1); persist(); renderSaved(); }
+      if (load) {
+        const record = state.saved[Number(load.dataset.loadScenario)];
+        if (!record) return;
+        const settings = record.settings || {};
+        Object.assign(state, {
+          mode: settings.mode || "budget",
+          primaryValue: settings.primaryValue ?? null,
+          preset: settings.preset ?? null,
+          selected: new Set(settings.selected || reference.channels.map((c) => c.name)),
+          locked: new Set(settings.locked || []),
+          maxDecrease: settings.maxDecrease ?? state.maxDecrease,
+          maxIncrease: settings.maxIncrease ?? state.maxIncrease,
+          horizonStart: settings.horizonStart || state.horizonStart,
+          horizonMonths: settings.horizonMonths || state.horizonMonths,
+        });
+        renderPlannerControls();
+        solve({ pulse: true });
+        root.querySelector("[data-planner-section]").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+
+    el.hiatusPanel.addEventListener("click", (event) => {
+      const channel = event.target.closest("[data-hiatus-channel]");
+      const preset = event.target.closest("[data-hiatus-preset]");
+      if (channel) state.hiatusChannel = channel.dataset.hiatusChannel;
+      if (preset) state.hiatusWeeks = Number(preset.dataset.hiatusPreset);
+      if (channel || preset) renderHiatus();
+    });
+    el.tolerance.addEventListener("input", () => { state.tolerance = Number(el.tolerance.value); renderHiatus(); });
   }
 
   async function initialize() {
     try {
-      const response = await fetch("/static/data/mmm.json");
-      if (!response.ok) throw new Error(`MMM dataset returned ${response.status}`);
-      dataset = await response.json();
+      const responseData = await fetch("/static/data/mmm.json");
+      if (!responseData.ok) throw new Error(`MMM dataset returned ${responseData.status}`);
+      dataset = await responseData.json();
+      DPM = dataset.meta.daysPerMonth || DPM;
       state.dateStart = dataset.meta.defaultStart;
       state.dateEnd = dataset.meta.defaultEnd;
-      state.planningStart = nextDay(dataset.meta.defaultEnd);
-      state.selectedChannels = new Set(dataset.channels.map((channel) => channel.name));
-      bindChartTooltips();
-      bindControls();
-      renderModelMetrics();
-      renderAll({ resetPlanner: true });
-      restoreSavedScenarios();
-      renderSavedScenarios();
-      elements.status.hidden = true;
+      state.horizonStart = nextDay(dataset.meta.defaultEnd);
+      state.selected = new Set(dataset.channels.map((channel) => channel.name));
+      buildCurves();
+      bindStaticTooltips();
+      bindEvents();
+      refreshAll({ resetPrimary: true });
+      restore();
+      renderSaved();
+      el.status.hidden = true;
     } catch (error) {
-      elements.status.classList.add("error");
-      elements.status.innerHTML = `<span class="mmm-status-pulse" aria-hidden="true"></span>Unable to load the MMM demo: ${escapeHtml(error.message)}`;
+      el.status.classList.add("error");
+      el.status.innerHTML = `<span class="mmm-status-pulse" aria-hidden="true"></span>Unable to load the MMM demo: ${escapeHtml(error.message)}`;
+      console.error(error);
     }
   }
-
-  let resizeTimer = null;
-  window.addEventListener("resize", () => {
-    if (!dataset) return;
-    window.clearTimeout(resizeTimer);
-    resizeTimer = window.setTimeout(() => {
-      renderTrend(filteredRows());
-      renderChannelsAndResponse();
-    }, 160);
-  });
 
   initialize();
 })();

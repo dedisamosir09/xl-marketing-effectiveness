@@ -1,29 +1,32 @@
+"""Geo Intelligence demo data derived from the Campaign Performance rows.
+
+Every campaign is geo-targeted to a subset of the 50 cities. Each campaign-week's spend,
+impressions, sessions, purchases and revenue are split across its cities with exact integer
+allocation, so national totals by channel, objective, media plan, placement and campaign
+reconcile with the Campaign Performance page. Market metrics (addressable market, customer
+base, potential leads, readiness, growth, ARPU, churn) remain modeled city attributes.
+"""
+
+from collections import defaultdict
 from datetime import date, timedelta
 from pathlib import Path
 import json
 import math
 import random
 
+from .campaign_performance import generate_campaign_dataset
+from .master import CHANNELS, DEFAULT_END, DEFAULT_START, GEO_HISTORY_START, allocate_integers
 
-HISTORY_START = date(2026, 1, 1)
-DEFAULT_START = date(2026, 4, 3)
-DEFAULT_END = date(2026, 8, 24)
-
-CHANNELS = {
-    "Google": {"spend": 9_364_500_000, "roas": 2.3167, "cpm": 9_200, "ctr": 0.018, "color": "#3156d3"},
-    "Meta": {"spend": 4_607_800_000, "roas": 3.4732, "cpm": 12_600, "ctr": 0.012, "color": "#7355dc"},
-    "TikTok": {"spend": 5_178_200_000, "roas": 2.0566, "cpm": 7_400, "ctr": 0.0095, "color": "#ec0a68"},
-    "X": {"spend": 317_900_000, "roas": 5.1675, "cpm": 15_800, "ctr": 0.0075, "color": "#18a2bd"},
+HISTORY_START = GEO_HISTORY_START
+ROW_FIELDS = ["date", "city", "campaign", "spend", "impressions", "sessions", "interested", "purchases", "revenue"]
+CITY_COUNT_BY_PLAN = {
+    "AON-5G": (5, 9),
+    "AON-SEM": (9, 15),
+    "AON-Social": (7, 13),
+    "AON-App Growth": (8, 14),
+    "AON-Retargeting": (4, 8),
 }
-
-MEDIA_PLANS = ["AON-5G", "AON-SEM", "AON-Social", "AON-App Growth", "AON-Retargeting"]
-OBJECTIVES = ["Awareness", "Consideration", "Conversion", "Social Media Engagement"]
-PLACEMENTS = {
-    "Google": ["Search-CPC", "App Install-CPI-Android", "Performance Max-CPA", "YouTube-CPV"],
-    "Meta": ["App Engagement-CPA", "App Install-CPI-Android", "Video Views-CPV", "Traffic-CPC"],
-    "TikTok": ["Video Views-CPV", "App Install-CPI-Android", "App Engagement-CPA", "Traffic-CPC"],
-    "X": ["Website Traffic-CPC", "Video Views-CPV", "App Engagement-CPA"],
-}
+MIN_CAMPAIGNS_PER_CITY = 3
 
 # City, province, island group, latitude, longitude, indicative urban population.
 CITY_CONFIG = [
@@ -80,11 +83,6 @@ CITY_CONFIG = [
 ]
 
 
-def _date_range(start, end, step_days=1):
-    current = start
-    while current <= end:
-        yield current
-        current += timedelta(days=step_days)
 
 
 def _slug(value):
@@ -134,82 +132,184 @@ def _build_cities(rng):
     return cities
 
 
+
+
+def _bucket_starts():
+    """Weekly buckets from 1 Jan; a bucket always starts on the default start date."""
+    starts = []
+    current = HISTORY_START
+    while current < DEFAULT_START:
+        starts.append(current)
+        current += timedelta(days=7)
+    current = DEFAULT_START
+    while current <= DEFAULT_END:
+        starts.append(current)
+        current += timedelta(days=7)
+    return starts
+
+
+def _bucket_index(starts):
+    lookup = {}
+    for index, start in enumerate(starts):
+        end = starts[index + 1] - timedelta(days=1) if index + 1 < len(starts) else DEFAULT_END
+        day = start
+        while day <= end:
+            lookup[day.isoformat()] = index
+            day += timedelta(days=1)
+    return lookup
+
+
+def _weighted_sample(rng, candidates, weights, count):
+    chosen = []
+    pool = list(zip(candidates, weights))
+    for _ in range(min(count, len(pool))):
+        total = sum(weight for _, weight in pool)
+        pick = rng.uniform(0, total)
+        running = 0
+        for index, (candidate, weight) in enumerate(pool):
+            running += weight
+            if running >= pick:
+                chosen.append(candidate)
+                pool.pop(index)
+                break
+    return chosen
+
+
+def _assign_cities(rng, campaigns, cities, city_weight):
+    assignment = {}
+    indices = list(range(len(cities)))
+    for campaign in campaigns:
+        low, high = CITY_COUNT_BY_PLAN[campaign["mediaPlan"]]
+        count = rng.randint(low, high)
+        if campaign["mediaPlan"] == "AON-5G":
+            eligible = [index for index in indices if cities[index]["networkReadiness"] >= 75]
+        else:
+            eligible = indices
+        weights = [city_weight[index] ** 0.55 for index in eligible]
+        assignment[campaign["id"]] = set(_weighted_sample(rng, eligible, weights, count))
+    coverage = defaultdict(int)
+    for selected in assignment.values():
+        for index in selected:
+            coverage[index] += 1
+    ordered_campaigns = [campaign for campaign in campaigns if campaign["mediaPlan"] != "AON-5G"]
+    for index in indices:
+        while coverage[index] < MIN_CAMPAIGNS_PER_CITY:
+            campaign = ordered_campaigns[rng.randrange(len(ordered_campaigns))]
+            if index not in assignment[campaign["id"]]:
+                assignment[campaign["id"]].add(index)
+                coverage[index] += 1
+    return {key: sorted(value) for key, value in assignment.items()}
+
+
+def _rake_shares(assignment, campaign_spend, city_target, iterations=80):
+    """Iterative proportional fitting on the sparse campaign x city matrix."""
+    weights = {cid: {city: 1.0 for city in cities} for cid, cities in assignment.items()}
+    for _ in range(iterations):
+        for cid, row in weights.items():
+            total = sum(row.values())
+            scale = campaign_spend[cid] / total if total else 0
+            for city in row:
+                row[city] *= scale
+        column = defaultdict(float)
+        for row in weights.values():
+            for city, value in row.items():
+                column[city] += value
+        for row in weights.values():
+            for city in row:
+                if column[city]:
+                    row[city] *= city_target[city] / column[city]
+    shares = {}
+    for cid, row in weights.items():
+        total = sum(row.values())
+        shares[cid] = {city: value / total for city, value in row.items()}
+    return shares
+
+
 def generate_geo_dataset():
     rng = random.Random(20260918)
     cities = _build_cities(rng)
-    dates = sorted(set(_date_range(HISTORY_START, DEFAULT_END, 7)) | {DEFAULT_START, DEFAULT_END})
-    default_periods = sum(DEFAULT_START <= current_date <= DEFAULT_END for current_date in dates)
-    channel_names = list(CHANNELS)
-    raw_rows = []
+    campaign_data = generate_campaign_dataset()
+    campaigns = campaign_data["campaigns"]
 
-    total_weight = sum((city["potentialLeads"] * 0.48 + city["customerBase"] * 0.34 + city["addressable"] * 0.18) * city["mediaBias"] for city in cities)
+    city_weight = [
+        (city["potentialLeads"] * 0.48 + city["customerBase"] * 0.34 + city["addressable"] * 0.18) * city["mediaBias"]
+        for city in cities
+    ]
+    assignment = _assign_cities(rng, campaigns, cities, city_weight)
+
+    campaign_spend = defaultdict(float)
+    for row in campaign_data["rows"]:
+        if DEFAULT_START.isoformat() <= row[0] <= DEFAULT_END.isoformat():
+            campaign_spend[row[1]] += row[2]
+    total_spend = sum(campaign_spend.values())
+    weight_total = sum(city_weight)
+    city_target = {index: total_spend * weight / weight_total for index, weight in enumerate(city_weight)}
+    spend_share = _rake_shares(assignment, campaign_spend, city_target)
+
+    arpus = [city["arpu"] for city in cities]
+    low_arpu, high_arpu = min(arpus), max(arpus)
+    city_factors = []
     for city in cities:
-        city_weight = ((city["potentialLeads"] * 0.48 + city["customerBase"] * 0.34 + city["addressable"] * 0.18) * city["mediaBias"]) / total_weight
-        for day_index, current_date in enumerate(dates):
-            weekday = 0.88 if current_date.weekday() >= 5 else 1.035
-            seasonality = 1 + 0.12 * math.sin((day_index / 31) * math.tau + city["index"] * 0.21)
-            pulse = 1.18 if current_date.day in {1, 2, 15, 16, 25} else 1
-            for channel_index, channel in enumerate(channel_names):
-                config = CHANNELS[channel]
-                objective = OBJECTIVES[(day_index + city["index"] + channel_index) % len(OBJECTIVES)]
-                media_plan = MEDIA_PLANS[(city["index"] * 2 + day_index // 2 + channel_index) % len(MEDIA_PLANS)]
-                placement = PLACEMENTS[channel][(city["index"] + day_index // 2) % len(PLACEMENTS[channel])]
-                campaign = f"{media_plan.replace('AON-', '').replace(' ', '-').upper()}_{channel.upper()}_{objective.replace(' ', '-').upper()}_{(city['index'] + channel_index) % 8 + 1:02d}"
-                raw_spend = config["spend"] * city_weight / default_periods * weekday * seasonality * pulse * rng.uniform(0.84, 1.16)
-                raw_rows.append(
-                    {
-                        "date": current_date,
-                        "cityId": city["id"],
-                        "product": "Prepaid",
-                        "mediaPlan": media_plan,
-                        "objective": objective,
-                        "channel": channel,
-                        "placement": placement,
-                        "campaign": campaign,
-                        "rawSpend": raw_spend,
-                    }
-                )
-
-    default_totals = {channel: 0 for channel in CHANNELS}
-    for row in raw_rows:
-        if DEFAULT_START <= row["date"] <= DEFAULT_END:
-            default_totals[row["channel"]] += row["rawSpend"]
-    scales = {channel: CHANNELS[channel]["spend"] / default_totals[channel] for channel in CHANNELS}
-    city_lookup = {city["id"]: city for city in cities}
-    rows = []
-    for index, raw in enumerate(raw_rows):
-        city = city_lookup[raw["cityId"]]
-        config = CHANNELS[raw["channel"]]
-        spend = raw["rawSpend"] * scales[raw["channel"]]
-        objective_factor = {"Awareness": 0.72, "Consideration": 0.92, "Conversion": 1.26, "Social Media Engagement": 0.84}[raw["objective"]]
-        cpm = config["cpm"] * (1.04 - city["demandFactor"] * 0.18) * rng.uniform(0.91, 1.10)
-        impressions = max(1, round(spend / cpm * 1000))
-        ctr = config["ctr"] * (0.72 + city["demandFactor"] * 1.45) * rng.uniform(0.88, 1.12)
-        sessions = max(1, round(impressions * ctr * rng.uniform(0.48, 0.64)))
-        interested = max(1, round(sessions * rng.uniform(0.68, 0.84)))
-        revenue = spend * config["roas"] * city["efficiencyFactor"] * objective_factor * rng.uniform(0.88, 1.12)
-        aov = (245_000 + city["arpu"] * 1.35) * rng.uniform(0.91, 1.09)
-        purchases = max(1, round(revenue / aov))
-        rows.append(
+        city_factors.append(
             {
-                "date": raw["date"].isoformat(),
-                "cityId": raw["cityId"],
-                "product": raw["product"],
-                "mediaPlan": raw["mediaPlan"],
-                "objective": raw["objective"],
-                "channel": raw["channel"],
-                "placement": raw["placement"],
-                "campaign": raw["campaign"],
-                "spend": round(spend),
-                "impressions": impressions,
-                "sessions": sessions,
-                "interested": interested,
-                "purchases": purchases,
-                "revenue": round(revenue),
+                "revenue": city["efficiencyFactor"],
+                "aov": 0.86 + 0.28 * (city["arpu"] - low_arpu) / max(high_arpu - low_arpu, 1),
+                "cpm": 1.04 - city["demandFactor"] * 0.18,
+                "ctr": 0.72 + city["demandFactor"] * 1.45,
+                # Share of sessions that show purchase intent follows the city's modeled market demand signal.
+                "intent": min(0.9, max(0.6, 0.55 + city["demandFactor"] * 0.75)),
             }
         )
 
-    public_cities = [{key: value for key, value in city.items() if key not in {"mediaBias", "demandFactor", "efficiencyFactor", "index"}} for city in cities]
+    split = {}
+    for cid, shares in spend_share.items():
+        city_list = list(shares)
+        spend_w = [shares[city] for city in city_list]
+        revenue_w = [shares[city] * city_factors[city]["revenue"] for city in city_list]
+        purchase_w = [revenue_w[i] / city_factors[city]["aov"] for i, city in enumerate(city_list)]
+        impression_w = [shares[city] / city_factors[city]["cpm"] for city in city_list]
+        session_w = [impression_w[i] * city_factors[city]["ctr"] for i, city in enumerate(city_list)]
+        split[cid] = (city_list, spend_w, impression_w, session_w, purchase_w, revenue_w)
+
+    starts = _bucket_starts()
+    bucket_of = _bucket_index(starts)
+    totals = defaultdict(lambda: [0, 0, 0, 0, 0])
+    for row in campaign_data["rows"]:
+        bucket = bucket_of.get(row[0])
+        if bucket is None:
+            continue
+        values = totals[(bucket, row[1])]
+        values[0] += row[2]   # spend
+        values[1] += row[3]   # impressions
+        values[2] += row[6]   # sessions
+        values[3] += row[7]   # purchases
+        values[4] += row[8]   # revenue
+
+    rows = []
+    for (bucket, cid), (spend, impressions, sessions, purchases, revenue) in sorted(totals.items()):
+        city_list, spend_w, impression_w, session_w, purchase_w, revenue_w = split[cid]
+        spend_parts = allocate_integers(spend_w, spend)
+        impression_parts = allocate_integers(impression_w, impressions)
+        session_parts = allocate_integers(session_w, sessions)
+        purchase_parts = allocate_integers(purchase_w, purchases)
+        revenue_parts = allocate_integers(revenue_w, revenue)
+        for i, city in enumerate(city_list):
+            if not spend_parts[i] and not revenue_parts[i]:
+                continue
+            interested = round(session_parts[i] * city_factors[city]["intent"])
+            rows.append([
+                starts[bucket].isoformat(), city, cid, spend_parts[i], impression_parts[i],
+                session_parts[i], interested, purchase_parts[i], revenue_parts[i],
+            ])
+
+    public_cities = [
+        {key: value for key, value in city.items() if key not in {"mediaBias", "demandFactor", "efficiencyFactor", "index"}}
+        for city in cities
+    ]
+    public_campaigns = [
+        {key: campaign[key] for key in ("id", "campaign", "product", "mediaPlan", "channel", "placement", "funnel")}
+        for campaign in campaigns
+    ]
     return {
         "meta": {
             "generatedAt": "2026-08-25T00:30:00+07:00",
@@ -217,10 +317,13 @@ def generate_geo_dataset():
             "defaultStart": DEFAULT_START.isoformat(),
             "defaultEnd": DEFAULT_END.isoformat(),
             "product": "Prepaid",
-            "grain": "City × Channel × Week",
+            "grain": "City × Campaign × Week",
+            "rowFields": ROW_FIELDS,
+            "campaignSource": "Same campaign master list and daily rows as Campaign Performance",
             "methodology": "Market potential is modeled demo data; media outcomes are observed demo signals and not incremental impact.",
         },
-        "channels": [{"name": name, **config} for name, config in CHANNELS.items()],
+        "channels": [{"name": name, "color": config["color"]} for name, config in CHANNELS.items()],
+        "campaigns": public_campaigns,
         "cities": public_cities,
         "rows": rows,
     }

@@ -1,0 +1,106 @@
+"""Cross-module consistency report for the demo datasets.
+
+Run: python scripts/validate_data.py
+Exits with status 1 if any check fails.
+"""
+
+from collections import defaultdict
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from app.data.campaign_performance import generate_campaign_dataset
+from app.data.geo import generate_geo_dataset
+from app.data.master import CHANNELS, DEFAULT_END, DEFAULT_START, MTA_TRACKED_COVERAGE
+from app.data.mmm import generate_mmm_dataset
+from app.data.mta import generate_mta_dataset
+
+START, END = DEFAULT_START.isoformat(), DEFAULT_END.isoformat()
+
+
+def collect():
+    campaign = generate_campaign_dataset()
+    lookup = {item["id"]: item for item in campaign["campaigns"]}
+    totals = defaultdict(lambda: defaultdict(int))
+    daily_spend = defaultdict(lambda: defaultdict(int))
+    for row in campaign["rows"]:
+        channel = lookup[row[1]]["channel"]
+        if START <= row[0] <= END:
+            totals[channel]["spend"] += row[2]
+            totals[channel]["purchases"] += row[7]
+            totals[channel]["revenue"] += row[8]
+            daily_spend[row[0]][channel] += row[2]
+    return campaign, lookup, totals, daily_spend
+
+
+def run_checks():
+    campaign, lookup, campaign_totals, campaign_daily = collect()
+    mmm = generate_mmm_dataset()
+    geo = generate_geo_dataset()
+    mta = generate_mta_dataset()
+    checks = []
+
+    def check(name, passed, detail):
+        checks.append((name, bool(passed), detail))
+
+    for channel, config in CHANNELS.items():
+        totals = campaign_totals[channel]
+        check(f"Campaign {channel}: spend = master spend", totals["spend"] == config["spend"], f"{totals['spend']:,}")
+        roas = totals["revenue"] / totals["spend"]
+        check(f"Campaign {channel}: observed ROAS = {config['observed_roas']}", abs(roas - config["observed_roas"]) < 1e-6, f"{roas:.4f}")
+        aov = totals["revenue"] / totals["purchases"]
+        check(f"Campaign {channel}: AOV within ±5% of Rp{config['aov']:,}", abs(aov / config["aov"] - 1) < 0.05, f"Rp{aov:,.0f}")
+
+    mismatched_days = 0
+    for row in mmm["rows"]:
+        for channel in CHANNELS:
+            if row["spend"][channel] != campaign_daily[row["date"]][channel]:
+                mismatched_days += 1
+    check("MMM daily spend = Campaign daily spend (all channels, 144 days)", mismatched_days == 0, f"{mismatched_days} mismatches")
+    for channel in mmm["channels"]:
+        media = sum(row["media"][channel["name"]] for row in mmm["rows"])
+        observed = campaign_totals[channel["name"]]["revenue"]
+        check(f"MMM {channel['name']}: incremental < observed revenue", media < observed, f"{media / observed:.0%} incremental share")
+        check(f"MMM {channel['name']}: media rows sum to incremental total", media == channel["incrementalRevenue"], f"Rp{media:,}")
+
+    geo_campaigns = {item["id"]: item for item in geo["campaigns"]}
+    geo_totals = defaultdict(lambda: defaultdict(int))
+    for row in geo["rows"]:
+        if START <= row[0] <= END:
+            channel = geo_campaigns[row[2]]["channel"]
+            geo_totals[channel]["spend"] += row[3]
+            geo_totals[channel]["purchases"] += row[7]
+            geo_totals[channel]["revenue"] += row[8]
+    for channel in CHANNELS:
+        for metric in ("spend", "purchases", "revenue"):
+            check(f"Geo {channel}: {metric} = Campaign", geo_totals[channel][metric] == campaign_totals[channel][metric], f"{geo_totals[channel][metric]:,}")
+    check("Geo campaign list = Campaign list", [c["campaign"] for c in geo["campaigns"]] == [c["campaign"] for c in campaign["campaigns"]], f"{len(geo['campaigns'])} campaigns")
+
+    last_touch = defaultdict(lambda: [0, 0])
+    for row in mta["rows"]:
+        if row["targetEvent"] == "Package Purchase":
+            last_touch[row["channels"][-1]][0] += row["conversions"]
+            last_touch[row["channels"][-1]][1] += row["revenue"]
+    for channel in CHANNELS:
+        expected_purchases = round(campaign_totals[channel]["purchases"] * MTA_TRACKED_COVERAGE)
+        expected_revenue = round(campaign_totals[channel]["revenue"] * MTA_TRACKED_COVERAGE)
+        check(f"MTA {channel}: last-touch purchases = 40% x Campaign", last_touch[channel][0] == expected_purchases, f"{last_touch[channel][0]:,}")
+        check(f"MTA {channel}: last-touch revenue = 40% x Campaign", last_touch[channel][1] == expected_revenue, f"Rp{last_touch[channel][1]:,}")
+    campaign_names = {item["campaign"] for item in campaign["campaigns"]}
+    check("MTA campaigns all exist in Campaign list", all(row["campaign"] in campaign_names for row in mta["rows"]), "")
+    return checks
+
+
+def main():
+    checks = run_checks()
+    failed = [item for item in checks if not item[1]]
+    for name, passed, detail in checks:
+        print(f"{'PASS' if passed else 'FAIL'}  {name}  {detail}")
+    print(f"\n{len(checks) - len(failed)}/{len(checks)} checks passed")
+    return 1 if failed else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

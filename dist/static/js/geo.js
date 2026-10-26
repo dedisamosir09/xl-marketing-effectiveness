@@ -738,7 +738,27 @@
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       dataset = await response.json();
       cities = dataset.cities;
-      rows = dataset.rows;
+      const campaignById = new Map((dataset.campaigns || []).map((campaign) => [campaign.id, campaign]));
+      rows = dataset.rows.map((row) => {
+        if (!Array.isArray(row)) return row;
+        const campaign = campaignById.get(row[2]) || {};
+        return {
+          date: row[0],
+          cityId: cities[row[1]].id,
+          product: campaign.product,
+          mediaPlan: campaign.mediaPlan,
+          objective: campaign.funnel,
+          channel: campaign.channel,
+          placement: campaign.placement,
+          campaign: campaign.campaign,
+          spend: row[3],
+          impressions: row[4],
+          sessions: row[5],
+          interested: row[6],
+          purchases: row[7],
+          revenue: row[8],
+        };
+      });
       state.dateStart = dataset.meta.defaultStart;
       state.dateEnd = dataset.meta.defaultEnd;
       populateFilters();

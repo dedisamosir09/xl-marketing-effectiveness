@@ -1,204 +1,183 @@
-from datetime import date, timedelta
+"""MMM demo model derived from the shared master model.
+
+* Daily channel spend is exactly the Campaign Performance spend (same campaigns, same days).
+* Daily incremental revenue = adstocked spend (channel half-life) scaled so the window total
+  equals the monthly Hill response at the current monthly budget.
+* Incremental revenue is a share of platform-observed revenue (incrementality < 100%).
+"""
+
+from collections import defaultdict
+from datetime import date
 import json
 import math
 
+from .campaign_performance import generate_campaign_dataset
+from .master import (
+    CHANNELS,
+    DAYS_PER_MONTH,
+    DEFAULT_DAYS,
+    DEFAULT_END,
+    DEFAULT_START,
+    EFFICIENT_RANGE_SHARE,
+    LAST_UPDATED,
+    NON_MEDIA_TOTALS,
+    allocate_integers,
+    break_even_spend,
+    current_monthly_spend,
+    date_range,
+    efficient_range,
+    hill_parameters,
+    marginal,
+    response,
+)
 
-DEFAULT_START = date(2026, 4, 3)
-DEFAULT_END = date(2026, 8, 24)
-
-CHANNEL_CONFIG = {
-    "Google": {
-        "color": "#3156D3",
-        "spend": 9_364_500_000,
-        "iroas": 2.3167,
-        "mroi": 1.22,
-        "credibleLow": 1.85,
-        "credibleHigh": 2.76,
-        "halfLifeDays": 4.2,
-        "headroom": 6,
-        "action": "Maintain",
-        "reason": "Healthy average return, but the next rupiah is approaching the portfolio threshold.",
-        "alpha": 1.62,
-    },
-    "Meta": {
-        "color": "#7355DC",
-        "spend": 4_607_800_000,
-        "iroas": 3.4732,
-        "mroi": 2.78,
-        "credibleLow": 2.71,
-        "credibleHigh": 4.18,
-        "halfLifeDays": 7.8,
-        "headroom": 31,
-        "action": "Scale",
-        "reason": "Strong incremental return with material headroom before the response curve flattens.",
-        "alpha": 1.48,
-    },
-    "TikTok": {
-        "color": "#EC0A68",
-        "spend": 5_178_200_000,
-        "iroas": 2.0566,
-        "mroi": 1.31,
-        "credibleLow": 1.49,
-        "credibleHigh": 2.72,
-        "halfLifeDays": 6.4,
-        "headroom": 14,
-        "action": "Optimize",
-        "reason": "Positive contribution remains, while marginal efficiency calls for a more selective scale-up.",
-        "alpha": 1.56,
-    },
-    "X": {
-        "color": "#16A4C2",
-        "spend": 317_900_000,
-        "iroas": 5.1675,
-        "mroi": 3.92,
-        "credibleLow": 2.55,
-        "credibleHigh": 7.93,
-        "halfLifeDays": 3.1,
-        "headroom": 55,
-        "action": "Test",
-        "reason": "High directional return, but the small spend base and wide interval support controlled testing only.",
-        "alpha": 1.42,
-    },
-}
-
-COMPONENT_TOTALS = {
-    "baseline": 77_800_000_000,
-    "promotion": 8_250_000_000,
-    "seasonality": 5_420_000_000,
-    "other": 2_100_000_000,
-}
-ACTUAL_TOTAL = 144_120_000_000
+SMALL_CHANNEL_SHARE = 0.05
 
 
-def _date_range(start, end):
-    current = start
-    while current <= end:
-        yield current
-        current += timedelta(days=1)
+def channel_signal(name, monthly_spend, total_monthly_spend, params, band):
+    """Shared decision rule (mirrored in mmm.js): position versus efficient range."""
+    mroi = marginal(params, monthly_spend)
+    share = monthly_spend / total_monthly_spend if total_monthly_spend else 0
+    if share < SMALL_CHANNEL_SHARE:
+        return "Test & learn", "Small spend base; validate the response with a controlled increase before scaling."
+    if monthly_spend < band["low"] and mroi > 1:
+        return "Invest more", "Current budget sits below the efficient range; the next rupiah still returns more than the average."
+    if monthly_spend > band["high"] or mroi < 1:
+        return "Reduce", "Current budget sits above the efficient range; additional spend is approaching saturation."
+    return "Hold", "Current budget sits inside the efficient range; keep spend near this level."
 
 
-def _allocate(weights, total):
-    weight_total = sum(weights)
-    values = [round(total * weight / weight_total) for weight in weights]
-    values[-1] += total - sum(values)
-    return values
+def _daily_channel_spend():
+    dataset = generate_campaign_dataset()
+    channel_by_campaign = {item["id"]: item["channel"] for item in dataset["campaigns"]}
+    spend = defaultdict(lambda: defaultdict(int))
+    observed = defaultdict(lambda: defaultdict(int))
+    for row in dataset["rows"]:
+        channel = channel_by_campaign[row[1]]
+        spend[row[0]][channel] += row[2]
+        observed[row[0]][channel] += row[8]
+    return spend, observed, dataset["meta"]["historyStart"]
+
+
+def _adstock(series, half_life):
+    decay = 0.5 ** (1 / half_life)
+    carried = 0.0
+    result = []
+    for value in series:
+        carried = value + decay * carried
+        result.append(carried)
+    return result
 
 
 def generate_mmm_dataset():
-    dates = list(_date_range(DEFAULT_START, DEFAULT_END))
-    day_count = len(dates)
+    daily_spend, daily_observed, history_start = _daily_channel_spend()
+    history_dates = list(date_range(date.fromisoformat(history_start), DEFAULT_END))
+    dates = list(date_range(DEFAULT_START, DEFAULT_END))
+    default_keys = [current.isoformat() for current in dates]
+    offset = len(history_dates) - len(dates)
 
-    baseline_weights = []
-    promotion_weights = []
-    seasonality_weights = []
-    other_weights = []
-    channel_spend_weights = {channel: [] for channel in CHANNEL_CONFIG}
-    channel_media_weights = {channel: [] for channel in CHANNEL_CONFIG}
-
-    for index, current_date in enumerate(dates):
-        progress = index / max(day_count - 1, 1)
-        weekday = 0.91 if current_date.weekday() >= 5 else 1.04
-        payday = 1.32 if current_date.day in {1, 2, 15, 16, 25, 26} else 0.92
-        baseline_weights.append((0.94 + 0.13 * progress) * weekday)
-        promotion_weights.append(payday * (1 + 0.13 * math.sin(index / 10.5)))
-        seasonality_weights.append(1 + 0.24 * math.sin((index / day_count) * math.tau - 0.65))
-        other_weights.append(1 + 0.08 * math.cos(index / 8.0))
-
-        for channel_index, channel in enumerate(CHANNEL_CONFIG):
-            pulse = 1.28 if (index + channel_index * 3) % (13 + channel_index * 2) < 3 else 0.89
-            wave = 1 + 0.18 * math.sin(index / (6.5 + channel_index) + channel_index * 0.8)
-            channel_spend_weights[channel].append(max(0.18, weekday * pulse * wave * (0.91 + 0.15 * progress)))
-            lag = CHANNEL_CONFIG[channel]["halfLifeDays"]
-            media_wave = 1 + 0.12 * math.sin((index - lag) / (8.3 + channel_index) + channel_index)
-            channel_media_weights[channel].append(max(0.2, weekday * pulse * media_wave * (0.93 + 0.12 * progress)))
-
-    components = {
-        key: _allocate(weights, COMPONENT_TOTALS[key])
-        for key, weights in {
-            "baseline": baseline_weights,
-            "promotion": promotion_weights,
-            "seasonality": seasonality_weights,
-            "other": other_weights,
-        }.items()
-    }
-    channel_spend = {
-        channel: _allocate(channel_spend_weights[channel], config["spend"])
-        for channel, config in CHANNEL_CONFIG.items()
-    }
-    channel_media = {
-        channel: _allocate(channel_media_weights[channel], round(config["spend"] * config["iroas"]))
-        for channel, config in CHANNEL_CONFIG.items()
-    }
-
-    predicted = []
-    for index in range(day_count):
-        predicted.append(
-            components["baseline"][index]
-            + components["promotion"][index]
-            + components["seasonality"][index]
-            + components["other"][index]
-            + sum(channel_media[channel][index] for channel in CHANNEL_CONFIG)
+    channels = []
+    media = {}
+    total_monthly = sum(current_monthly_spend(name) for name in CHANNELS)
+    for name, config in CHANNELS.items():
+        params = hill_parameters(name)
+        s0 = current_monthly_spend(name)
+        incremental_total = round(response(params, s0) * DEFAULT_DAYS / DAYS_PER_MONTH)
+        full_series = [daily_spend[current.isoformat()][name] for current in history_dates]
+        adstocked = _adstock(full_series, config["half_life_days"])[offset:]
+        media[name] = allocate_integers(adstocked, incremental_total)
+        band = efficient_range(params)
+        signal, reason = channel_signal(name, s0, total_monthly, params, band)
+        observed_revenue = config["observed_roas"] * config["spend"]
+        breakeven = break_even_spend(params)
+        channels.append(
+            {
+                "name": name,
+                "color": config["color"],
+                "currentSpend": config["spend"],
+                "currentMonthlySpend": round(s0),
+                "incrementalRevenue": incremental_total,
+                "observedRevenue": round(observed_revenue),
+                "observedROAS": config["observed_roas"],
+                "iROAS": round(incremental_total / config["spend"], 4),
+                "incrementalShare": round(incremental_total / observed_revenue, 4),
+                "mROI": round(marginal(params, s0), 4),
+                "halfLifeDays": config["half_life_days"],
+                "curve": {"alpha": params["alpha"], "k": round(params["k"]), "m": round(params["m"])},
+                "efficientRange": {
+                    "low": round(band["low"]),
+                    "high": round(band["high"]),
+                    "peakSpend": round(band["peakSpend"]),
+                    "peakIROAS": round(band["peakIroas"], 4),
+                },
+                "breakEvenMonthlySpend": round(breakeven) if breakeven else None,
+                "signal": signal,
+                "reason": reason,
+            }
         )
 
-    actual_weights = [
-        value * (1 + 0.023 * math.sin(index / 4.1) - 0.014 * math.cos(index / 9.2))
-        for index, value in enumerate(predicted)
+    components = {}
+    for key, total in NON_MEDIA_TOTALS.items():
+        weights = []
+        for index, current in enumerate(dates):
+            progress = index / max(len(dates) - 1, 1)
+            weekday = 0.91 if current.weekday() >= 5 else 1.04
+            payday = 1.32 if current.day in {1, 2, 15, 16, 25, 26} else 0.92
+            if key == "baseline":
+                weights.append((0.94 + 0.13 * progress) * weekday)
+            elif key == "promotion":
+                weights.append(payday * (1 + 0.13 * math.sin(index / 10.5)))
+            elif key == "seasonality":
+                weights.append(1 + 0.24 * math.sin((index / len(dates)) * math.tau - 0.65))
+            else:
+                weights.append(1 + 0.08 * math.cos(index / 8.0))
+        components[key] = allocate_integers(weights, total)
+
+    predicted = [
+        sum(components[key][index] for key in NON_MEDIA_TOTALS) + sum(media[name][index] for name in CHANNELS)
+        for index in range(len(dates))
     ]
-    actual = _allocate(actual_weights, ACTUAL_TOTAL)
+    actual_weights = [value * (1 + 0.023 * math.sin(index / 4.1) - 0.014 * math.cos(index / 9.2)) for index, value in enumerate(predicted)]
+    actual = allocate_integers(actual_weights, round(sum(predicted) * 1.004))
 
     rows = []
-    for index, current_date in enumerate(dates):
+    for index, key in enumerate(default_keys):
         rows.append(
             {
-                "date": current_date.isoformat(),
+                "date": key,
                 "baseline": components["baseline"][index],
                 "promotion": components["promotion"][index],
                 "seasonality": components["seasonality"][index],
                 "other": components["other"][index],
                 "predicted": predicted[index],
                 "actual": actual[index],
-                "spend": {channel: channel_spend[channel][index] for channel in CHANNEL_CONFIG},
-                "media": {channel: channel_media[channel][index] for channel in CHANNEL_CONFIG},
-            }
-        )
-
-    channels = []
-    for channel, config in CHANNEL_CONFIG.items():
-        channels.append(
-            {
-                "name": channel,
-                "color": config["color"],
-                "currentSpend": config["spend"],
-                "incrementalRevenue": round(config["spend"] * config["iroas"]),
-                "iROAS": config["iroas"],
-                "mROI": config["mroi"],
-                "credibleLow": config["credibleLow"],
-                "credibleHigh": config["credibleHigh"],
-                "halfLifeDays": config["halfLifeDays"],
-                "headroom": config["headroom"],
-                "action": config["action"],
-                "reason": config["reason"],
-                "alpha": config["alpha"],
+                "spend": {name: daily_spend[key][name] for name in CHANNELS},
+                "media": {name: media[name][index] for name in CHANNELS},
+                "observed": {name: daily_observed[key][name] for name in CHANNELS},
             }
         )
 
     return {
         "meta": {
-            "dataset": "Deterministic MMM demo model",
+            "dataset": "Deterministic MMM demo model (master model)",
             "defaultStart": DEFAULT_START.isoformat(),
             "defaultEnd": DEFAULT_END.isoformat(),
-            "lastUpdated": "2026-08-24T23:59:00+07:00",
+            "lastUpdated": LAST_UPDATED,
             "product": "Prepaid",
             "businessKpis": ["Revenue"],
             "currency": "IDR",
             "methodology": "Bayesian MMM demo estimate; not platform attribution",
             "grain": "Channel × Day",
-            "modelVersion": "Meridian POC v2",
+            "modelVersion": "Meridian POC v3",
             "trainingWindow": "03 Apr–24 Aug 2026 (144 days)",
             "trainR2": 0.9736,
             "testR2": 0.8733,
             "wMAPE": 8.7,
             "credibleLevel": 90,
+            "daysPerMonth": DAYS_PER_MONTH,
+            "efficientRangeShare": EFFICIENT_RANGE_SHARE,
+            "smallChannelShare": SMALL_CHANNEL_SHARE,
+            "responseCurve": "Monthly Hill curve: incremental = m × s^alpha / (s^alpha + k^alpha)",
         },
         "channels": channels,
         "rows": rows,
