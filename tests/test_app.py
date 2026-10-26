@@ -93,7 +93,7 @@ class DashboardRendererTest(unittest.TestCase):
         for removed_mode in ("roi", "manual"):
             self.assertNotIn(f'data-planner-mode="{removed_mode}"', page)
         self.assertNotIn("data-manual-inputs", page)
-        for removed_hook in ("data-dr-insights", "data-dr-recommendation", "data-planner-banner"):
+        for removed_hook in ("data-dr-insights", "data-dr-recommendation", "data-planner-banner", "data-planner-recommendation"):
             self.assertNotIn(removed_hook, page)
         self.assertIn("Available Budget", page)
         self.assertIn("Target KPI", page)

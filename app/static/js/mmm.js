@@ -54,7 +54,7 @@
     horizonCopy: q("[data-planner-horizon-copy]"),
     kpis: q("[data-planner-kpis]"),
     allocation: q("[data-planner-allocation]"),
-    recommendation: q("[data-planner-recommendation]"),
+    calc: q("[data-planner-calc]"),
     save: q("[data-save-scenario]"),
     hiatusPanel: q("[data-hiatus-panel]"),
     hiatusChannels: q("[data-hiatus-channels]"),
@@ -640,6 +640,53 @@
     }).join("") + `<div class="mmm-channel-row total"><span>Reference · ${pool.names.length} selected</span><span>${rp(pool.budget)}</span><span class="mmm-allowed-range">${rp(sum(Object.values(bounds), (b) => b.floor))}–${rp(sum(Object.values(bounds), (b) => b.ceil))}</span><span></span><span></span></div>`;
   }
 
+  // Every number in the result cards and table, with the inputs needed to recompute it.
+  function renderCalculation(s, months) {
+    const inPool = s.plans.filter((plan) => plan.inPool);
+    const excluded = s.plans.filter((plan) => !plan.inPool);
+    const refIroas = safeDivide(s.poolMedia, s.poolBudget);
+    const rows = inPool.map((plan) => `<tr>
+      <td><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${plan.color}"></i>${plan.name}</span></td>
+      <td class="numeric">${rp(plan.monthly)}</td>
+      <td class="numeric">${rp(plan.incr)}</td>
+      <td class="numeric">${ratio(plan.iroas)}</td>
+      <td class="numeric">${rp(plan.scenario)}</td>
+      <td class="numeric">${rp(plan.scenarioIncr)}</td>
+      <td class="numeric">${ratio(plan.scenarioIroas)}</td>
+      <td class="numeric">${signedRp(plan.incrDelta)}</td>
+      <td class="numeric">${ratio(plan.scenarioMroi)}</td>
+    </tr>`).join("");
+    const total = `<tr class="total">
+      <td><strong>Total</strong></td>
+      <td class="numeric"><strong>${rp(s.poolBudget)}</strong></td>
+      <td class="numeric"><strong>${rp(s.poolMedia)}</strong></td>
+      <td class="numeric"><strong>${ratio(refIroas)}</strong></td>
+      <td class="numeric"><strong>${rp(s.budget)}</strong></td>
+      <td class="numeric"><strong>${rp(s.media)}</strong></td>
+      <td class="numeric"><strong>${ratio(s.iroas)}</strong></td>
+      <td class="numeric"><strong>${signedRp(s.mediaDelta)}</strong></td>
+      <td class="numeric"><strong>${ratio(s.mroi)}</strong></td>
+    </tr>`;
+    const list = (items, fmt) => items.map((plan) => `${plan.name} ${fmt(plan)}`).join(" + ");
+    const formulas = [
+      ["Reference budget", `${list(inPool, (p) => rp(p.monthly))} = <strong>${rp(s.poolBudget)}</strong>/month (current budget of the selected channels). Over ${months} months: ${rp(s.poolBudget)} × ${months} = ${rp(s.poolBudget * months)}.`],
+      ["Scenario budget", `${list(inPool, (p) => rp(p.scenario))} = <strong>${rp(s.budget)}</strong>/month. Change: ${rp(s.budget)} − ${rp(s.poolBudget)} = ${signedRp(s.budgetDelta)} (${signedRp(s.budgetDelta)} ÷ ${rp(s.poolBudget)} = ${signedPct(safeDivide(s.budgetDelta, s.poolBudget) * 100)}). Over ${months} months: ${rp(s.budget)} × ${months} = ${rp(s.budget * months)}.`],
+      ["Incremental revenue", `${list(inPool, (p) => rp(p.scenarioIncr))} = <strong>${rp(s.media)}</strong>/month. Change: ${rp(s.media)} − ${rp(s.poolMedia)} = ${signedRp(s.mediaDelta)} (${signedRp(s.mediaDelta)} ÷ ${rp(s.poolMedia)} = ${signedPct(s.mediaDeltaPct)}). Over ${months} months: ${rp(s.media)} × ${months} = ${rp(s.media * months)}.`],
+      ["Portfolio iROAS", `${rp(s.media)} ÷ ${rp(s.budget)} = <strong>${ratio(s.iroas)}</strong>. Reference: ${rp(s.poolMedia)} ÷ ${rp(s.poolBudget)} = ${ratio(refIroas)}.`],
+      ["Portfolio mROI", `Budget-weighted average of the channel mROI: (${list(inPool, (p) => `${ratio(p.scenarioMroi)} × ${rp(p.scenario)}`).replace(/ \+ /g, " + ")}) ÷ ${rp(s.budget)} = <strong>${ratio(s.mroi)}</strong>.`],
+      ["Per channel", "Incremental revenue = the channel's Meridian response curve at that budget (solid line in section 02). iROAS = incremental revenue ÷ budget. Revenue Δ = scenario − reference incremental revenue. mROI = extra revenue from the next Rp1 at the scenario budget (slope of the curve)."],
+    ];
+    el.calc.innerHTML = `<div class="mmm-calc-head"><span class="mmm-kicker">How the numbers are calculated</span><small>Per month. Incr. revenue = incremental revenue. Small differences are rounding.${excluded.length ? ` Not in this scenario: ${excluded.map((p) => p.name).join(", ")} (not counted).` : ""}</small></div>${s.notes.length ? `<p class="mmm-calc-note">${s.notes.map(escapeHtml).join(" ")}</p>` : ""}
+      <div class="mmm-table-wrap mmm-calc-table"><table>
+        <thead>
+          <tr class="group"><th rowspan="2">Channel</th><th colspan="3" class="numeric">Reference (current)</th><th colspan="3" class="numeric">Scenario</th><th rowspan="2" class="numeric">Revenue Δ</th><th rowspan="2" class="numeric">mROI</th></tr>
+          <tr><th class="numeric">Budget</th><th class="numeric">Incr. revenue</th><th class="numeric">iROAS</th><th class="numeric">Budget</th><th class="numeric">Incr. revenue</th><th class="numeric">iROAS</th></tr>
+        </thead>
+        <tbody>${rows}${total}</tbody>
+      </table></div>
+      <dl class="mmm-calc-formulas">${formulas.map(([label, text]) => `<div><dt>${label}</dt><dd>${text}</dd></div>`).join("")}</dl>`;
+  }
+
   function renderPlannerOutput() {
     const s = scenario;
     const pool = s.pool;
@@ -665,26 +712,7 @@
       <td><span class="mmm-position ${plan.position.className}">${plan.inPool ? plan.position.label : "Not in pool"}</span></td>
     </tr>`).join("") + `<tr class="total"><td><strong>Selected channels</strong><small>${escapeHtml(pool.label)}</small></td><td class="numeric"><strong>${rp(s.poolBudget)}</strong></td><td><strong class="mmm-bar-value">${rp(s.budget)}</strong></td><td class="numeric">${signedPct(safeDivide(s.budgetDelta, s.poolBudget) * 100)}<small>${signedRp(s.budgetDelta)}</small></td><td class="numeric ${s.mediaDelta >= 0 ? "up" : "down"}">${signedRp(s.mediaDelta)}</td><td class="numeric">${ratio(s.mroi)}</td><td></td></tr>`;
 
-    const inPool = s.plans.filter((plan) => plan.inPool);
-    const up = inPool.filter((plan) => plan.delta > plan.monthly * 0.01 + 1).sort((a, b) => b.delta - a.delta);
-    const down = inPool.filter((plan) => plan.delta < -(plan.monthly * 0.01 + 1)).sort((a, b) => a.delta - b.delta);
-    const moved = sum(up, (plan) => plan.delta);
-    let text;
-    if (!up.length && !down.length) {
-      text = `The reference mix of ${pool.label} is kept. Modeled incremental revenue stays at ${rp(s.media)}/month.`;
-    } else if (Math.abs(s.budgetDelta) < s.poolBudget * 0.005) {
-      text = `Within the same ${rp(s.budget)}/month for ${pool.label}, move ${rp(moved)} from ${down.map((p) => p.name).join(" and ") || "—"} into ${up.map((p) => p.name).join(" and ") || "—"}. Incremental revenue changes ${signedRp(s.mediaDelta)}/month (${signedPct(s.mediaDeltaPct)}), ${signedRp(s.mediaDelta * months)} over ${months} months.`;
-    } else {
-      const moves = `${up.length ? `Increase ${up.map((p) => `${p.name} (${signedPct(p.deltaPct, 0)})`).join(", ")}` : "No channel increases"}${down.length ? `; reduce ${down.map((p) => `${p.name} (${signedPct(p.deltaPct, 0)})`).join(", ")}` : ""}.`;
-      const perRupiah = Math.abs(safeDivide(s.mediaDelta, s.budgetDelta));
-      text = s.budgetDelta > 0
-        ? `Budget rises ${rp(s.budgetDelta)}/month versus the ${pool.label} reference. ${moves} Incremental revenue changes ${signedRp(s.mediaDelta)}/month (${signedPct(s.mediaDeltaPct)}) — about Rp${perRupiah.toFixed(2)} per extra rupiah${s.status === "optimized" ? ", including the gain from moving money into higher-return channels" : ""}.`
-        : s.mediaDelta < 0
-          ? `Budget falls ${rp(Math.abs(s.budgetDelta))}/month versus the ${pool.label} reference. ${moves} Incremental revenue changes ${signedRp(s.mediaDelta)}/month (${signedPct(s.mediaDeltaPct)}) — about Rp${perRupiah.toFixed(2)} of revenue given up per rupiah saved.`
-          : `Budget falls ${rp(Math.abs(s.budgetDelta))}/month, yet incremental revenue still changes ${signedRp(s.mediaDelta)}/month (${signedPct(s.mediaDeltaPct)}) because money moves into higher-return channels. ${moves}`;
-    }
-    if (s.notes.length) text = `${s.notes.join(" ")} ${text}`;
-    el.recommendation.innerHTML = `<span class="mmm-kicker">Interpretation</span><p>${text}</p>`;
+    renderCalculation(s, months);
     el.save.disabled = false;
   }
 

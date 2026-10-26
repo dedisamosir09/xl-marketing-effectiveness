@@ -336,8 +336,6 @@
 .mmm-position.warn { color: #9a6000; background: #fff3dc; }
 .mmm-position.danger { color: #ad3451; background: #ffedf2; }
 .mmm-position.muted { color: #7b859a; background: #f1f3f7; }
-.mmm-planner-recommendation { margin: 0 1.2rem 1rem; padding: .85rem 1rem; border-radius: .85rem; background: #f6f7fd; }
-.mmm-planner-recommendation p { margin: .25rem 0 0; color: #35415b; font-size: .8rem; line-height: 1.55; }
 
 /* ---------- 03 pause planner ---------- */
 .mmm-hiatus-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem 1.2rem; padding: 1.1rem 1.2rem .4rem; }
@@ -448,3 +446,23 @@
 .mmm-decline-head .mmm-threshold { width: 13rem; min-width: 0; margin: 0; }
 .mmm-decline-copy { margin: .3rem 0 0; color: #7d889e; font-size: .7rem; line-height: 1.45; }
 .hb-label.inside { fill: #fff; stroke: none; }
+
+/* calculation details under the scenario result */
+.mmm-calc { margin: .9rem 1.2rem 0; padding: .8rem .9rem; border: 1px solid #e6e9f2; border-radius: .9rem; background: #fbfcfe; }
+.mmm-calc-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .3rem .8rem; }
+.mmm-calc-head small { color: #8b95a9; font-size: .68rem; }
+.mmm-calc-table { margin-top: .5rem; }
+.mmm-calc-table table { min-width: 0; width: 100%; }
+.mmm-calc-table th, .mmm-calc-table td { padding: .4rem .3rem; font-size: .68rem; white-space: nowrap; }
+.mmm-calc-table th { white-space: normal; line-height: 1.25; }
+.mmm-calc-table td:first-child, .mmm-calc-table th:first-child { padding-left: 0; }
+.mmm-calc-table thead tr.group th { border-bottom: 0; padding-bottom: .1rem; }
+.mmm-calc-table thead tr.group th[colspan] { text-align: center; border-bottom: 2px solid #dfe3ee; }
+.mmm-calc-formulas { display: grid; gap: .45rem; margin: .7rem 0 0; }
+.mmm-calc-formulas div { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: .6rem; }
+.mmm-calc-formulas dt { color: #26324c; font-size: .7rem; font-weight: 800; }
+.mmm-calc-formulas dd { margin: 0; color: #5b6780; font-size: .7rem; line-height: 1.5; }
+.mmm-calc-formulas dd strong { color: #1f2a44; }
+@media (max-width: 760px) { .mmm-calc-formulas div { grid-template-columns: 1fr; gap: .1rem; } }
+.mmm-calc { margin-bottom: 1.1rem; }
+.mmm-calc-note { margin: .45rem 0 0; padding: .5rem .65rem; border-radius: .6rem; color: #7a4b00; background: #fff6e2; font-size: .7rem; line-height: 1.45; }

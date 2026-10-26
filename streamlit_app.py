@@ -13,7 +13,7 @@ from app.streamlit_adapter import PAGE_ASSETS, build_streamlit_dashboard
 
 
 DEFAULT_MODULE = "campaign-performance"
-DEPLOY_MARKER = "google-meridian-2026-10-26"
+DEPLOY_MARKER = "full-height-2026-10-26"
 
 
 def selected_module() -> str:
@@ -52,6 +52,11 @@ st.markdown(
       }
       [data-testid="stElementContainer"] { width: 100% !important; }
       iframe[title="st.iframe"] { border: 0 !important; display: block; }
+      /* Fill the browser window on any screen size (the dashboard scrolls inside the frame). */
+      [data-testid="stVerticalBlock"] { gap: 0 !important; }
+      [data-testid="stElementContainer"]:has([data-testid="stMarkdown"]) { height: 0 !important; margin: 0 !important; overflow: hidden; }
+      iframe[title="st.iframe"], [data-testid="stIFrame"] { height: 100vh !important; height: 100dvh !important; }
+      html, body, [data-testid="stMain"] { overflow: hidden !important; }
     </style>
     """,
     unsafe_allow_html=True,
