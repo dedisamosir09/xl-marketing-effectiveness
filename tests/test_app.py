@@ -110,7 +110,7 @@ class DashboardRendererTest(unittest.TestCase):
         for snippet in ("function optimize(", "function proportional(", "function buildCurves(",
                         "Invest more", "Test & learn", "Revenue lost after restart",
                         "function guardrailBounds(budget)", "Past break-even",
-                        "xl-mmm-saved-scenarios-v3", "function poolReference(", "mmm-saved-table",
+                        "xl-mmm-saved-scenarios-v4", "function poolReference(", "mmm-saved-table",
                         "Reference budget / month", "Not in pool"):
             self.assertIn(snippet, script)
         for removed in ("Channel breakdown", "Current reference", "channelInsight", "renderChannelMatrix", "renderDecomposition", "renderModelMetrics", "allocateRemaining",

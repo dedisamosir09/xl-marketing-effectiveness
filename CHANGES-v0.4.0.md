@@ -88,3 +88,8 @@
 - **Section 02 headline** follows the planner (which channels it raises and cuts). The summary table shows peak iROAS and the budget where it occurs.
 - **Model and numbers unchanged** from v0.6.0 (same Meridian fit, scenarios and Sheet v4). A trial recalibration with flatter curves was discarded.
 - **Validation**: the ground-truth check now compares break-even and the curve at the planner maximum (the quantities inside the data).
+
+## v0.6.2 — Optimizer position fix
+
+- A channel within one optimizer grid step of its +30% / −30% limit is now labelled Room to grow / Lower return (X at Rp5B was shown as Balanced at 99% of its cap). The Room to grow tooltip no longer says "highest" return when another channel is higher.
+- **Target KPI is now a target for incremental revenue from media** (revenue caused by the ads, baseline excluded) instead of total revenue. The default target is +10% vs the reference; the helper shows the current incremental revenue and the most the curves deliver at Rp10B (Rp22.53B/month for the default period). Example: target Rp8.79B (equal to total revenue Rp35B) needs a Rp4.22B budget. Saved scenarios use a new storage key (v4), so scenarios saved under the old definition are not reloaded.

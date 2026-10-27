@@ -2,12 +2,12 @@
   const root = document.querySelector("[data-mmm-dashboard]");
   if (!root) return;
 
-  const STORAGE_KEY = "xl-mmm-saved-scenarios-v3";
+  const STORAGE_KEY = "xl-mmm-saved-scenarios-v4"; // v4: Target KPI = incremental revenue from media
   const MAX_SAVED = 3;
   const MODE_LABELS = { budget: "Available budget", target: "Target KPI" };
   const MODE_COPY = {
     budget: "Spend an available monthly budget across the selected channels. The planner moves money to the channels whose next rupiah returns the most, within the guardrails.",
-    target: "Set a monthly revenue target (baseline + media). The planner finds the smallest budget across the selected channels that reaches it.",
+    target: "Set a monthly target for incremental revenue from media (revenue caused by the ads, without baseline). The planner finds the smallest budget across the selected channels that reaches it.",
   };
   // Planning range: Rp0–10B per month, inside the spend levels the Meridian training data cover.
   const planningCap = () => dataset.meta.planningCapMonthly || 10e9;
@@ -379,16 +379,20 @@
         plan = planAt(budget);
       }
     } else {
-      const target = Math.max(0, (Number(state.primaryValue) || 0) * 1e9);
-      const needed = target - reference.nonMedia;
+      // Target = incremental revenue from media per month (baseline excluded).
+      const needed = Math.max(0, (Number(state.primaryValue) || 0) * 1e9);
       const cap = planningCap();
-      if (needed <= mediaOf(planAt(locked, 300).allocation)) {
+      if (needed <= 0) {
+        plan = planAt(locked);
+        status = "no-target";
+        notes.push("Enter a target above Rp0 for incremental revenue from media.");
+      } else if (locked > 0 && needed <= mediaOf(planAt(locked, 300).allocation)) {
         plan = planAt(locked);
         notes.push(`The target is already reached with the locked channels only (${rp(locked)}/month).`);
       } else if (mediaOf(planAt(cap, 300).allocation) < needed) {
         plan = planAt(cap);
         status = "unreachable";
-        notes.push(`The target needs ${rp(needed)}/month of incremental revenue from ${pool.label}, more than the curves deliver at ${rp(cap)}/month. Showing the plan at ${rp(cap)}/month.`);
+        notes.push(`The target of ${rp(needed)}/month incremental revenue from ${pool.label} is more than the curves deliver within the Rp0–${rp(cap)}/month planning range (at most ${rp(mediaOf(plan.allocation))}/month). Showing the plan at ${rp(cap)}/month.`);
       } else {
         let low = locked;
         let high = cap;
@@ -414,8 +418,8 @@
     }
     if (!bound || !bound.selected) return { label: "Not in pool", className: "muted" };
     if (bound.locked) return { label: "Locked", className: "muted", note: "Kept at the reference budget." };
-    const tolerance = Math.max(bound.share * 0.006, channel.monthly * 0.006, 1);
-    if (spend >= bound.ceil - tolerance && bound.ceil > bound.share + tolerance) return { label: "Room to grow", className: "good", note: `Highest return on the next Rp1 (mROI ${ratio(mroi)}): raised to the +${state.maxIncrease}% limit.` };
+    const tolerance = Math.max(bound.share * 0.006, channel.monthly * 0.006, (bound.ceil - bound.floor) * 0.04, 1); // optimizer grid steps
+    if (spend >= bound.ceil - tolerance && bound.ceil > bound.share + tolerance) return { label: "Room to grow", className: "good", note: `High return on the next Rp1 (mROI ${ratio(mroi)}), above the channels that were cut: raised to the +${state.maxIncrease}% limit.` };
     if (spend <= bound.floor + tolerance && bound.floor < bound.share - tolerance) return { label: "Lower return", className: "warn", note: `Lower return on the next Rp1 (mROI ${ratio(mroi)}): cut to the −${state.maxDecrease}% limit; the money earns more in other channels.` };
     return { label: "Balanced", className: "info", note: `Inside its allowed range; the next Rp1 returns about the same as in the other channels (mROI ${ratio(mroi)}).` };
   }
@@ -423,7 +427,7 @@
   function guardLabel(channel, spend, bound) {
     if (!bound.selected) return "Not in pool";
     if (bound.locked) return "Locked";
-    const tolerance = Math.max(bound.share * 0.006, channel.monthly * 0.006, 1);
+    const tolerance = Math.max(bound.share * 0.006, channel.monthly * 0.006, (bound.ceil - bound.floor) * 0.04, 1); // optimizer grid steps
     if (spend > bound.ceil + tolerance || spend < bound.floor - tolerance) return "Outside guardrail";
     if (Math.abs(spend - bound.ceil) <= tolerance && bound.ceil > bound.share + tolerance) return `At +${state.maxIncrease}% cap`;
     if (Math.abs(spend - bound.floor) <= tolerance && bound.floor < bound.share - tolerance) return `At −${state.maxDecrease}% floor`;
@@ -654,7 +658,7 @@
   function defaultPrimary() {
     const pool = poolReference();
     if (state.mode === "budget") return pool.budget / 1e9 * (state.preset ?? 1);
-    return Math.round((reference.nonMedia + pool.media) * 1.03 / 1e8) / 10;
+    return Math.round(pool.media * 1.1 / 1e8) / 10; // +10% incremental revenue
   }
 
   function renderPlannerControls() {
@@ -679,12 +683,13 @@
         button.classList.toggle("active", state.preset !== null && Number(button.dataset.budgetMultiplier) === state.preset);
       });
     } else {
-      el.primaryLabel.textContent = "Target KPI: revenue per month (baseline + media)";
+      el.primaryLabel.textContent = "Target incremental revenue from media per month";
       el.primarySuffix.textContent = "B / month";
       el.primary.step = "0.1";
       el.primary.removeAttribute("max");
       el.primary.value = Number(state.primaryValue).toFixed(1);
-      el.primaryHelper.textContent = `Current with ${pool.label}: ${rp(reference.nonMedia + pool.media)}/month = baseline & other drivers ${rp(reference.nonMedia)} + media ${rp(pool.media)}. ${poolText}`;
+      const maxTarget = mediaOf(planAt(planningCap(), 300).allocation);
+      el.primaryHelper.textContent = `Revenue caused by the ads, without baseline. Current with ${pool.label}: ${rp(pool.media)}/month from ${rp(pool.budget)} budget. Reachable: up to ${rp(maxTarget)}/month (at Rp${planningCap() / 1e9}B budget).`;
     }
 
     el.horizonStart.value = state.horizonStart;
@@ -754,13 +759,13 @@
   function renderPlannerOutput() {
     const s = scenario;
     const pool = s.pool;
-    el.resultTitle.textContent = s.status === "below" ? "Locked channels only" : "Recommended channel mix";
+    el.resultTitle.textContent = s.status === "below" ? "Locked channels only" : s.status === "no-target" ? "No target set" : "Recommended channel mix";
     el.horizonCopy.textContent = `${MODE_LABELS[s.mode]} · ${pool.label} · ${state.horizonMonths} month${state.horizonMonths === 1 ? "" : "s"} (${formatDate(state.horizonStart)} – ${formatDate(addMonths(state.horizonStart, state.horizonMonths))})`;
     const months = state.horizonMonths;
     const cards = [
       ["Reference budget / month", rp(s.poolBudget), `${pool.label} · ${rp(s.poolBudget * months)} over ${months} mo`, ""],
       ["Scenario budget / month", rp(s.budget), `${signedRp(s.budgetDelta)} (${signedPct(safeDivide(s.budgetDelta, s.poolBudget) * 100)}) vs reference · ${rp(s.budget * months)} over ${months} mo`, "primary"],
-      ["Incremental revenue / month", rp(s.media), `${signedRp(s.mediaDelta)} (${signedPct(s.mediaDeltaPct)}) vs reference ${rp(s.poolMedia)} · ${rp(s.media * months)} over ${months} mo`, s.mediaDelta >= 0 ? "good" : "bad"],
+      ["Incremental revenue / month", rp(s.media), `${signedRp(s.mediaDelta)} (${signedPct(s.mediaDeltaPct)}) vs reference ${rp(s.poolMedia)} · ${rp(s.media * months)} over ${months} mo${s.mode === "target" ? ` · target ${rp(Number(state.primaryValue) * 1e9)}` : ""}`, s.mediaDelta >= 0 ? "good" : "bad"],
       ["Portfolio iROAS · mROI", `${ratio(s.iroas)} · ${ratio(s.mroi)}`, `Reference iROAS ${ratio(safeDivide(s.poolMedia, s.poolBudget))} · mROI = return on the next Rp1`, s.mroi >= 1 ? "" : "bad"],
     ];
     el.kpis.innerHTML = cards.map(([label, value, note, cls]) => `<div class="mmm-kpi ${cls}"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`).join("");
@@ -959,7 +964,7 @@
 
   function snapshot() {
     const s = scenario;
-    const label = s.mode === "budget" ? `Budget ${rp(s.budget)}/mo` : `Target KPI ${rp(Number(state.primaryValue) * 1e9)}/mo`;
+    const label = s.mode === "budget" ? `Budget ${rp(s.budget)}/mo` : `Target incr. revenue ${rp(Number(state.primaryValue) * 1e9)}/mo`;
     const poolTag = s.pool.excluded.length ? ` · ${s.pool.names.length} ch` : "";
     const base = `${label}${poolTag}`;
     const sameName = state.saved.filter((item) => item.name === base || item.name.startsWith(`${base} ·`)).length;
@@ -1177,7 +1182,7 @@
         const name = lock.dataset.lockChannel;
         if (lock.checked) state.locked.add(name); else state.locked.delete(name);
       }
-      // Preset budgets and the default revenue target follow the reference of the selected channels.
+      // Preset budgets and the default incremental-revenue target follow the reference of the selected channels.
       if (include && (state.mode === "target" || state.preset !== null)) state.primaryValue = null;
       renderPlannerControls();
       solve({ pulse: true });
