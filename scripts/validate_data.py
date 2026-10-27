@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT))
 
 from app.data.campaign_performance import generate_campaign_dataset
 from app.data.geo import generate_geo_dataset
-from app.data.master import CHANNELS, DEFAULT_END, DEFAULT_START, MTA_TRACKED_COVERAGE, break_even_spend, current_monthly_spend, hill_parameters
+from app.data.master import CHANNELS, DEFAULT_END, DEFAULT_START, MTA_TRACKED_COVERAGE, break_even_spend, current_monthly_spend, hill_parameters, response
 from app.data.meridian_input import HISTORY_WEEKS, generate_meridian_input
 from app.data.mmm import _daily_channel_spend, generate_mmm_dataset, load_meridian_output
 from app.data.mta import generate_mta_dataset
@@ -144,9 +144,11 @@ def run_checks():
                 # the recovery check below tests the curve itself.
                 check(f"Meridian {name}: EC posterior interval clearly narrower than the prior (>= 1.5x)", narrowing >= 1.5, f"{narrowing:.1f}x narrower")
                 truth = hill_parameters(name)
-                truth_be = break_even_spend(truth) / current_monthly_spend(name)
-                k_ratio = output["channels"][name]["monthlyCurve"]["k"] / channel["currentMonthlySpend"] / (truth["k"] / current_monthly_spend(name))
-                check(f"Meridian {name}: half-saturation and break-even within 25% of ground truth", abs(k_ratio - 1) <= 0.25 and abs(ratio / truth_be - 1) <= 0.25, f"half-saturation {k_ratio - 1:+.0%}, break-even {ratio:.2f}x vs truth {truth_be:.2f}x")
+                truth_current = current_monthly_spend(name)
+                truth_be = break_even_spend(truth) / truth_current
+                fitted_curve = output["channels"][name]["monthlyCurve"]
+                at_max = response(fitted_curve, planner_max * channel["currentMonthlySpend"]) / response(truth, planner_max * truth_current) - 1
+                check(f"Meridian {name}: break-even and curve at planner max within 25% of ground truth", abs(ratio / truth_be - 1) <= 0.25 and abs(at_max) <= 0.25, f"break-even {ratio:.2f}x vs truth {truth_be:.2f}x; incremental at {planner_max:.2f}x {at_max:+.0%}")
             else:
                 # Channels under 5% of budget carry too little signal to pin down saturation; the page labels them "Test & learn".
                 check(f"Meridian {name}: small channel ({channel['currentMonthlySpend'] / total_current:.1%} of budget) labelled Test & learn", channel["signal"] == "Test & learn", f"EC interval only {narrowing:.1f}x narrower than prior")

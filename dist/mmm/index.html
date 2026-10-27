@@ -152,7 +152,7 @@
                 <th class="numeric">Change</th>
                 <th class="numeric">Revenue Δ / month</th>
                 <th class="numeric">mROI</th>
-                <th>Position on curve</th>
+                <th>Optimizer position</th>
               </tr>
             </thead>
             <tbody data-planner-allocation></tbody>
@@ -167,14 +167,15 @@
     <div class="mmm-section-heading">
       <div>
         <p class="mmm-kicker">02 · Diminishing Return</p>
-        <h2 id="dr-title" data-dr-headline>Where does each channel reach its most efficient budget?</h2>
-        <p>Response curves estimated by Google Meridian. Solid line = incremental revenue per month. Dashed line = average iROAS. The shaded box is the efficient range, where iROAS stays within 2% of its peak.</p>
+        <h2 id="dr-title" data-dr-headline>Return on the next rupiah by channel</h2>
+        <p>Response curves estimated by Google Meridian. Solid line = incremental revenue per month. Dashed line = average iROAS. The box is the allowed range for the scenario budget (Meridian default: ±30% of the channel's share); the planner picks the point inside it that gives the most total revenue, by moving money to the channels with the highest return on the next Rp1 (mROI).</p>
       </div>
     </div>
     <div class="mmm-dr-legend" aria-label="Chart legend">
       <span><i class="line"></i>Incremental revenue / month</span>
       <span><i class="dash"></i>iROAS (right axis)</span>
-      <span><i class="box"></i>Efficient range</span>
+      <span><i class="box"></i>Allowed range (±30% of share, Meridian default)</span>
+      <span><i class="peak"></i>Peak iROAS (channel alone)</span>
       <span><i class="dot current"></i>Current budget</span>
       <span><i class="dot scenario"></i>Scenario budget (from planner)</span>
       <span><i class="be"></i>Break-even: next Rp1 returns Rp1 (mROI = 1)</span>
@@ -199,7 +200,7 @@
               <th class="numeric">iROAS</th>
               <th class="numeric">Incremental share</th>
               <th class="numeric">Current budget / month</th>
-              <th class="numeric">Efficient range / month</th>
+              <th class="numeric">Peak iROAS (at budget / month)</th>
               <th class="numeric">Next Rp1 return (mROI)</th>
             </tr>
           </thead>

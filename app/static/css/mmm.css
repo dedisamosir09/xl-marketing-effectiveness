@@ -247,6 +247,7 @@
 .mmm-dr-legend .line { width: 1.4rem; height: .2rem; border-radius: 999px; background: #4a55c9; }
 .mmm-dr-legend .dash { width: 1.4rem; height: 0; border-top: .18rem dashed #4a55c9; }
 .mmm-dr-legend .box { width: 1rem; height: .8rem; border: 1.5px solid #8f3b2c; background: #dfe9f5; }
+.mmm-dr-legend .peak { width: .6rem; height: .6rem; border-radius: 50%; border: 2px solid #475569; background: #fff; }
 .mmm-dr-legend .dot { width: .62rem; height: .62rem; border-radius: 50%; }
 .mmm-dr-legend .dot.current { background: var(--mmm-navy); }
 .mmm-dr-legend .dot.scenario { background: var(--mmm-magenta); }
@@ -264,6 +265,8 @@
 .dr-axis-title { fill: #6f7b92; font-size: 11px; font-weight: 700; }
 .dr-box { fill: #dfe9f5; fill-opacity: .75; stroke: #8f3b2c; stroke-width: 1.6; }
 .dr-box-label { fill: #8f3b2c; font-size: 11px; font-weight: 800; letter-spacing: .02em; }
+.dr-peak { fill: #fff; stroke-width: 2; cursor: help; }
+.dr-peak-label { fill: #475569; font-size: 10px; font-weight: 700; paint-order: stroke; stroke: #fff; stroke-width: 3px; }
 .dr-incr { fill: none; stroke-width: 3.2; stroke-linecap: round; }
 .dr-roas { fill: none; stroke-width: 2.2; stroke-dasharray: 7 5; opacity: .75; }
 .dr-current-line { stroke: var(--mmm-navy); stroke-dasharray: 4 4; stroke-width: 1.4; }
@@ -330,6 +333,7 @@
 .mmm-bar-pair .current { background: #c9cfdc; }
 .mmm-bar-value { color: #1f2a44; font-size: .76rem; }
 .mmm-guard { display: block; margin-top: .2rem; color: #9a6000 !important; font-weight: 760; }
+.mmm-position[data-tooltip-text] { cursor: help; }
 .mmm-position { display: inline-flex; padding: .26rem .5rem; border-radius: 999px; font-size: .66rem; font-weight: 800; }
 .mmm-position.good { color: #08715f; background: #e4f6ef; }
 .mmm-position.info { color: #284fc3; background: #edf1ff; }

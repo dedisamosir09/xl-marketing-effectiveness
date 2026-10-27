@@ -402,13 +402,22 @@
     return evaluate(plan.allocation, plan.bounds, status, notes, pool);
   }
 
-  function position(channel, spend) {
+  // Where the optimizer put the channel inside its allowed range, and why (mROI = return on the next Rp1).
+  function position(channel, spend, bound) {
     if (spend <= 0) return { label: "Not funded", className: "muted" };
     const mroi = marginal(channel.name, spend);
-    if (spend > channel.band.high && mroi < 1) return { label: "Past break-even", className: "danger" };
-    if (spend > channel.band.high) return { label: "Above efficient range", className: "warn" };
-    if (spend < channel.band.low) return { label: "Below efficient range", className: "info" };
-    return { label: "In efficient range", className: "good" };
+    if (mroi < 1) {
+      const c = curves[channel.name];
+      const inflection = c.k * Math.pow(Math.max(c.alpha - 1, 0) / (c.alpha + 1), 1 / c.alpha);
+      if (spend < inflection) return { label: "Too small to pay back", className: "warn", note: `At this budget the channel is below its effective level: the next Rp1 returns ${ratio(mroi)}. It needs more budget to work, or none.` };
+      return { label: "Past break-even", className: "danger", note: "The next Rp1 returns less than Rp1." };
+    }
+    if (!bound || !bound.selected) return { label: "Not in pool", className: "muted" };
+    if (bound.locked) return { label: "Locked", className: "muted", note: "Kept at the reference budget." };
+    const tolerance = Math.max(bound.share * 0.006, channel.monthly * 0.006, 1);
+    if (spend >= bound.ceil - tolerance && bound.ceil > bound.share + tolerance) return { label: "Room to grow", className: "good", note: `Highest return on the next Rp1 (mROI ${ratio(mroi)}): raised to the +${state.maxIncrease}% limit.` };
+    if (spend <= bound.floor + tolerance && bound.floor < bound.share - tolerance) return { label: "Lower return", className: "warn", note: `Lower return on the next Rp1 (mROI ${ratio(mroi)}): cut to the −${state.maxDecrease}% limit; the money earns more in other channels.` };
+    return { label: "Balanced", className: "info", note: `Inside its allowed range; the next Rp1 returns about the same as in the other channels (mROI ${ratio(mroi)}).` };
   }
 
   function guardLabel(channel, spend, bound) {
@@ -435,7 +444,7 @@
         incrDelta: incr - channel.incr,
         scenarioIroas: safeDivide(incr, spend),
         scenarioMroi: marginal(channel.name, spend),
-        position: position(channel, spend),
+        position: position(channel, spend, bounds[channel.name]),
         guard: guardLabel(channel, spend, bounds[channel.name]),
       };
     });
@@ -515,8 +524,9 @@
     const plan = scenario?.byName[channel.name];
     const scenarioSpend = plan ? plan.scenario : null;
     // Show the curve up to break-even (and the loss zone after it), never far past the data.
-    const reach = channel.breakEven ? channel.breakEven * 1.12 : channel.band.high * 1.5;
-    const xAxis = niceTicks(Math.max(channel.monthly * 1.9, reach, (scenarioSpend || 0) * 1.15), 4);
+    const bound = scenario?.bounds?.[channel.name];
+    const reach = channel.breakEven ? channel.breakEven * 1.12 : channel.band.peakSpend * 2;
+    const xAxis = niceTicks(Math.max(channel.monthly * 1.9, reach, (scenarioSpend || 0) * 1.15, bound && bound.selected ? bound.ceil * 1.1 : 0), 4);
     const xMax = xAxis.max;
     const samples = Array.from({ length: 141 }, (_, i) => {
       const spend = (xMax * i) / 140;
@@ -535,9 +545,21 @@
     const grid = yAxis.ticks.map((v) => `<line x1="${m.l}" x2="${m.l + pw}" y1="${y(v)}" y2="${y(v)}" class="dr-grid"/><text x="${m.l - 8}" y="${y(v) + 3.5}" text-anchor="end" class="dr-axis">${axisRp(v)}</text>`).join("")
       + rAxis.ticks.map((v) => `<text x="${m.l + pw + 8}" y="${yr(v) + 3.5}" class="dr-axis">${Number(v.toFixed(2))}x</text>`).join("");
     const xTicks = xAxis.ticks.map((v) => `<text x="${x(v)}" y="${m.t + ph + 16}" text-anchor="middle" class="dr-axis">${axisRp(v)}</text>`).join("");
-    const bx1 = x(channel.band.low);
-    const bx2 = x(Math.min(channel.band.high, xMax));
-    const box = `<rect x="${bx1}" y="${m.t}" width="${Math.max(0, bx2 - bx1)}" height="${ph}" class="dr-box"/><text x="${(bx1 + bx2) / 2}" y="${m.t + 12}" text-anchor="middle" class="dr-box-label">Efficient range</text>`;
+    // Allowed range: Meridian's default spend constraint (±30% of the channel's share of the scenario budget).
+    let box = "";
+    let bx1 = m.l;
+    let bx2 = m.l;
+    if (bound && bound.selected && !bound.locked && bound.ceil > 0) {
+      bx1 = x(bound.floor);
+      bx2 = x(Math.min(bound.ceil, xMax));
+      box = `<rect x="${bx1}" y="${m.t}" width="${Math.max(0, bx2 - bx1)}" height="${ph}" class="dr-box"/><text x="${(bx1 + bx2) / 2}" y="${m.t + 12}" text-anchor="middle" class="dr-box-label">Allowed range</text>`;
+    }
+    let peakMark = "";
+    if (channel.band.peakSpend > 0 && channel.band.peakSpend < xMax) {
+      const px = x(channel.band.peakSpend);
+      const py = yr(channel.band.peakIroas);
+      peakMark = `<circle cx="${px}" cy="${py}" r="3.5" class="dr-peak" style="stroke:${channel.color}" data-tooltip-text="${escapeHtml(`Peak iROAS ${ratio(channel.band.peakIroas)} at ${rp(channel.band.peakSpend)}/month\nAverage return for this channel alone; the planner allocates by the next Rp1 (mROI) across channels.`)}"/><text x="${px}" y="${py - 8}" text-anchor="middle" class="dr-peak-label">Peak iROAS ${ratio(channel.band.peakIroas)}</text>`;
+    }
     let lossZone = "";
     let breakEvenMark = "";
     if (channel.breakEven && channel.breakEven < xMax) {
@@ -566,12 +588,12 @@
     }
     return `<article class="mmm-panel mmm-dr-card" data-dr-channel="${channel.name}">
       <header><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span></header>
-      <p class="mmm-dr-card-copy">Efficient range <strong>${rp(channel.band.low)}–${rp(channel.band.high)}</strong>/month · peak iROAS ${ratio(channel.band.peakIroas)} · ${channel.band.peakIroas < 1 ? '<em class="mmm-not-in-pool">iROAS below 1x at any budget</em>' : `break-even <strong>${channel.breakEven ? rp(channel.breakEven) : "—"}</strong>`} · mROI now <strong class="${channel.mroi < 1 ? "mmm-loss" : "mmm-gain"}">${ratio(channel.mroi)}</strong>${plan && !plan.inPool ? ' · <em class="mmm-not-in-pool">not in scenario pool</em>' : ""}</p>
+      <p class="mmm-dr-card-copy">${bound && bound.selected && !bound.locked ? `Allowed range <strong>${rp(bound.floor)}–${rp(bound.ceil)}</strong>/month at ${rp(scenario.budget)} budget · ` : bound && bound.locked ? "Locked at reference budget · " : ""}peak iROAS ${ratio(channel.band.peakIroas)} at ${rp(channel.band.peakSpend)} · ${channel.band.peakIroas < 1 ? '<em class="mmm-not-in-pool">iROAS below 1x at any budget</em>' : `break-even <strong>${channel.breakEven ? rp(channel.breakEven) : "—"}</strong>`} · mROI now <strong class="${channel.mroi < 1 ? "mmm-loss" : "mmm-gain"}">${ratio(channel.mroi)}</strong>${plan && !plan.inPool ? ' · <em class="mmm-not-in-pool">not in scenario pool</em>' : ""}</p>
       <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${channel.name} incremental revenue and iROAS by monthly budget" data-dr-svg="${channel.name}" data-xmax="${xMax}" data-ymax="${yMax}">
         ${lossZone}${beyondData}${box}${grid}${xTicks}
         <path d="${incrPath}" class="dr-incr" style="stroke:${channel.color}"/>
         <path d="${roasPath}" class="dr-roas" style="stroke:${channel.color}"/>
-        ${breakEvenMark}${current}${scenarioMarker}
+        ${peakMark}${breakEvenMark}${current}${scenarioMarker}
         <line class="dr-hover-line" x1="0" x2="0" y1="${m.t}" y2="${m.t + ph}" opacity="0"/>
         <rect class="dr-hit" x="${m.l}" y="${m.t}" width="${pw}" height="${ph}" fill="transparent"/>
         <text x="${m.l + pw / 2}" y="${H - 4}" text-anchor="middle" class="dr-axis-title">Budget per month (Rp)</text>
@@ -605,12 +627,15 @@
 
   function renderDiminishing() {
     const channels = reference.channels;
-    const invest = channels.filter((channel) => channel.signal === "Invest more").sort((a, b) => b.mroi - a.mroi);
-    const reduce = channels.filter((channel) => channel.signal === "Reduce").sort((a, b) => (b.monthly - b.band.high) - (a.monthly - a.band.high));
-    if (invest.length && reduce.length) el.drHeadline.textContent = `${invest[0].name} has the most headroom, while ${reduce[0].name} is already past its efficient range`;
-    else if (invest.length) el.drHeadline.textContent = `${invest[0].name} has the most headroom for additional investment`;
-    else if (reduce.length) el.drHeadline.textContent = `${reduce[0].name} is past its efficient range — rebalance before adding budget`;
-    else el.drHeadline.textContent = "Every channel is operating close to its efficient range";
+    // Headline follows the planner: which channels it raises (highest return on the next Rp1) and which it cuts.
+    const plans = scenario ? scenario.plans.filter((plan) => plan.inPool) : [];
+    const up = plans.filter((plan) => plan.position.label === "Room to grow").map((plan) => plan.name);
+    const down = plans.filter((plan) => plan.position.label === "Lower return").map((plan) => plan.name);
+    const list = (names) => names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
+    if (up.length && down.length) el.drHeadline.textContent = `At ${rp(scenario.budget)}/month the planner moves budget to ${list(up)} and away from ${list(down)}`;
+    else if (up.length) el.drHeadline.textContent = `At ${rp(scenario.budget)}/month ${list(up)} ${up.length > 1 ? "get" : "gets"} the most extra budget`;
+    else if (down.length) el.drHeadline.textContent = `At ${rp(scenario.budget)}/month ${list(down)} ${down.length > 1 ? "are" : "is"} cut the most`;
+    else el.drHeadline.textContent = `At ${rp(scenario?.budget || 0)}/month every channel stays inside its allowed range`;
 
     el.drCharts.innerHTML = channels.map(diminishingChart).join("");
     bindDiminishingHover();
@@ -620,7 +645,7 @@
       <td class="numeric">${ratio(channel.iroas)}</td>
       <td class="numeric">${pct(channel.incrementalShare * 100, 0)}</td>
       <td class="numeric">${rp(channel.monthly)}</td>
-      <td class="numeric">${rp(channel.band.low)}–${rp(channel.band.high)}</td>
+      <td class="numeric">${ratio(channel.band.peakIroas)} at ${rp(channel.band.peakSpend)}</td>
       <td class="numeric">${ratio(channel.mroi)}</td>
     </tr>`).join("") + `<tr class="total"><td><strong>Portfolio</strong></td><td class="numeric">${ratio(safeDivide(sum(channels, (c) => c.observedRoas * c.monthly), reference.totalMonthly))}</td><td class="numeric">${ratio(reference.iroas)}</td><td class="numeric">${pct(safeDivide(reference.iroas, safeDivide(sum(channels, (c) => c.observedRoas * c.monthly), reference.totalMonthly)) * 100, 0)}</td><td class="numeric">${rp(reference.totalMonthly)}</td><td></td><td class="numeric">${ratio(safeDivide(sum(channels, (c) => c.mroi * c.monthly), reference.totalMonthly))}</td></tr>`;
   }
@@ -748,7 +773,7 @@
       <td class="numeric ${plan.inPool && plan.delta > 1 ? "up" : plan.inPool && plan.delta < -1 ? "down" : ""}">${plan.inPool ? signedPct(plan.deltaPct) : "—"}<small>${plan.inPool ? signedRp(plan.delta) : "not in pool"}</small></td>
       <td class="numeric ${plan.inPool && plan.incrDelta > 1 ? "up" : plan.inPool && plan.incrDelta < -1 ? "down" : ""}">${plan.inPool ? signedRp(plan.incrDelta) : "—"}</td>
       <td class="numeric">${plan.scenario > 0 ? ratio(plan.scenarioMroi) : "—"}</td>
-      <td><span class="mmm-position ${plan.position.className}">${plan.inPool ? plan.position.label : "Not in pool"}</span></td>
+      <td><span class="mmm-position ${plan.position.className}"${plan.position.note ? ` data-tooltip-text="${escapeHtml(plan.position.note)}"` : ""}>${plan.inPool ? plan.position.label : "Not in pool"}</span></td>
     </tr>`).join("") + `<tr class="total"><td><strong>Selected channels</strong><small>${escapeHtml(pool.label)}</small></td><td class="numeric"><strong>${rp(s.poolBudget)}</strong></td><td><strong class="mmm-bar-value">${rp(s.budget)}</strong></td><td class="numeric">${signedPct(safeDivide(s.budgetDelta, s.poolBudget) * 100)}<small>${signedRp(s.budgetDelta)}</small></td><td class="numeric ${s.mediaDelta >= 0 ? "up" : "down"}">${signedRp(s.mediaDelta)}</td><td class="numeric">${ratio(s.mroi)}</td><td></td></tr>`;
 
     renderCalculation(s, months);

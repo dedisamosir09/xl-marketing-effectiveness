@@ -79,3 +79,12 @@
 - **Diminishing-return charts** show the curve up to break-even and shade spend levels beyond the model data ("Beyond model data").
 - **Scenarios** (Meridian default ±30%): same incremental with −4.3% budget; budget −10% → incremental −7.2% (same mix −12.7%); +10% incremental needs +3.5% budget; same budget optimal mix +5.6% (ROAS 1.97x → 2.08x); Rp9.9B (+140%) → incremental +175%.
 - **Validation** (72 checks): planner spend at Rp10B stays inside the data and below Meridian break-even for every channel; half-saturation and break-even recovered within 25% of ground truth; new "Data coverage" tab in the workbook.
+
+## v0.6.1 — Allowed range replaces efficient range
+
+- **Why**: the efficient range (iROAS within 2% of each channel's peak) looks at one channel alone, while the planner spends a fixed budget across channels by the return on the next Rp1 (mROI). Strong channels get pushed past their iROAS peak and weaker ones cut below it, so the chart could say "below efficient range" for a channel the planner cuts. With flatter curves the efficient range was also fragile (small estimation changes moved it a lot).
+- **Diminishing-return charts**: the box is now the **allowed range** for the scenario budget (Meridian's default spend constraint, ±30% of the channel's share), so the scenario point is always inside it. A small marker shows **peak iROAS** (channel alone). Break-even, loss zone and "Beyond model data" stay.
+- **Planner**: "Position on curve" is now **Optimizer position**, based on mROI: Room to grow (raised to +30%), Balanced, Lower return (cut to −30%), Too small to pay back (below the channel's effective level), Past break-even. Hover a label for the reason.
+- **Section 02 headline** follows the planner (which channels it raises and cuts). The summary table shows peak iROAS and the budget where it occurs.
+- **Model and numbers unchanged** from v0.6.0 (same Meridian fit, scenarios and Sheet v4). A trial recalibration with flatter curves was discarded.
+- **Validation**: the ground-truth check now compares break-even and the curve at the planner maximum (the quantities inside the data).
