@@ -210,7 +210,7 @@ def generate_mmm_dataset():
             "modelVersion": f"Google Meridian {mm['version']} · fitted {mm['fittedOn']}",
             "modelLabel": f"Google Meridian {mm['version']} · {mm['geos']} geos × {mm['weeks']} weeks",
             "methodology": "Bayesian geo-level MMM (Google Meridian) fitted on simulated demo data",
-            "trainingWindow": f"{_format_week(mm['trainingStart'])} – {_format_week(window['lastWeek'])} (weekly)",
+            "trainingWindow": f"{_format_week(mm['trainingStart'])} - {_format_week(window['lastWeek'])} (weekly)",
             "analysisWindow": f"{_format_week(window['firstWeek'])} + {window['weeks']} weeks",
             "nationalR2": round(mm["accuracy"]["national"]["R_Squared"], 4),
             "wMAPE": round(mm["accuracy"]["national"]["wMAPE"] * 100, 2),

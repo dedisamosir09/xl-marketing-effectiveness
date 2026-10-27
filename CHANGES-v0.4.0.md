@@ -98,3 +98,13 @@
 
 - **Section 02 headline** names the Target KPI and the budget it needs when the planner is in Target KPI mode (e.g. "Target Rp8.90B incremental revenue → Rp4.26B/month budget: …").
 - **Results workbook** (`meridian/export_sheet.py`) adds an **Audit notes** tab (and section in the one-tab CSV): data source, model settings, priors (Meridian default vs changed, with reasons), fit, recovery of the ground truth, guardrails, optimizer, validation, limitations and reproducibility. A full re-run of the training reproduced identical results.
+- **Audit notes** include a Variables section: dependent variable (revenue, IDR), media variables (impressions per channel), media spend (IDR, used for ROI, not a regressor), controls and population; and a limitation on impressions vs spend in the simulated data.
+
+## v0.6.4 — Client UI clean-up
+
+- Model Scope (reference period filter) hidden; the default period 3 Apr - 24 Aug 2026 stays in use.
+- Removed for clients: the guardrails explainer box, the Available Budget mode description, the section 02 description paragraph, the "Beyond model data" shading and label, and the cap / floor / locked labels under channel names in Scenario result (the Optimizer position column stays).
+- Scenario result: the Scenario / month cell shows the allowed range as a band (same numbers as the setup table), the reference as a tick and the scenario as a dot, with "Allowed Rp... - Rp..." under the value.
+- Start date and Duration sit side by side, End date on its own line (no overlap).
+- Every en dash, minus sign and em dash on all pages replaced by a plain hyphen "-"; signed numbers stay on one line.
+- Menu order: Campaign Performance, Geo Intelligence, MMM, MTA.

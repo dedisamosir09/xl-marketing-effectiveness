@@ -133,7 +133,7 @@
   }
 
   function formatDuration(hours) {
-    if (!Number.isFinite(hours)) return "—";
+    if (!Number.isFinite(hours)) return "-";
     if (hours < 1) return `${Math.max(1, Math.round(hours * 60))} min`;
     if (hours < 24) return `${hours.toFixed(hours < 10 ? 1 : 0)} hrs`;
     return `${(hours / 24).toFixed(1)} days`;
@@ -494,7 +494,7 @@
 
   function renderChips() {
     const chips = [];
-    chips.push(`<span class="mta-chip">${escapeHtml(state.dateStart)} – ${escapeHtml(state.dateEnd)}</span>`);
+    chips.push(`<span class="mta-chip">${escapeHtml(state.dateStart)} - ${escapeHtml(state.dateEnd)}</span>`);
     chips.push(`<span class="mta-chip">${escapeHtml(modelLabel(state.model))} attribution</span>`);
     chips.push(`<span class="mta-chip">${escapeHtml(state.lookback)}-day lookback</span>`);
     FILTER_DEFS.forEach((definition) => {
@@ -827,10 +827,10 @@
 
     const timeBuckets = [
       { label: "< 1 hr", min: 0, max: 1 },
-      { label: "1–6 hrs", min: 1, max: 6 },
-      { label: "6–24 hrs", min: 6, max: 24 },
-      { label: "1–3 days", min: 24, max: 72 },
-      { label: "3–7 days", min: 72, max: 168 },
+      { label: "1-6 hrs", min: 1, max: 6 },
+      { label: "6-24 hrs", min: 6, max: 24 },
+      { label: "1-3 days", min: 24, max: 72 },
+      { label: "3-7 days", min: 72, max: 168 },
       { label: "7+ days", min: 168, max: Infinity },
     ].map((bucket) => ({
       label: bucket.label,
@@ -995,7 +995,7 @@
       </tr>
     `).join("") : '<tr><td colspan="9">No attribution detail matches the selected scope.</td></tr>';
     elements.attributionCount.textContent = searched.length
-      ? `Showing ${start + 1}–${Math.min(start + pageSize, searched.length)} of ${searched.length} campaign-channel rows`
+      ? `Showing ${start + 1}-${Math.min(start + pageSize, searched.length)} of ${searched.length} campaign-channel rows`
       : "No campaign-channel rows";
     const pageButtons = [];
     pageButtons.push(`<button type="button" data-page="${Math.max(1, state.page - 1)}"${state.page === 1 ? " disabled" : ""} aria-label="Previous page">‹</button>`);

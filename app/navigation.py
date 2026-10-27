@@ -8,12 +8,12 @@ MENU_ITEMS = [
         "description": "Campaign delivery, engagement, conversion, and efficiency monitoring.",
     },
     {
-        "key": "mta",
-        "label": "Multi Touch Attribution (MTA)",
-        "short_label": "Multi Touch Attribution",
-        "path": "/mta/",
-        "icon": "journey",
-        "description": "Customer journey and touchpoint contribution analysis.",
+        "key": "geo-intelligence",
+        "label": "Geo Intelligence",
+        "short_label": "Geo Intelligence",
+        "path": "/geo-intelligence/",
+        "icon": "radar",
+        "description": "Geographic performance patterns and market opportunity analysis.",
     },
     {
         "key": "mmm",
@@ -24,12 +24,12 @@ MENU_ITEMS = [
         "description": "Incremental business impact and channel effectiveness measurement.",
     },
     {
-        "key": "geo-intelligence",
-        "label": "Geo Intelligence",
-        "short_label": "Geo Intelligence",
-        "path": "/geo-intelligence/",
-        "icon": "radar",
-        "description": "Geographic performance patterns and market opportunity analysis.",
+        "key": "mta",
+        "label": "Multi Touch Attribution (MTA)",
+        "short_label": "Multi Touch Attribution",
+        "path": "/mta/",
+        "icon": "journey",
+        "description": "Customer journey and touchpoint contribution analysis.",
     },
 ]
 

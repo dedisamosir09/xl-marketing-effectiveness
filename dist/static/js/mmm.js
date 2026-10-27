@@ -6,10 +6,10 @@
   const MAX_SAVED = 3;
   const MODE_LABELS = { budget: "Available budget", target: "Target KPI" };
   const MODE_COPY = {
-    budget: "Spend an available monthly budget across the selected channels. The planner moves money to the channels whose next rupiah returns the most, within the guardrails.",
+    budget: "",
     target: "Set a monthly target for incremental revenue from media (revenue caused by the ads, without baseline). The planner finds the smallest budget across the selected channels that reaches it.",
   };
-  // Planning range: Rp0–10B per month, inside the spend levels the Meridian training data cover.
+  // Planning range: Rp0-10B per month, inside the spend levels the Meridian training data cover.
   const planningCap = () => dataset.meta.planningCapMonthly || 10e9;
   const SIGNAL_CLASS ={ "Invest more": "invest", Hold: "hold", Reduce: "reduce", "Test & learn": "test" };
 
@@ -94,16 +94,16 @@
     if (absolute >= 1e3) return `${(number / 1e3).toFixed(0)}K`;
     return `${Math.round(number)}`;
   }
-  const rp = (value, digits = 2) => `${value < 0 ? "−" : ""}Rp${compact(Math.abs(value), digits)}`;
-  const signedRp = (value, digits = 2) => (Math.abs(value) < 1 ? "Rp0" : `${value > 0 ? "+" : "−"}Rp${compact(Math.abs(value), digits)}`);
+  const rp = (value, digits = 2) => `${value < 0 ? "-" : ""}Rp${compact(Math.abs(value), digits)}`;
+  const signedRp = (value, digits = 2) => (Math.abs(value) < 1 ? "Rp0" : `${value > 0 ? "+" : "-"}Rp${compact(Math.abs(value), digits)}`);
   const pct = (value, digits = 1) => `${(Number.isFinite(value) ? value : 0).toFixed(digits)}%`;
   const signedPct = (value, digits = 1) => {
     const number = Number.isFinite(value) ? value : 0;
     if (Math.abs(number) < 0.05) return "0.0%";
-    return `${number > 0 ? "+" : "−"}${Math.abs(number).toFixed(digits)}%`;
+    return `${number > 0 ? "+" : "-"}${Math.abs(number).toFixed(digits)}%`;
   };
   const ratio = (value) => `${(Number.isFinite(value) ? value : 0).toFixed(2)}x`;
-  const signedRatio = (value) => (Math.abs(value) < 0.005 ? "0.00x" : `${value > 0 ? "+" : "−"}${Math.abs(value).toFixed(2)}x`);
+  const signedRatio = (value) => (Math.abs(value) < 0.005 ? "0.00x" : `${value > 0 ? "+" : "-"}${Math.abs(value).toFixed(2)}x`);
   const axisRp = (value) => {
     if (value === 0) return "0";
     if (Math.abs(value) >= 1e9) return `${Number((value / 1e9).toFixed(2))}B`;
@@ -253,7 +253,7 @@
   // ---------- optimizer ----------
   // Meridian-style guardrails: each channel's limits follow its historical share of the new budget.
   // share = new budget (minus locked channels) × channel reference ÷ reference of the unlocked channels;
-  // floor = (1 − max decrease) × share, ceiling = (1 + max increase) × share.
+  // floor = (1 - max decrease) × share, ceiling = (1 + max increase) × share.
   function lockedTotal() {
     return sum(reference.channels.filter((c) => state.selected.has(c.name) && state.locked.has(c.name)), (c) => c.monthly);
   }
@@ -369,7 +369,7 @@
     if (state.mode === "budget") {
       const requested = Math.max(0, (Number(state.primaryValue) || 0) * 1e9);
       const budget = Math.min(requested, planningCap());
-      if (requested > budget + 1) notes.push(`The planner covers Rp0–${rp(planningCap())}/month, the spend levels the Meridian training data cover. Showing the plan at ${rp(budget)}/month.`);
+      if (requested > budget + 1) notes.push(`The planner covers Rp0-${rp(planningCap())}/month, the spend levels the Meridian training data cover. Showing the plan at ${rp(budget)}/month.`);
       if (budget < locked - Math.max(pool.budget * 0.001, 1)) {
         const bounds = guardrailBounds(budget);
         plan = { allocation: proportional(budget, bounds).allocation, bounds };
@@ -392,7 +392,7 @@
       } else if (mediaOf(planAt(cap, 300).allocation) < needed) {
         plan = planAt(cap);
         status = "unreachable";
-        notes.push(`The target of ${rp(needed)}/month incremental revenue from ${pool.label} is more than the curves deliver within the Rp0–${rp(cap)}/month planning range (at most ${rp(mediaOf(plan.allocation))}/month). Showing the plan at ${rp(cap)}/month.`);
+        notes.push(`The target of ${rp(needed)}/month incremental revenue from ${pool.label} is more than the curves deliver within the Rp0-${rp(cap)}/month planning range (at most ${rp(mediaOf(plan.allocation))}/month). Showing the plan at ${rp(cap)}/month.`);
       } else {
         let low = locked;
         let high = cap;
@@ -420,7 +420,7 @@
     if (bound.locked) return { label: "Locked", className: "muted", note: "Kept at the reference budget." };
     const tolerance = Math.max(bound.share * 0.006, channel.monthly * 0.006, (bound.ceil - bound.floor) * 0.04, 1); // optimizer grid steps
     if (spend >= bound.ceil - tolerance && bound.ceil > bound.share + tolerance) return { label: "Room to grow", className: "good", note: `High return on the next Rp1 (mROI ${ratio(mroi)}), above the channels that were cut: raised to the +${state.maxIncrease}% limit.` };
-    if (spend <= bound.floor + tolerance && bound.floor < bound.share - tolerance) return { label: "Lower return", className: "warn", note: `Lower return on the next Rp1 (mROI ${ratio(mroi)}): cut to the −${state.maxDecrease}% limit; the money earns more in other channels.` };
+    if (spend <= bound.floor + tolerance && bound.floor < bound.share - tolerance) return { label: "Lower return", className: "warn", note: `Lower return on the next Rp1 (mROI ${ratio(mroi)}): cut to the -${state.maxDecrease}% limit; the money earns more in other channels.` };
     return { label: "Balanced", className: "info", note: `Inside its allowed range; the next Rp1 returns about the same as in the other channels (mROI ${ratio(mroi)}).` };
   }
 
@@ -430,7 +430,7 @@
     const tolerance = Math.max(bound.share * 0.006, channel.monthly * 0.006, (bound.ceil - bound.floor) * 0.04, 1); // optimizer grid steps
     if (spend > bound.ceil + tolerance || spend < bound.floor - tolerance) return "Outside guardrail";
     if (Math.abs(spend - bound.ceil) <= tolerance && bound.ceil > bound.share + tolerance) return `At +${state.maxIncrease}% cap`;
-    if (Math.abs(spend - bound.floor) <= tolerance && bound.floor < bound.share - tolerance) return `At −${state.maxDecrease}% floor`;
+    if (Math.abs(spend - bound.floor) <= tolerance && bound.floor < bound.share - tolerance) return `At -${state.maxDecrease}% floor`;
     return "";
   }
 
@@ -574,11 +574,8 @@
       const nearBox = bx <= bx2 + 8 && bx >= bx1 - 8;
       breakEvenMark = `<line x1="${bx}" x2="${bx}" y1="${m.t}" y2="${m.t + ph}" class="dr-be-line"/><text x="${right ? bx - 5 : bx + 5}" y="${nearBox ? m.t + 28 : m.t + 12}" text-anchor="${right ? "end" : "start"}" class="dr-be-label">${label}</text>`;
     }
-    let beyondData = "";
-    if (channel.observedMax && channel.observedMax < xMax) {
-      const ox = x(channel.observedMax);
-      beyondData = `<rect x="${ox}" y="${m.t}" width="${m.l + pw - ox}" height="${ph}" class="dr-beyond"/><text x="${m.l + pw - 5}" y="${m.t + ph - 22}" text-anchor="end" class="dr-beyond-label">Beyond model data</text>`;
-    }
+    // Spend beyond the training data is not marked on the chart (client request); the planner never goes there (Rp10B cap).
+    const beyondData = "";
     const cx = x(channel.monthly);
     const cy = y(channel.incr);
     const current = `<line x1="${cx}" x2="${cx}" y1="${cy}" y2="${m.t + ph}" class="dr-current-line"/><circle cx="${cx}" cy="${cy}" r="5.5" class="dr-current-dot" data-tooltip-text="${escapeHtml(`Current budget ${rp(channel.monthly)}/month\nIncremental revenue ${rp(channel.incr)}/month\niROAS ${ratio(channel.iroas)} · next Rp1 ${ratio(channel.mroi)}`)}"/><text x="${cx < m.l + 90 ? cx + 6 : cx}" y="${m.t + ph - 6}" text-anchor="${cx < m.l + 90 ? "start" : "middle"}" class="dr-marker-label current">Current ${rp(channel.monthly)} · mROI ${ratio(channel.mroi)}</text>`;
@@ -592,7 +589,7 @@
     }
     return `<article class="mmm-panel mmm-dr-card" data-dr-channel="${channel.name}">
       <header><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span></header>
-      <p class="mmm-dr-card-copy">${bound && bound.selected && !bound.locked ? `Allowed range <strong>${rp(bound.floor)}–${rp(bound.ceil)}</strong>/month at ${rp(scenario.budget)} budget · ` : bound && bound.locked ? "Locked at reference budget · " : ""}peak iROAS ${ratio(channel.band.peakIroas)} at ${rp(channel.band.peakSpend)} · ${channel.band.peakIroas < 1 ? '<em class="mmm-not-in-pool">iROAS below 1x at any budget</em>' : `break-even <strong>${channel.breakEven ? rp(channel.breakEven) : "—"}</strong>`} · mROI now <strong class="${channel.mroi < 1 ? "mmm-loss" : "mmm-gain"}">${ratio(channel.mroi)}</strong>${plan && !plan.inPool ? ' · <em class="mmm-not-in-pool">not in scenario pool</em>' : ""}</p>
+      <p class="mmm-dr-card-copy">${bound && bound.selected && !bound.locked ? `Allowed range <strong>${rp(bound.floor)}-${rp(bound.ceil)}</strong>/month at ${rp(scenario.budget)} budget · ` : bound && bound.locked ? "Locked at reference budget · " : ""}peak iROAS ${ratio(channel.band.peakIroas)} at ${rp(channel.band.peakSpend)} · ${channel.band.peakIroas < 1 ? '<em class="mmm-not-in-pool">iROAS below 1x at any budget</em>' : `break-even <strong>${channel.breakEven ? rp(channel.breakEven) : "-"}</strong>`} · mROI now <strong class="${channel.mroi < 1 ? "mmm-loss" : "mmm-gain"}">${ratio(channel.mroi)}</strong>${plan && !plan.inPool ? ' · <em class="mmm-not-in-pool">not in scenario pool</em>' : ""}</p>
       <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${channel.name} incremental revenue and iROAS by monthly budget" data-dr-svg="${channel.name}" data-xmax="${xMax}" data-ymax="${yMax}">
         ${lossZone}${beyondData}${box}${grid}${xTicks}
         <path d="${incrPath}" class="dr-incr" style="stroke:${channel.color}"/>
@@ -673,6 +670,7 @@
       button.setAttribute("aria-selected", String(active));
     });
     el.modeCopy.textContent = MODE_COPY[state.mode];
+    el.modeCopy.hidden = !MODE_COPY[state.mode];
     if (state.primaryValue === null) state.primaryValue = defaultPrimary();
     el.presets.hidden = state.mode !== "budget";
     const poolText = `Reference for ${pool.label}: ${rp(pool.budget)}/month${pool.excluded.length ? ` (all channels ${rp(reference.totalMonthly)})` : ""}.`;
@@ -682,7 +680,7 @@
       el.primary.step = "0.05";
       el.primary.max = String(planningCap() / 1e9);
       el.primary.value = Number(state.primaryValue).toFixed(2);
-      el.primaryHelper.textContent = `${poolText} Planning range Rp0–${rp(planningCap())}/month (covered by the model data); the budget is spent in full.`;
+      el.primaryHelper.textContent = `${poolText} Planning range Rp0-${rp(planningCap())}/month (covered by the model data); the budget is spent in full.`;
       root.querySelectorAll("[data-budget-multiplier]").forEach((button) => {
         button.classList.toggle("active", state.preset !== null && Number(button.dataset.budgetMultiplier) === state.preset);
       });
@@ -705,11 +703,11 @@
       return `<div class="mmm-channel-row${selected ? "" : " excluded"}">
         <span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span>
         <span>${rp(channel.monthly)}</span>
-        <span class="mmm-allowed-range" data-allowed-range="${channel.name}">—</span>
+        <span class="mmm-allowed-range" data-allowed-range="${channel.name}">-</span>
         <label class="mmm-toggle"><input type="checkbox" data-include-channel="${channel.name}" ${selected ? "checked" : ""}><span class="sr-only">Include ${channel.name}</span></label>
         <label class="mmm-toggle lock"><input type="checkbox" data-lock-channel="${channel.name}" ${state.locked.has(channel.name) && selected ? "checked" : ""} ${selected ? "" : "disabled"}><span class="sr-only">Lock ${channel.name}</span></label>
       </div>`;
-    }).join("") + `<div class="mmm-channel-row total"><span>Reference · ${pool.names.length} selected</span><span>${rp(pool.budget)}</span><span class="mmm-allowed-range" data-allowed-range="__total">—</span><span></span><span></span></div>`;
+    }).join("") + `<div class="mmm-channel-row total"><span>Reference · ${pool.names.length} selected</span><span>${rp(pool.budget)}</span><span class="mmm-allowed-range" data-allowed-range="__total">-</span><span></span><span></span></div>`;
   }
 
   // Allowed ranges depend on the scenario budget, so they are filled in after each solve.
@@ -717,7 +715,7 @@
     reference.channels.forEach((channel) => {
       const cell = el.channels.querySelector(`[data-allowed-range="${channel.name}"]`);
       const bound = s.bounds[channel.name];
-      if (cell) cell.textContent = !bound.selected ? "—" : bound.locked ? "Locked" : `${rp(bound.floor)}–${rp(bound.ceil)}`;
+      if (cell) cell.textContent = !bound.selected ? "-" : bound.locked ? "Locked" : `${rp(bound.floor)}-${rp(bound.ceil)}`;
     });
     const total = el.channels.querySelector('[data-allowed-range="__total"]');
     if (total) total.textContent = `at ${rp(s.budget)} budget`;
@@ -764,24 +762,34 @@
     const s = scenario;
     const pool = s.pool;
     el.resultTitle.textContent = s.status === "below" ? "Locked channels only" : s.status === "no-target" ? "No target set" : "Recommended channel mix";
-    el.horizonCopy.textContent = `${MODE_LABELS[s.mode]} · ${pool.label} · ${state.horizonMonths} month${state.horizonMonths === 1 ? "" : "s"} (${formatDate(state.horizonStart)} – ${formatDate(addMonths(state.horizonStart, state.horizonMonths))})`;
+    el.horizonCopy.textContent = `${MODE_LABELS[s.mode]} · ${pool.label} · ${state.horizonMonths} month${state.horizonMonths === 1 ? "" : "s"} (${formatDate(state.horizonStart)} - ${formatDate(addMonths(state.horizonStart, state.horizonMonths))})`;
     const months = state.horizonMonths;
     const cards = [
       ["Reference budget / month", rp(s.poolBudget), `${pool.label} · ${rp(s.poolBudget * months)} over ${months} mo`, ""],
-      ["Scenario budget / month", rp(s.budget), `${signedRp(s.budgetDelta)} (${signedPct(safeDivide(s.budgetDelta, s.poolBudget) * 100)}) vs reference · ${rp(s.budget * months)} over ${months} mo`, "primary"],
-      ["Incremental revenue / month", rp(s.media), `${signedRp(s.mediaDelta)} (${signedPct(s.mediaDeltaPct)}) vs reference ${rp(s.poolMedia)} · ${rp(s.media * months)} over ${months} mo${s.mode === "target" ? ` · target ${rp(Number(state.primaryValue) * 1e9)}` : ""}`, s.mediaDelta >= 0 ? "good" : "bad"],
+      ["Scenario budget / month", rp(s.budget), `<span class="mmm-nowrap">${signedRp(s.budgetDelta)} (${signedPct(safeDivide(s.budgetDelta, s.poolBudget) * 100)})</span> vs reference · ${rp(s.budget * months)} over ${months} mo`, "primary"],
+      ["Incremental revenue / month", rp(s.media), `<span class="mmm-nowrap">${signedRp(s.mediaDelta)} (${signedPct(s.mediaDeltaPct)})</span> vs reference ${rp(s.poolMedia)} · ${rp(s.media * months)} over ${months} mo${s.mode === "target" ? ` · target ${rp(Number(state.primaryValue) * 1e9)}` : ""}`, s.mediaDelta >= 0 ? "good" : "bad"],
       ["Portfolio iROAS · mROI", `${ratio(s.iroas)} · ${ratio(s.mroi)}`, `Reference iROAS ${ratio(safeDivide(s.poolMedia, s.poolBudget))} · mROI = return on the next Rp1`, s.mroi >= 1 ? "" : "bad"],
     ];
     el.kpis.innerHTML = cards.map(([label, value, note, cls]) => `<div class="mmm-kpi ${cls}"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`).join("");
 
-    const scaleMax = Math.max(...s.plans.map((plan) => Math.max(plan.monthly, plan.scenario)), 1) * 1.05;
+    // Scenario cell: the allowed range as a band (same numbers as the setup table), the reference as a
+    // tick and the scenario as a dot, on each channel's own scale.
+    const rangeBar = (plan) => {
+      const bound = s.bounds[plan.name];
+      if (!plan.inPool || !bound) return `<strong class="mmm-bar-value">-</strong>`;
+      const max = Math.max(bound.ceil, plan.monthly, plan.scenario, 1) * 1.08;
+      const at = (v) => `${clamp((v / max) * 100, 0, 100)}%`;
+      const band = bound.locked ? "" : `<span class="band" style="left:${at(bound.floor)};width:${clamp(((bound.ceil - bound.floor) / max) * 100, 0, 100)}%;background:${plan.color}"></span>`;
+      const tip = `Reference ${rp(plan.monthly)} · Allowed range ${bound.locked ? "locked" : `${rp(bound.floor)}-${rp(bound.ceil)}`} · Scenario ${rp(plan.scenario)}`;
+      return `<div class="mmm-range-bar" data-tooltip-text="${escapeHtml(tip)}"><span class="track"></span>${band}<span class="tick" style="left:${at(plan.monthly)}"></span><span class="dot" style="left:${at(plan.scenario)};background:${plan.color}"></span></div><strong class="mmm-bar-value">${rp(plan.scenario)}</strong><small class="mmm-range-note">${bound.locked ? "Locked" : `Allowed ${rp(bound.floor)}-${rp(bound.ceil)}`}</small>`;
+    };
     el.allocation.innerHTML = s.plans.map((plan) => `<tr class="${plan.inPool ? "" : "excluded"}">
-      <td><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${plan.color}"></i>${plan.name}</span>${plan.guard ? `<small class="mmm-guard">${plan.guard}</small>` : ""}</td>
+      <td><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${plan.color}"></i>${plan.name}</span></td>
       <td class="numeric">${rp(plan.monthly)}</td>
-      <td><div class="mmm-bar-pair"><span class="current" style="width:${(plan.monthly / scaleMax) * 100}%"></span><span class="scenario" style="width:${(plan.scenario / scaleMax) * 100}%;background:${plan.color}"></span></div><strong class="mmm-bar-value">${rp(plan.scenario)}</strong></td>
-      <td class="numeric ${plan.inPool && plan.delta > 1 ? "up" : plan.inPool && plan.delta < -1 ? "down" : ""}">${plan.inPool ? signedPct(plan.deltaPct) : "—"}<small>${plan.inPool ? signedRp(plan.delta) : "not in pool"}</small></td>
-      <td class="numeric ${plan.inPool && plan.incrDelta > 1 ? "up" : plan.inPool && plan.incrDelta < -1 ? "down" : ""}">${plan.inPool ? signedRp(plan.incrDelta) : "—"}</td>
-      <td class="numeric">${plan.scenario > 0 ? ratio(plan.scenarioMroi) : "—"}</td>
+      <td>${rangeBar(plan)}</td>
+      <td class="numeric ${plan.inPool && plan.delta > 1 ? "up" : plan.inPool && plan.delta < -1 ? "down" : ""}">${plan.inPool ? signedPct(plan.deltaPct) : "-"}<small>${plan.inPool ? signedRp(plan.delta) : "not in pool"}</small></td>
+      <td class="numeric ${plan.inPool && plan.incrDelta > 1 ? "up" : plan.inPool && plan.incrDelta < -1 ? "down" : ""}">${plan.inPool ? signedRp(plan.incrDelta) : "-"}</td>
+      <td class="numeric">${plan.scenario > 0 ? ratio(plan.scenarioMroi) : "-"}</td>
       <td><span class="mmm-position ${plan.position.className}"${plan.position.note ? ` data-tooltip-text="${escapeHtml(plan.position.note)}"` : ""}>${plan.inPool ? plan.position.label : "Not in pool"}</span></td>
     </tr>`).join("") + `<tr class="total"><td><strong>Selected channels</strong><small>${escapeHtml(pool.label)}</small></td><td class="numeric"><strong>${rp(s.poolBudget)}</strong></td><td><strong class="mmm-bar-value">${rp(s.budget)}</strong></td><td class="numeric">${signedPct(safeDivide(s.budgetDelta, s.poolBudget) * 100)}<small>${signedRp(s.budgetDelta)}</small></td><td class="numeric ${s.mediaDelta >= 0 ? "up" : "down"}">${signedRp(s.mediaDelta)}</td><td class="numeric">${ratio(s.mroi)}</td><td></td></tr>`;
 
@@ -845,7 +853,7 @@
     renderCarryover(plan, days, recovery);
 
     if (plan.scenario <= 0) {
-      el.hiatusResults.innerHTML = `<p class="mmm-hiatus-empty"><strong>${plan.name} is not funded in the active scenario.</strong> There is nothing to pause — include it in the planner to evaluate a pause.</p>`;
+      el.hiatusResults.innerHTML = `<p class="mmm-hiatus-empty"><strong>${plan.name} is not funded in the active scenario.</strong> There is nothing to pause - include it in the planner to evaluate a pause.</p>`;
       el.hiatusTrajectory.innerHTML = "";
       return;
     }
@@ -867,8 +875,8 @@
       [`Max pause allowed at ${state.tolerance}%`, safeWeeks ? `${safeWeeks} week${safeWeeks === 1 ? "" : "s"}` : "Less than 1 week", safeWeeks ? "" : "bad", safeWeeks ? "Whole weeks, directional" : "Even a 1-week pause exceeds the limit"],
       ["Media budget saved", rp(savings), "good", `${rp(plan.scenario)}/month for ${days} days`],
       ["Revenue lost during pause", rp(lostDuring), "bad", `Effect fades to ${pct(Math.pow(0.5, days / halfLife) * 100, 0)} by restart`],
-      ["Revenue lost after restart", rp(lostAfter), "bad", `Day ${days}–${days + recovery}: effect rebuilds to ${pct(rebuilt * 100, 0)}`],
-      ["Net (saved − total lost)", signedRp(savings - lostTotal), savings - lostTotal >= 0 ? "good" : "bad", `Total lost ${rp(lostTotal)}`],
+      ["Revenue lost after restart", rp(lostAfter), "bad", `Day ${days}-${days + recovery}: effect rebuilds to ${pct(rebuilt * 100, 0)}`],
+      ["Net (saved - total lost)", signedRp(savings - lostTotal), savings - lostTotal >= 0 ? "good" : "bad", `Total lost ${rp(lostTotal)}`],
     ];
     el.hiatusResults.innerHTML = cards.map(([label, value, cls, note]) => `<div class="mmm-hiatus-metric ${cls}"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`).join("");
 
@@ -1057,7 +1065,7 @@
     const groups = saved.map((record) => {
       const rows = (record.channels || []).map((channel) => {
         if (!channel.inPool) {
-          return `<tr class="excluded"><td><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span></td><td>Not in scenario</td><td class="numeric ref">—</td><td class="numeric">—</td><td class="numeric ref">—</td><td class="numeric">—</td><td class="numeric ref">—</td><td class="numeric">—</td></tr>`;
+          return `<tr class="excluded"><td><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span></td><td>Not in scenario</td><td class="numeric ref">-</td><td class="numeric">-</td><td class="numeric ref">-</td><td class="numeric">-</td><td class="numeric ref">-</td><td class="numeric">-</td></tr>`;
         }
         const budgetDelta = channel.budget - channel.refBudget;
         const incrDelta = channel.incr - channel.refIncr;

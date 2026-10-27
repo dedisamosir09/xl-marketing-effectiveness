@@ -13,7 +13,7 @@ from app.streamlit_adapter import PAGE_ASSETS, build_streamlit_dashboard
 
 
 DEFAULT_MODULE = "campaign-performance"
-DEPLOY_MARKER = "target-headline-audit-2026-10-27"
+DEPLOY_MARKER = "client-ui-cleanup-2026-10-27"
 
 
 def selected_module() -> str:

@@ -19,7 +19,7 @@
         ["opportunityScore", "Opportunity Score", (value) => `${Math.round(value)}/100`],
         ["potentialLeads", "Potential Leads", formatCount],
         ["interestedAudience", "Interested Audience", formatCount],
-        ["investmentGap", "Demand–Investment Gap", formatPpt],
+        ["investmentGap", "Demand-Investment Gap", formatPpt],
       ],
     },
     adoption: {
@@ -418,7 +418,7 @@
     const metrics = summaryMetrics(summary);
     const insight = selected
       ? `<strong>${escapeHtml(selected.action)}</strong>${escapeHtml(actionNarrative(selected))}`
-      : `<strong>Top priority: ${escapeHtml(target?.name || "—")}</strong>${target ? `${formatCount(target.potentialLeads)} potential leads with an opportunity score of ${target.opportunityScore}/100.` : "No priority market is available."}`;
+      : `<strong>Top priority: ${escapeHtml(target?.name || "-")}</strong>${target ? `${formatCount(target.potentialLeads)} potential leads with an opportunity score of ${target.opportunityScore}/100.` : "No priority market is available."}`;
     elements.marketSummary.innerHTML = `
       <p class="geo-summary-eyebrow">${selected ? "Selected market" : "National opportunity snapshot"}</p>
       <div class="geo-summary-title-row"><h3>${escapeHtml(summary.name)}</h3>${cluster ? `<span class="geo-cluster-pill" style="--pill-color:${cluster.color}">${escapeHtml(cluster.name)}</span>` : ""}</div>
@@ -534,7 +534,7 @@
 
   function renderAlignment() {
     const scopedItems = activeSet();
-    if (!scopedItems.length) { elements.alignment.innerHTML = '<div class="geo-empty-state">No demand–investment gap is available.</div>'; return; }
+    if (!scopedItems.length) { elements.alignment.innerHTML = '<div class="geo-empty-state">No demand-investment gap is available.</div>'; return; }
     const positives = [...scopedItems].filter((item) => item.investmentGap >= 0).sort((a, b) => b.investmentGap - a.investmentGap).slice(0, 4);
     const negatives = [...scopedItems].filter((item) => item.investmentGap < 0).sort((a, b) => a.investmentGap - b.investmentGap).slice(0, 3);
     const items = [...positives, ...negatives];
@@ -559,7 +559,7 @@
     if (!target) { elements.action.innerHTML = '<div class="geo-empty-state">No recommendation is available.</div>'; return; }
     const cluster = CLUSTERS[target.cluster];
     const efficiencySignal = target.roas >= 3 ? "Strong" : target.roas >= 2 ? "Healthy" : "Review";
-    elements.action.innerHTML = `<div class="geo-action-content"><div class="geo-action-hero"><div class="geo-action-market"><strong>${selected ? escapeHtml(target.name) : `Top priority · ${escapeHtml(target.name)}`}</strong><span class="geo-action-signal" style="--action-color:${cluster.color}">${escapeHtml(target.action)}</span></div><h3>${escapeHtml(cluster.name)}</h3><p>${escapeHtml(actionNarrative(target))}</p></div><div class="geo-action-checks"><div class="geo-action-check"><i style="--check-color:${target.investmentGap >= 0 ? "#218b69" : "#c84555"}">1</i><span>Demand–Investment Gap</span><strong>${formatPpt(target.investmentGap)}</strong></div><div class="geo-action-check"><i style="--check-color:${readinessColor(target.networkReadiness)}">2</i><span>Network Readiness</span><strong>${readinessLabel(target.networkReadiness)} · ${Math.round(target.networkReadiness)}/100</strong></div><div class="geo-action-check"><i style="--check-color:${target.roas >= 2 ? "#218b69" : "#c84555"}">3</i><span>Observed Efficiency</span><strong>${efficiencySignal} · ${formatRoas(target.roas)}</strong></div></div><p class="geo-action-footnote">Direction is based on modeled market potential and observed media signals. Incremental lift and final channel budget remain within MMM or a geo experiment.</p></div>`;
+    elements.action.innerHTML = `<div class="geo-action-content"><div class="geo-action-hero"><div class="geo-action-market"><strong>${selected ? escapeHtml(target.name) : `Top priority · ${escapeHtml(target.name)}`}</strong><span class="geo-action-signal" style="--action-color:${cluster.color}">${escapeHtml(target.action)}</span></div><h3>${escapeHtml(cluster.name)}</h3><p>${escapeHtml(actionNarrative(target))}</p></div><div class="geo-action-checks"><div class="geo-action-check"><i style="--check-color:${target.investmentGap >= 0 ? "#218b69" : "#c84555"}">1</i><span>Demand-Investment Gap</span><strong>${formatPpt(target.investmentGap)}</strong></div><div class="geo-action-check"><i style="--check-color:${readinessColor(target.networkReadiness)}">2</i><span>Network Readiness</span><strong>${readinessLabel(target.networkReadiness)} · ${Math.round(target.networkReadiness)}/100</strong></div><div class="geo-action-check"><i style="--check-color:${target.roas >= 2 ? "#218b69" : "#c84555"}">3</i><span>Observed Efficiency</span><strong>${efficiencySignal} · ${formatRoas(target.roas)}</strong></div></div><p class="geo-action-footnote">Direction is based on modeled market potential and observed media signals. Incremental lift and final channel budget remain within MMM or a geo experiment.</p></div>`;
   }
 
   function renderTable() {
@@ -575,7 +575,7 @@
 
   function renderChips() {
     const chips = [];
-    if (state.dateStart !== dataset.meta.defaultStart || state.dateEnd !== dataset.meta.defaultEnd) chips.push(["date", `${state.dateStart} – ${state.dateEnd}`]);
+    if (state.dateStart !== dataset.meta.defaultStart || state.dateEnd !== dataset.meta.defaultEnd) chips.push(["date", `${state.dateStart} - ${state.dateEnd}`]);
     Object.entries(state.filters).forEach(([key, value]) => { if (value !== "All") chips.push([key, key === "city" ? cities.find((city) => city.id === value)?.name || value : value]); });
     if (state.selectedKey) chips.push(["selection", selectedEntity()?.name || "Selected market"]);
     elements.chips.innerHTML = chips.length ? chips.map(([key, label]) => `<span class="geo-filter-chip">${escapeHtml(label)}<button type="button" aria-label="Clear ${escapeHtml(label)}" data-geo-clear-chip="${key}">×</button></span>`).join("") : '<span class="geo-empty-chip">No additional filters</span>';

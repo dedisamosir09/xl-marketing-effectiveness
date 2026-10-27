@@ -4,7 +4,7 @@
     Preparing marketing mix model…
   </div>
 
-  <section class="mmm-panel mmm-filter-panel" aria-labelledby="mmm-filter-title">
+  <section class="mmm-panel mmm-filter-panel" aria-labelledby="mmm-filter-title" hidden>
     <div class="mmm-panel-heading mmm-filter-heading">
       <div>
         <p class="mmm-kicker">Model scope</p>
@@ -49,7 +49,7 @@
           </label>
           <p class="mmm-helper" data-planner-primary-helper></p>
           <div class="mmm-budget-presets" data-planner-presets>
-            <button type="button" data-budget-multiplier="0.85">−15%</button>
+            <button type="button" data-budget-multiplier="0.85">-15%</button>
             <button type="button" class="active" data-budget-multiplier="1">Current</button>
             <button type="button" data-budget-multiplier="1.15">+15%</button>
             <button type="button" data-budget-multiplier="1.30">+30%</button>
@@ -59,15 +59,11 @@
         <div class="mmm-horizon">
           <label class="mmm-field"><span>Start date</span><input type="date" data-horizon-start></label>
           <label class="mmm-field"><span>Duration</span><div class="mmm-input-unit"><input type="number" min="1" max="12" step="1" value="3" data-horizon-months><span>months</span></div></label>
-          <div class="mmm-horizon-end"><span>End date</span><strong data-horizon-end>—</strong></div>
+          <div class="mmm-horizon-end"><span>End date</span><strong data-horizon-end>-</strong></div>
         </div>
 
         <div class="mmm-channel-table" data-planner-channels></div>
 
-        <div class="mmm-guardrails" data-guardrails>
-          <div class="mmm-guardrails-head"><span>Guardrails per channel</span><strong>±30% of each channel's share (Meridian default)</strong></div>
-          <p>Google Meridian's default spend constraint: share = new budget × the channel's share of the reference budget; allowed range = 70%–130% of that share. The limits move with the budget, so every budget from Rp0 to Rp10B/month is optimized and spent in full, within the spend levels the model data cover. The table above shows each channel's allowed range at the scenario budget. Cuts deeper than −30% per platform should be phased over several periods.</p>
-        </div>
       </article>
 
       <article class="mmm-panel mmm-planner-output">
@@ -82,7 +78,7 @@
               <tr>
                 <th>Channel</th>
                 <th class="numeric">Reference / month</th>
-                <th>Scenario / month</th>
+                <th>Scenario / month <small class="mmm-th-note">dot = scenario · line = reference · band = allowed range</small></th>
                 <th class="numeric">Change</th>
                 <th class="numeric">Revenue Δ / month</th>
                 <th class="numeric">mROI</th>
@@ -102,19 +98,17 @@
       <div>
         <p class="mmm-kicker">02 · Diminishing Return</p>
         <h2 id="dr-title" data-dr-headline>Return on the next rupiah by channel</h2>
-        <p>Response curves estimated by Google Meridian. Solid line = incremental revenue per month. Dashed line = average iROAS. The box is the allowed range for the scenario budget (Meridian default: ±30% of the channel's share); the planner picks the point inside it that gives the most total revenue, by moving money to the channels with the highest return on the next Rp1 (mROI).</p>
       </div>
     </div>
     <div class="mmm-dr-legend" aria-label="Chart legend">
       <span><i class="line"></i>Incremental revenue / month</span>
       <span><i class="dash"></i>iROAS (right axis)</span>
-      <span><i class="box"></i>Allowed range (±30% of share, Meridian default)</span>
+      <span><i class="box"></i>Allowed range</span>
       <span><i class="peak"></i>Peak iROAS (channel alone)</span>
       <span><i class="dot current"></i>Current budget</span>
       <span><i class="dot scenario"></i>Scenario budget (from planner)</span>
       <span><i class="be"></i>Break-even: next Rp1 returns Rp1 (mROI = 1)</span>
       <span><i class="loss"></i>Loss zone: next Rp1 returns less than Rp1</span>
-      <span><i class="beyond"></i>Beyond model data (spend level not seen in the training data)</span>
     </div>
     <div class="mmm-dr-grid" data-dr-charts></div>
     <div class="mmm-panel mmm-dr-table-panel">
@@ -186,7 +180,7 @@
     <div class="mmm-section-heading">
       <div>
         <p class="mmm-kicker">04 · Saved Scenario Comparison</p>
-        <h2 id="saved-title">Compare saved plans — Current vs Scenario for the channels in each plan</h2>
+        <h2 id="saved-title">Compare saved plans - Current vs Scenario for the channels in each plan</h2>
       </div>
     </div>
     <article class="mmm-panel">

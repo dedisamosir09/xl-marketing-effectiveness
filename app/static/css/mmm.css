@@ -61,7 +61,7 @@
   font-weight: 700;
 }
 
-.mmm-status[hidden] { display: none; }
+.mmm-status[hidden], .mmm-filter-panel[hidden], .mmm-mode-copy[hidden] { display: none; }
 .mmm-status.error { color: #a82f4a; background: #fff7f9; border-color: #f1cad5; }
 
 .mmm-status-pulse {
@@ -317,7 +317,7 @@
 .mmm-planner-kpis.is-updated .mmm-kpi { animation: mmm-kpi-flash 450ms ease; }
 @keyframes mmm-kpi-flash { 0% { background: #f0edff; } 100% { background: #fff; } }
 .mmm-kpi { display: grid; gap: .3rem; padding: .8rem .85rem; border: 1px solid #e3e7f0; border-radius: .85rem; background: #fff; }
-.mmm-kpi span { color: #77839a; font-size: .7rem; font-weight: 760; }
+.mmm-kpi > span { color: #77839a; font-size: .7rem; font-weight: 760; }
 .mmm-kpi strong { color: #18223c; font-size: 1.25rem; letter-spacing: -.02em; }
 .mmm-kpi small { color: #8a94a8; font-size: .68rem; line-height: 1.4; }
 .mmm-kpi.primary { border-color: #d9d4fb; background: linear-gradient(145deg, #fff 40%, #f4f2ff); }
@@ -498,3 +498,26 @@
 .mmm-saved-table tbody:first-of-type tr.group-row td { border-top: 0; }
 .mmm-saved-table tr.total td { background: #f6f7fb; }
 
+
+/* Planning horizon: Start date and Duration side by side, End date on its own line below */
+.mmm-horizon { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); align-items: end; }
+.mmm-horizon .mmm-field, .mmm-horizon .mmm-horizon-end { min-width: 0; }
+.mmm-horizon .mmm-horizon-end { grid-column: 1 / -1; display: flex; align-items: baseline; gap: .45rem; padding: 0 0 .1rem; }
+.mmm-horizon .mmm-input-unit { min-width: 0; }
+.mmm-horizon .mmm-input-unit input { min-width: 0; width: 100%; padding-left: .2rem; padding-right: .2rem; font-weight: 760; }
+.mmm-horizon .mmm-input-unit input::-webkit-outer-spin-button, .mmm-horizon .mmm-input-unit input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.mmm-horizon .mmm-input-unit input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.mmm-horizon .mmm-input-unit span { font-size: .72rem; }
+.mmm-horizon input[type="date"] { min-width: 0; width: 100%; }
+
+/* Plain hyphens allow line breaks; keep signed numbers on one line */
+.mmm-dashboard td.numeric, .mmm-dashboard td.numeric small, .mmm-bar-value, .mmm-range-note, .mmm-nowrap { white-space: nowrap; }
+
+/* Scenario cell: allowed range band, reference tick, scenario dot */
+.mmm-range-bar { position: relative; height: 16px; margin: .1rem 0 .3rem; min-width: 7rem; cursor: help; }
+.mmm-range-bar .track { position: absolute; left: 0; right: 0; top: 6px; height: 4px; border-radius: 999px; background: #e7eaf1; }
+.mmm-range-bar .band { position: absolute; top: 3px; height: 10px; border-radius: 4px; opacity: .28; }
+.mmm-range-bar .tick { position: absolute; top: 0; width: 2px; height: 16px; margin-left: -1px; background: #1f2a44; border-radius: 1px; }
+.mmm-range-bar .dot { position: absolute; top: 2px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(31, 42, 68, .25); }
+.mmm-range-note { display: block; color: #7b859a; font-size: .64rem; font-weight: 650; white-space: nowrap; }
+.mmm-th-note { display: block; margin-top: .15rem; color: #8a93a8; font-size: .58rem; font-weight: 600; letter-spacing: 0; text-transform: none; }

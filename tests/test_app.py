@@ -84,7 +84,7 @@ class DashboardRendererTest(unittest.TestCase):
         self.assertIn("04 · Saved Scenario Comparison", page)
         for hook in ("data-dr-charts", "data-dr-table",
                      "data-planner-kpis", "data-planner-allocation",
-                     "data-horizon-start", "data-horizon-months", "data-guardrails",
+                     "data-horizon-start", "data-horizon-months",
                      "data-hiatus-channels", "data-hiatus-trajectory", "data-mmm-carryover-curve",
                      "data-saved-scenario-panel", "data-save-scenario"):
             self.assertIn(hook, page)
@@ -93,7 +93,7 @@ class DashboardRendererTest(unittest.TestCase):
         for removed_mode in ("roi", "manual"):
             self.assertNotIn(f'data-planner-mode="{removed_mode}"', page)
         self.assertNotIn("data-manual-inputs", page)
-        for removed_hook in ("data-dr-insights", "data-dr-recommendation", "data-planner-banner", "data-planner-recommendation"):
+        for removed_hook in ("data-dr-insights", "data-dr-recommendation", "data-planner-banner", "data-planner-recommendation", "data-guardrails", "Guardrails per channel"):
             self.assertNotIn(removed_hook, page)
         self.assertIn("Available Budget", page)
         self.assertIn("Target KPI", page)
@@ -116,6 +116,13 @@ class DashboardRendererTest(unittest.TestCase):
         for removed in ("Channel breakdown", "Current reference", "channelInsight", "renderChannelMatrix", "renderDecomposition", "renderModelMetrics", "allocateRemaining",
                         "Minimum iROAS", "Manual mix", "state.manual", "Equal % change (outside guardrails)"):
             self.assertNotIn(removed, script)
+
+    def test_pages_and_scripts_use_plain_hyphens(self):
+        # Client request: no en dash, minus sign or em dash anywhere in the dashboard.
+        for path in list(Path("app/templates").glob("*.html")) + list(Path("app/static/js").glob("*.js")):
+            text = path.read_text(encoding="utf-8")
+            for char in ("\u2013", "\u2212", "\u2014"):
+                self.assertNotIn(char, text, f"{path} contains {char!r}")
 
     def test_mmm_dataset_is_derived_from_campaign_spend(self):
         dataset = generate_mmm_dataset()
@@ -184,7 +191,7 @@ class DashboardRendererTest(unittest.TestCase):
         self.assertIn("Market Opportunity Matrix", page)
         self.assertIn("indonesia-provinces-2026.svg", page)
         self.assertIn("points are naturally scattered within their quadrant", page)
-        self.assertIn("Demand–Investment Gap", page)
+        self.assertIn("Demand-Investment Gap", page)
         self.assertIn("Recommended Market Action", page)
         self.assertIn("Opportunity Leaderboard", page)
 

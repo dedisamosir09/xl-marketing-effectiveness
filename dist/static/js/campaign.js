@@ -360,7 +360,7 @@
   }
 
   function formatSignedMetric(value, metricKey) {
-    const sign = value > 0 ? "+" : value < 0 ? "−" : "";
+    const sign = value > 0 ? "+" : value < 0 ? "-" : "";
     const absolute = Math.abs(value);
     if (["ctr", "conversionRate"].includes(metricKey)) {
       return sign + formatDecimal(absolute, absolute >= 10 ? 1 : 2) + " pp";
@@ -422,7 +422,7 @@
   function renderFilterChips() {
     const chips = [];
     if (state.dateStart !== dataset.meta.defaultStart || state.dateEnd !== dataset.meta.defaultEnd) {
-      chips.push({ key: "dateRange", label: "Date", value: formatDate(state.dateStart) + " – " + formatDate(state.dateEnd) });
+      chips.push({ key: "dateRange", label: "Date", value: formatDate(state.dateStart) + " - " + formatDate(state.dateEnd) });
     }
     FILTERS.forEach((definition) => {
       const value = state.filters[definition.key];
@@ -881,13 +881,13 @@
 
   function formatSignedPoints(value) {
     if (Math.abs(value) < 0.05) return "0.0pp";
-    return (value > 0 ? "+" : "−") + formatDecimal(Math.abs(value), 1) + "pp";
+    return (value > 0 ? "+" : "-") + formatDecimal(Math.abs(value), 1) + "pp";
   }
 
   function renderChannelDelta(metricKey, currentValue, targetValue) {
     const delta = deltaPercent(currentValue, targetValue);
     const classification = deltaClass(metricKey, delta);
-    const arrow = delta > 0.05 ? "↑" : delta < -0.05 ? "↓" : "—";
+    const arrow = delta > 0.05 ? "↑" : delta < -0.05 ? "↓" : "-";
     return '<span class="channel-delta ' + classification + '">' + arrow + " " +
       formatDecimal(Math.abs(delta), 1) + "% vs target</span>";
   }
@@ -943,7 +943,7 @@
       renderChannelShareBar("Purchases", "purchases", formatCount(item.summary.purchases), purchaseShare) +
       renderChannelShareBar("Revenue", "revenue", formatCurrency(item.summary.revenue), revenueShare) +
       '</span><span class="channel-kpi-grid"><span class="channel-kpi"><small>Observed share gap</small><strong class="' +
-      gapClass + '">' + formatSignedPoints(shareGap) + '</strong><em>Revenue share − spend share</em></span>' +
+      gapClass + '">' + formatSignedPoints(shareGap) + '</strong><em>Revenue share - spend share</em></span>' +
       '<span class="channel-kpi"><small>Observed ROAS</small><strong>' + formatRoas(item.summary.roas) + '</strong>' +
       renderChannelDelta("roas", item.summary.roas, channelTarget.roas) + '</span>' +
       '<span class="channel-kpi"><small>CPA</small><strong>' + formatCurrency(item.summary.cpa) + '</strong>' +
@@ -1286,7 +1286,7 @@
 
     const shownStart = items.length ? start + 1 : 0;
     const shownEnd = Math.min(start + pageSize, items.length);
-    elements.tableCount.textContent = "Showing " + shownStart + "–" + shownEnd + " of " + items.length + " campaigns";
+    elements.tableCount.textContent = "Showing " + shownStart + "-" + shownEnd + " of " + items.length + " campaigns";
     renderPagination(pageCount);
     renderSortHeaders();
   }
