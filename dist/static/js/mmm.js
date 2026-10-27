@@ -636,10 +636,14 @@
     const up = plans.filter((plan) => plan.position.label === "Room to grow").map((plan) => plan.name);
     const down = plans.filter((plan) => plan.position.label === "Lower return").map((plan) => plan.name);
     const list = (names) => names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
-    if (up.length && down.length) el.drHeadline.textContent = `At ${rp(scenario.budget)}/month the planner moves budget to ${list(up)} and away from ${list(down)}`;
-    else if (up.length) el.drHeadline.textContent = `At ${rp(scenario.budget)}/month ${list(up)} ${up.length > 1 ? "get" : "gets"} the most extra budget`;
-    else if (down.length) el.drHeadline.textContent = `At ${rp(scenario.budget)}/month ${list(down)} ${down.length > 1 ? "are" : "is"} cut the most`;
-    else el.drHeadline.textContent = `At ${rp(scenario?.budget || 0)}/month every channel stays inside its allowed range`;
+    // In Target KPI mode, say which target the scenario budget comes from.
+    const lead = scenario && scenario.mode === "target"
+      ? `Target ${rp(Number(state.primaryValue) * 1e9)} incremental revenue → ${rp(scenario.budget)}/month budget:`
+      : `At ${rp(scenario?.budget || 0)}/month`;
+    if (up.length && down.length) el.drHeadline.textContent = `${lead} the planner moves budget to ${list(up)} and away from ${list(down)}`;
+    else if (up.length) el.drHeadline.textContent = `${lead} ${list(up)} ${up.length > 1 ? "get" : "gets"} the most extra budget`;
+    else if (down.length) el.drHeadline.textContent = `${lead} ${list(down)} ${down.length > 1 ? "are" : "is"} cut the most`;
+    else el.drHeadline.textContent = `${lead} every channel stays inside its allowed range`;
 
     el.drCharts.innerHTML = channels.map(diminishingChart).join("");
     bindDiminishingHover();

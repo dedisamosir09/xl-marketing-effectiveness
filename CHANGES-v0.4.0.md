@@ -93,3 +93,8 @@
 
 - A channel within one optimizer grid step of its +30% / −30% limit is now labelled Room to grow / Lower return (X at Rp5B was shown as Balanced at 99% of its cap). The Room to grow tooltip no longer says "highest" return when another channel is higher.
 - **Target KPI is now a target for incremental revenue from media** (revenue caused by the ads, baseline excluded) instead of total revenue. The default target is +10% vs the reference; the helper shows the current incremental revenue and the most the curves deliver at Rp10B (Rp22.53B/month for the default period). Example: target Rp8.79B (equal to total revenue Rp35B) needs a Rp4.22B budget. Saved scenarios use a new storage key (v4), so scenarios saved under the old definition are not reloaded.
+
+## v0.6.3 — Target headline and audit notes
+
+- **Section 02 headline** names the Target KPI and the budget it needs when the planner is in Target KPI mode (e.g. "Target Rp8.90B incremental revenue → Rp4.26B/month budget: …").
+- **Results workbook** (`meridian/export_sheet.py`) adds an **Audit notes** tab (and section in the one-tab CSV): data source, model settings, priors (Meridian default vs changed, with reasons), fit, recovery of the ground truth, guardrails, optimizer, validation, limitations and reproducibility. A full re-run of the training reproduced identical results.

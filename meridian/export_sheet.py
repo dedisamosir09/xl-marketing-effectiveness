@@ -99,6 +99,56 @@ def coverage(data):
     return result
 
 
+def audit_notes(data):
+    """Rows (section, item, detail) for auditors: data, model settings, defaults vs changes, fit,
+    recovery of the ground truth, guardrails, optimizer, validation and limitations."""
+    import importlib.util
+    meta, sc = data["meta"], data["scenarios"]
+    acc = meta["accuracy"]
+    cov = coverage(data)
+    spec = importlib.util.spec_from_file_location("validate_data", ROOT / "scripts" / "validate_data.py")
+    validate = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validate)
+    checks = validate.run_checks()
+    passed = sum(1 for item in checks if item[1])
+    rows = [
+        ("Data", "Source", "Simulated demo data generated from known parameters (ground truth), not XL client data. Ground truth is included so the fit can be checked."),
+        ("Data", "Grain", f"{meta['geos']} geos (19 largest cities + Rest of Indonesia) x {meta['weeks']} weeks, {meta['trainingStart']} to {meta['trainingEnd']}"),
+        ("Data", "Spend", "From 14 Nov 2025 national weekly spend per channel equals Campaign Performance spend. Earlier weeks are synthetic history with budget flights."),
+        ("Data", "Geo tests", "In the synthetic history, 4 mid-size geos per channel run 6-week blocks at 0x (holdout) to 7x normal per-capita spend, so the planning range is covered by data."),
+        ("Data", "Controls", "XL promo intensity, competitor promo intensity, Ramadan, Lebaran"),
+        ("Model", "Engine", f"Google Meridian {meta['version']}, geo-level Bayesian MMM, KPI = revenue (IDR)"),
+        ("Model", "Transformations", "Geometric adstock (max lag 8 weeks) then Hill saturation (Meridian default order, hill_before_adstock = False); 13 time knots"),
+        ("Model", "Sampler", f"{meta['sampler']['chains']} chains x ({meta['sampler']['adapt']} adapt + {meta['sampler']['burnin']} burn-in + {meta['sampler']['keep']} kept draws), seed {meta['sampler']['seed']}"),
+        ("Priors", "ROI", "LogNormal(0.2, 0.9) - Meridian default"),
+        ("Priors", "Adstock decay", "Uniform(0, 1) - Meridian default"),
+        ("Priors", "Hill slope", "LogNormal(0.2, 0.4) - changed. Meridian fixes slope = 1 (concave curves only); a weak prior lets the data choose the shape."),
+        ("Priors", "Hill EC", "LogNormal(1.0, 0.7) - changed. Meridian default TruncatedNormal(0.8, 0.8, 0.1, 10) concentrates below 2x median spend; the weak prior covers the tested range (see Data coverage)."),
+        ("Fit", "Convergence", f"Max R-hat {meta['maxRhat']:.3f} (< 1.1 good, < 1.2 acceptable)"),
+        ("Fit", "Accuracy", f"National R2 {acc['national']['R_Squared']:.3f}, MAPE {acc['national']['MAPE'] * 100:.2f}%, wMAPE {acc['national']['wMAPE'] * 100:.2f}%; geo R2 {acc['geo']['R_Squared']:.4f}"),
+    ]
+    for channel, c in data["channels"].items():
+        inside = c["roi"]["ci_lo"] <= c["truth"]["roi"] <= c["roi"]["ci_hi"]
+        rows.append(("Recovery vs ground truth", channel,
+                     f"ROI {c['roi']['median']:.2f}x (90% {c['roi']['ci_lo']:.2f}-{c['roi']['ci_hi']:.2f}) vs truth {c['truth']['roi']:.2f}x ({'inside' if inside else 'outside'} interval); "
+                     f"break-even {cov[channel]['breakEven']:.2f}x vs truth {cov[channel]['truthBreakEven']:.2f}x current spend; half-life {c['halfLifeDays']['median']:.1f} vs {c['truth']['halfLifeDays']} days"))
+    rows += [
+        ("Planning", "Range", f"Rp0-{sc['guardrails']['planningCapMonthly'] / 1e9:.0f}B per month. At the cap a channel reaches at most {next(iter(cov.values()))['plannerMax']:.2f}x its current spend; training data cover up to ~6.6-6.8x (p99), so planner results are inside the data."),
+        ("Planning", "Guardrails", "Meridian default fixed-budget spend constraints: each channel within (1 - 0.3) to (1 + 0.3) x budget x historical share (BudgetOptimizer.optimize, spend_constraint_lower/upper default 0.3). Flexible-budget scenario (mROI = 1) uses Meridian's flexible default (0-200% of current)."),
+        ("Planning", "Optimizer", "Dynamic programming on Meridian's response grid (create_optimization_grid, posterior-mean incremental revenue). Deviation from Meridian: its built-in greedy grid search assumes diminishing returns and gave inconsistent allocations on S-shaped curves; the DP finds the exact optimum on the same grid and constraints."),
+        ("Planning", "App curves", "The app uses a monthly Hill curve fitted to each Meridian response curve (fit R2 > 0.99 for every channel)."),
+        ("Validation", "Automated checks", f"{passed}/{len(checks)} checks pass (scripts/validate_data.py): spend reconciles with Campaign, convergence, R2, app curves = Meridian curves, planner spend inside the data and below break-even, recovery of break-even within 25% of truth."),
+        ("Limitations", "X", "X is 1.6% of budget: ROI is weakly identified (estimate 1.19x vs truth 2.16x, wide interval) and labelled Test & learn in the app."),
+        ("Limitations", "TikTok saturation", "TikTok EC posterior interval is about 2x narrower than the prior (upper end close to the prior); the curve itself matches the truth within the planning range."),
+        ("Limitations", "Uncertainty", "Scenarios and the app use posterior-mean curves; credible intervals are reported for ROI, mROI and incremental revenue but not shown in the planner."),
+        ("Limitations", "KPI", "Revenue, not profit. With a gross margin m, the profit break-even is mROI = 1/m."),
+        ("Limitations", "Channels", "TV and other offline media are not in this dataset."),
+        ("Reproducibility", "Commands", "python meridian/train_meridian.py; python meridian/scenarios.py; python meridian/export_sheet.py; python scripts/validate_data.py (deterministic seeds)"),
+        ("Reproducibility", "Re-run check", "A full re-run of train_meridian.py on 27 Oct 2026 regenerated an identical training CSV and identical results (ROI, curves, R-hat, R2 equal to the published output)."),
+    ]
+    return rows
+
+
 def build(data):
     meta = data["meta"]
     channels = list(data["channels"])
@@ -408,6 +458,17 @@ def build(data):
         r += 1
     widths(ws, [12] + [16] * (len(labels) - 1))
 
+    # ------------------------------------------------------------------ Audit notes
+    ws = wb.create_sheet("Audit notes", 1)
+    title(ws, "Audit notes: data, model settings, validation and limitations", note)
+    head(ws, 4, ["Section", "Item", "Detail"])
+    for index, (section, item, detail) in enumerate(audit_notes(data)):
+        put(ws, 5 + index, 1, section, font=BOLD)
+        put(ws, 5 + index, 2, item)
+        cell = put(ws, 5 + index, 3, detail)
+        cell.alignment = Alignment(wrap_text=True, vertical="top")
+    widths(ws, [22, 26, 120])
+
     # ------------------------------------------------------------------ Beta by geo
     ws = wb.create_sheet("Beta by geo")
     title(ws, "Media coefficient by geo (beta_gm, posterior median)", note)
@@ -556,6 +617,10 @@ def build_csv(data):
             f"=ROUND((F{r}/C${first}-1)*100,2)",
             *[round(item["optimal"]["channels"][c]["budgetMonthly"] / M, 1) for c in channels],
         )
+    add()
+    add("Audit notes", "Item", "Detail")
+    for section, item, detail in audit_notes(data):
+        add(section, item, detail)
     add()
     add("Notes: simulated demo data, not client data. TV is not in this dataset. Full workbook with all tabs and formulas: xl_meridian_results.xlsx")
     buffer = io.StringIO()
