@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT))
 
 from app.data.campaign_performance import generate_campaign_dataset
 from app.data.geo import generate_geo_dataset
-from app.data.master import CHANNELS, DEFAULT_END, DEFAULT_START, MTA_TRACKED_COVERAGE
+from app.data.master import CHANNELS, DEFAULT_END, DEFAULT_START, MTA_TRACKED_COVERAGE, break_even_spend, current_monthly_spend, hill_parameters
 from app.data.meridian_input import HISTORY_WEEKS, generate_meridian_input
 from app.data.mmm import _daily_channel_spend, generate_mmm_dataset, load_meridian_output
 from app.data.mta import generate_mta_dataset
@@ -126,6 +126,30 @@ def run_checks():
             curve = fitted["monthlyCurve"]
             check(f"MMM {channel}: page curve = Meridian monthly curve", round(curve["k"]) == mmm_curves[channel]["k"] and round(curve["m"]) == mmm_curves[channel]["m"], f"alpha {curve['alpha']:.2f}")
             check(f"Meridian {channel}: monthly Hill fit R2 > 0.99", curve["fitR2"] > 0.99, f"{curve['fitR2']:.4f}")
+        # Planning range Rp0-10B/month with Meridian's default +/-30% guardrails: the highest spend
+        # any channel can get is 1.3 x (10B / current budget) x its current spend.
+        cap = mmm["meta"]["planningCapMonthly"]
+        total_current = sum(channel["currentMonthlySpend"] for channel in mmm["channels"])
+        planner_max = cap / total_current * (1 + mmm["meta"]["guardrailPct"] / 100)
+        for channel in mmm["channels"]:
+            name = channel["name"]
+            ratio = (channel["breakEvenMonthlySpend"] or 0) / channel["currentMonthlySpend"]
+            check(f"MMM {name}: planner max ({planner_max:.2f}x current at Rp10B) below Meridian break-even", ratio > planner_max * 1.1, f"break-even {ratio:.2f}x current")
+            observed = output["channels"][name].get("observedSpend") or {}
+            check(f"Meridian {name}: planner spend inside the training data (p99 per-capita spend)", observed.get("p99", 0) >= planner_max, f"data up to {observed.get('p99', 0):.2f}x current")
+            ec, prior = output["channels"][name]["hill"]["ec"], (output["channels"][name].get("hillPrior") or {}).get("ec")
+            narrowing = (prior["hi"] - prior["lo"]) / (ec["hi"] - ec["lo"]) if prior else 0
+            if channel["currentMonthlySpend"] / total_current >= mmm["meta"]["smallChannelShare"]:
+                # EC trades off against beta, so its interval stays wider than the curve's own uncertainty;
+                # the recovery check below tests the curve itself.
+                check(f"Meridian {name}: EC posterior interval clearly narrower than the prior (>= 1.5x)", narrowing >= 1.5, f"{narrowing:.1f}x narrower")
+                truth = hill_parameters(name)
+                truth_be = break_even_spend(truth) / current_monthly_spend(name)
+                k_ratio = output["channels"][name]["monthlyCurve"]["k"] / channel["currentMonthlySpend"] / (truth["k"] / current_monthly_spend(name))
+                check(f"Meridian {name}: half-saturation and break-even within 25% of ground truth", abs(k_ratio - 1) <= 0.25 and abs(ratio / truth_be - 1) <= 0.25, f"half-saturation {k_ratio - 1:+.0%}, break-even {ratio:.2f}x vs truth {truth_be:.2f}x")
+            else:
+                # Channels under 5% of budget carry too little signal to pin down saturation; the page labels them "Test & learn".
+                check(f"Meridian {name}: small channel ({channel['currentMonthlySpend'] / total_current:.1%} of budget) labelled Test & learn", channel["signal"] == "Test & learn", f"EC interval only {narrowing:.1f}x narrower than prior")
     return checks
 
 

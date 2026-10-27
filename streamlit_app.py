@@ -13,7 +13,7 @@ from app.streamlit_adapter import PAGE_ASSETS, build_streamlit_dashboard
 
 
 DEFAULT_MODULE = "campaign-performance"
-DEPLOY_MARKER = "full-height-2026-10-26"
+DEPLOY_MARKER = "meridian-10b-data-driven-2026-10-27"
 
 
 def selected_module() -> str:

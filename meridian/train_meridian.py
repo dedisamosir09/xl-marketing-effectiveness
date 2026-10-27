@@ -52,11 +52,17 @@ INPUT_DIR = ROOT / "meridian" / "input"
 OUTPUT_PATH = ROOT / "app" / "data" / "meridian_output.json"
 MODEL_PATH = ROOT / "meridian" / "output" / "xl_meridian_model.pkl"  # fitted model (not committed)
 MONEY = 1e6  # CSV money columns are IDR million
-ROI_PRIOR = (0.3, 0.6)  # LogNormal(mu, sigma): median ROI 1.35x, 90% prior interval ~0.5x-3.6x
-# Meridian fixes the Hill slope at 1 by default (always concave). We estimate it so the
-# response curve can be S-shaped (needed for an efficient range); LogNormal(0.7, 0.4) is
-# Meridian's own default slope prior for reach & frequency channels (median 2.0).
-SLOPE_PRIOR = (0.7, 0.4)
+# Priors. ROI and adstock use Meridian's defaults (ROI ~ LogNormal(0.2, 0.9); adstock decay ~ Uniform(0, 1)).
+# Saturation: the training data include geo tests from 0x to ~7x normal spend, so the Hill curve
+# is estimated from data. Two documented, weakly informative priors replace Meridian's defaults:
+# - Hill slope: Meridian fixes it at 1 (every curve concave, no efficient range). LogNormal(0.2, 0.4)
+#   lets the data choose between concave and S-shaped curves (median 1.22, 90% prior 0.63-2.35).
+# - Hill EC (half-saturation, in Meridian's scaled media units, 1 = median spend per capita): the
+#   default TruncatedNormal(0.8, 0.8, 0.1, 10) concentrates below 2x median spend. LogNormal(1.0, 0.7)
+#   is centred at 2.7x with a 90% prior interval of 0.86x-8.6x, covering the tested range.
+ROI_PRIOR = (0.2, 0.9)       # Meridian default
+SLOPE_PRIOR = (0.2, 0.4)     # LogNormal: median 1.22
+EC_PRIOR = (1.0, 0.7)        # LogNormal: median 2.7x median spend
 KNOTS = 13  # time-effect knots (one per ~8 weeks); Ramadan / Lebaran handled by controls
 CONFIDENCE = 0.9
 
@@ -88,9 +94,20 @@ def hill(spend, alpha, k, m):
     return m * spend ** alpha / (spend ** alpha + k ** alpha)
 
 
+def observed_range(df, channel, window):
+    """Per-capita weekly spend in the training data, as a multiple of the channel's current spend
+    (analysis-window national average per capita). Curves are only used inside this range."""
+    column = f"{channel.lower()}_spend"
+    weekly = df.groupby("time")[column].sum()
+    population = df.groupby("time")["population"].sum()
+    current_per_capita = weekly.loc[window].mean() / population.loc[window].mean()
+    multiple = (df[column] / df["population"]) / current_per_capita
+    return {"min": float(multiple.min()), "p01": float(multiple.quantile(0.01)), "p99": float(multiple.quantile(0.99)), "max": float(multiple.max())}
+
+
 def fit_monthly_hill(spend, incremental, current):
-    p0 = [2.0, current, max(incremental) * 1.6]
-    params, _ = curve_fit(hill, spend, incremental, p0=p0, bounds=([1.01, current * 0.05, 0], [5.0, current * 20, max(incremental) * 50]), maxfev=20000)
+    p0 = [1.4, current * 4, max(incremental) * 2]
+    params, _ = curve_fit(hill, spend, incremental, p0=p0, bounds=([1.01, current * 0.05, 0], [5.0, current * 100, max(incremental) * 50]), maxfev=50000)
     fitted = hill(spend, *params)
     ss_res = float(np.sum((incremental - fitted) ** 2))
     ss_tot = float(np.sum((incremental - np.mean(incremental)) ** 2))
@@ -128,6 +145,7 @@ def main():
     prior = prior_distribution.PriorDistribution(
         roi_m=backend.tfd.LogNormal(backend.np_float_dtype(ROI_PRIOR[0]), backend.np_float_dtype(ROI_PRIOR[1]), name="roi_m"),
         slope_m=backend.tfd.LogNormal(backend.np_float_dtype(SLOPE_PRIOR[0]), backend.np_float_dtype(SLOPE_PRIOR[1]), name="slope_m"),
+        ec_m=backend.tfd.LogNormal(backend.np_float_dtype(EC_PRIOR[0]), backend.np_float_dtype(EC_PRIOR[1]), name="ec_m"),
     )
     model_spec = spec.ModelSpec(prior=prior, media_prior_type="roi", max_lag=MAX_LAG, knots=KNOTS)
     mmm = model.Meridian(input_data=data, model_spec=model_spec)
@@ -149,7 +167,10 @@ def main():
     }
     summary = an.summary_metrics(selected_times=window, confidence_level=CONFIDENCE)
     posterior = mmm.inference_data.posterior
-    multipliers = [round(x, 2) for x in np.linspace(0, 3, 31)]
+    # Response curve from 0x to 7x of today's spend: the range covered by the geo tests in the data
+    # (the Rp0-10B/month planning range needs at most ~3.2x per channel).
+    multipliers = [round(x, 2) for x in np.linspace(0, 4, 41)] + [4.5, 5.0, 5.5, 6.0, 6.5, 7.0]
+    prior_draws = mmm.inference_data.prior
     curves = an.response_curves(spend_multipliers=multipliers, selected_times=window, confidence_level=CONFIDENCE)
 
     channels = {}
@@ -175,6 +196,8 @@ def main():
             # Meridian names: alpha_m = adstock decay (carryover per week), slope_m = Hill shape,
             # ec_m = Hill half-saturation point (in Meridian's scaled media units), beta_m = media coefficient.
             "hill": {"ec": interval(posterior["ec_m"].values[..., index]), "slope": interval(posterior["slope_m"].values[..., index])},
+            "hillPrior": {"ec": interval(prior_draws["ec_m"].values[..., index]), "slope": interval(prior_draws["slope_m"].values[..., index])},
+            "observedSpend": observed_range(df, channel, window),
             "beta": interval(posterior["beta_m"].values[..., index]),
             "betaByGeo": {str(geo): float(np.median(posterior["beta_gm"].values[..., g, index])) for g, geo in enumerate(data.geo.values)},
             "monthlyCurve": curve,
@@ -189,7 +212,9 @@ def main():
             },
         }
         print(f"{channel:7s} ROI {channels[channel]['roi']['median']:.2f} [{channels[channel]['roi']['ci_lo']:.2f}-{channels[channel]['roi']['ci_hi']:.2f}] (truth {truth['channels'][channel]['roi']:.2f}) "
-              f"half-life {half_life['median']:.1f}d (truth {truth['channels'][channel]['halfLifeDays']}) slope {channels[channel]['hill']['slope']['median']:.2f} monthly alpha {curve['alpha']:.2f} fit R2 {curve['fitR2']:.4f}")
+              f"half-life {half_life['median']:.1f}d (truth {truth['channels'][channel]['halfLifeDays']}) slope {channels[channel]['hill']['slope']['median']:.2f} "
+              f"EC {channels[channel]['hill']['ec']['median']:.2f} [{channels[channel]['hill']['ec']['lo']:.2f}-{channels[channel]['hill']['ec']['hi']:.2f}] (prior {channels[channel]['hillPrior']['ec']['lo']:.2f}-{channels[channel]['hillPrior']['ec']['hi']:.2f}) "
+              f"monthly alpha {curve['alpha']:.2f} k {curve['k'] / current_monthly:.2f}x fit R2 {curve['fitR2']:.4f}")
 
     # Meridian's own fixed-budget optimization for the analysis window (default +/-30% per channel).
     optimization = None
@@ -227,7 +252,7 @@ def main():
             "analysisWindow": {"firstWeek": window[0], "lastWeek": window[-1], "weeks": len(window), "months": window_months},
             "kpi": "Revenue (IDR)",
             "controls": CONTROLS,
-            "prior": f"ROI ~ LogNormal({ROI_PRIOR[0]}, {ROI_PRIOR[1]}) (median {math.exp(ROI_PRIOR[0]):.2f}x); Hill slope ~ LogNormal({SLOPE_PRIOR[0]}, {SLOPE_PRIOR[1]}) (median {math.exp(SLOPE_PRIOR[0]):.1f})",
+            "prior": f"ROI ~ LogNormal({ROI_PRIOR[0]}, {ROI_PRIOR[1]}) (Meridian default, median {math.exp(ROI_PRIOR[0]):.2f}x); adstock decay ~ Uniform(0, 1) (Meridian default); Hill slope ~ LogNormal({SLOPE_PRIOR[0]}, {SLOPE_PRIOR[1]}) (median {math.exp(SLOPE_PRIOR[0]):.2f}); Hill EC ~ LogNormal({EC_PRIOR[0]}, {EC_PRIOR[1]}) (median {math.exp(EC_PRIOR[0]):.1f}x median spend)",
             "adstock": f"geometric, max lag {MAX_LAG} weeks",
             "saturation": "Hill",
             "knots": KNOTS,

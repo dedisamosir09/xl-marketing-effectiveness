@@ -70,6 +70,35 @@ def title(ws, text, subtitle):
     ws["A2"].font = SUB
 
 
+def coverage(data):
+    """Audit evidence per channel: the planner stays inside the spend range the data cover, and the
+    saturation parameters come from the data (posterior interval much narrower than the prior)."""
+    sys.path.insert(0, str(ROOT))
+    from app.data.master import break_even_spend, current_monthly_spend, hill_parameters
+
+    sc = data["scenarios"]
+    cap_multiple = sc["guardrails"]["planningCapMonthly"] / sc["current"]["budgetMonthly"] * (1 + sc["guardrails"]["maxIncreasePct"] / 100)
+    result = {}
+    for channel, c in data["channels"].items():
+        current = c["currentMonthlySpend"]
+        be = break_even_spend(c["monthlyCurve"])
+        truth = hill_parameters(channel)
+        truth_current = current_monthly_spend(channel)
+        post, prior = c["hill"]["ec"], c.get("hillPrior", {}).get("ec")
+        result[channel] = {
+            "dataMax": c.get("observedSpend", {}).get("p99"),
+            "plannerMax": cap_multiple,
+            "breakEven": be / current if be else None,
+            "truthBreakEven": break_even_spend(truth) / truth_current,
+            "ecPost": post,
+            "ecPrior": prior,
+            "ecNarrowing": (prior["hi"] - prior["lo"]) / (post["hi"] - post["lo"]) if prior else None,
+            "halfSat": c["monthlyCurve"]["k"] / current,
+            "truthHalfSat": truth["k"] / truth_current,
+        }
+    return result
+
+
 def build(data):
     meta = data["meta"]
     channels = list(data["channels"])
@@ -80,7 +109,7 @@ def build(data):
     # ------------------------------------------------------------------ Scenarios (built first; Summary references it)
     ws_s = wb.active
     ws_s.title = "Scenarios"
-    title(ws_s, "Budget scenarios (Meridian optimizer)", f"Per month, IDR million. Analysis window {sc['window']['firstWeek']} + {sc['window']['weeks']} weeks. Guardrails per channel: -{sc['guardrails']['maxCutPct']:.0f}% / +{sc['guardrails']['maxIncreasePct']:.0f}% vs current.")
+    title(ws_s, "Budget scenarios (Meridian optimizer)", f"Per month, IDR million. Analysis window {sc['window']['firstWeek']} + {sc['window']['weeks']} weeks. Guardrails per channel (Meridian rule): -{sc['guardrails']['maxCutPct']:.0f}% / +{sc['guardrails']['maxIncreasePct']:.0f}% of budget x historical share.")
     blocks = [
         ("current", sc["current"]),
         ("q1", sc["q1FlatIncremental"]),
@@ -162,7 +191,7 @@ def build(data):
     if refs.get("q3"):
         lines.append(("3. Target: +10% incremental revenue. Budget needed (optimal mix)", f"={total('q3', 'C')}/B5-1", PCT, f'="Budget "&TEXT({total("q3", "C")},"#,##0")&" M/month for incremental "&TEXT({total("q3", "E")},"#,##0")&" M"'))
     else:
-        lines.append(("3. Target: +10% incremental revenue. Budget needed (optimal mix)", "Not reachable within guardrails (+60% per channel)", None, "See Budget frontier for the maximum"))
+        lines.append(("3. Target: +10% incremental revenue. Budget needed (optimal mix)", "Not reachable within guardrails", None, "See Budget frontier for the maximum"))
     lines.append(("4. Fixed budget (current): optimal incremental revenue / month", f"={total('q4', 'E')}", IDR, f'="vs "&TEXT(B6,"#,##0")&" M today ("&TEXT({total("q4", "E")}/B6-1,"+0.0%;-0.0%")&") by reallocating; other budget levels in Budget frontier"'))
     lines.append(("5a. ROAS optimization at a fixed budget: ROAS today → optimal", f"={total('q4', 'F')}", RATIO, '="With a fixed budget, maximizing revenue and maximizing ROAS give the same allocation (same denominator). Today: "&TEXT(B8,"0.00")&"x"'))
     lines.append(("5b. Flexible budget (Meridian target mROI = 1): budget change", f"={total('q5', 'C')}/B5-1", PCT, f'="Spend until the next Rp1 returns Rp1 in every channel: budget "&TEXT({total("q5", "C")},"#,##0")&" M, incremental "&TEXT({total("q5", "E")},"#,##0")&" M, ROAS "&TEXT({total("q5", "F")},"0.00")&"x"'))
@@ -179,7 +208,7 @@ def build(data):
     row += 1
     put(ws, row, 1, "Notes", font=BOLD)
     notes = [
-        f"Every scenario keeps each channel within -{sc['guardrails']['maxCutPct']:.0f}% / +{sc['guardrails']['maxIncreasePct']:.0f}% of its current budget. Cuts deeper than -30% per platform should be phased over several periods.",
+        f"Every scenario keeps each channel within -{sc['guardrails']['maxCutPct']:.0f}% / +{sc['guardrails']['maxIncreasePct']:.0f}% of its share of the scenario budget (budget x historical share, Meridian's spend-constraint rule). Cuts deeper than -30% per platform should be phased over several periods.",
         "TV is not part of this demo dataset (channels: Google, Meta, TikTok, X). Adding TV needs its spend/GRP history in the training data.",
         "Transformation order: geometric adstock first, then the Hill curve (Meridian default, hill_before_adstock = False).",
         "Incremental revenue = revenue that would not happen without the media (Meridian counterfactual). Baseline revenue is assumed unchanged across scenarios.",
@@ -346,6 +375,39 @@ def build(data):
     widths(ws, [12, 12, 16, 20, 14, 14, 14, 14])
     ws.freeze_panes = "A5"
 
+    # ------------------------------------------------------------------ Data coverage (audit)
+    ws = wb.create_sheet("Data coverage")
+    title(ws, "Data coverage: the planner only uses spend levels the model data contain", note + ". Multiples are x current monthly spend.")
+    labels = ["Channel", "Highest spend in training data (p99, x current)", "Highest planner spend at Rp10B (x current)", "Planner inside data?",
+              "Break-even from Meridian curve (x current)", "Ground-truth break-even (x current)", "Planner below break-even?",
+              "Half-saturation from Meridian (x current)", "Ground-truth half-saturation (x current)",
+              "Hill EC posterior 90%", "Hill EC prior 90%", "Prior interval ÷ posterior interval"]
+    head(ws, 4, labels)
+    ws.row_dimensions[4].height = 58
+    for index, (channel, cv) in enumerate(coverage(data).items()):
+        r = 5 + index
+        put(ws, r, 1, channel)
+        put(ws, r, 2, cv["dataMax"], "0.00")
+        put(ws, r, 3, cv["plannerMax"], "0.00")
+        put(ws, r, 4, f'=IF(C{r}<=B{r},"Yes","No")')
+        put(ws, r, 5, cv["breakEven"], "0.00")
+        put(ws, r, 6, cv["truthBreakEven"], "0.00")
+        put(ws, r, 7, f'=IF(C{r}<E{r},"Yes","No")')
+        put(ws, r, 8, cv["halfSat"], "0.00")
+        put(ws, r, 9, cv["truthHalfSat"], "0.00")
+        put(ws, r, 10, f'{cv["ecPost"]["lo"]:.2f}-{cv["ecPost"]["hi"]:.2f}')
+        put(ws, r, 11, f'{cv["ecPrior"]["lo"]:.2f}-{cv["ecPrior"]["hi"]:.2f}' if cv["ecPrior"] else "n/a")
+        put(ws, r, 12, cv["ecNarrowing"], "0.0")
+    r = 5 + len(channels) + 1
+    for text in [
+        "The training data include geo tests from 0x to ~7x normal per-capita spend, so every spend level the planner uses (Rp0-10B/month, ±30% per channel) was observed.",
+        "Break-even and half-saturation come from the Meridian response curve; ground truth is the curve used to simulate the demo data.",
+        "A prior interval several times wider than the posterior shows the saturation point was learned from the data, not set by the prior.",
+    ]:
+        put(ws, r, 1, f"• {text}")
+        r += 1
+    widths(ws, [12] + [16] * (len(labels) - 1))
+
     # ------------------------------------------------------------------ Beta by geo
     ws = wb.create_sheet("Beta by geo")
     title(ws, "Media coefficient by geo (beta_gm, posterior median)", note)
@@ -396,7 +458,7 @@ def build_csv(data):
         return len(rows)  # 1-based row number
 
     add(f"XL MMM - Google Meridian {meta['version']} results (simulated demo data)")
-    add(f"{meta['geos']} geos x {meta['weeks']} weeks, {meta['trainingStart']} to {meta['analysisWindow']['lastWeek']}; analysis window {sc['window']['firstWeek']} + {sc['window']['weeks']} weeks; money in IDR million per month; guardrails per channel -30% / +60% vs current")
+    add(f"{meta['geos']} geos x {meta['weeks']} weeks, {meta['trainingStart']} to {meta['analysisWindow']['lastWeek']}; analysis window {sc['window']['firstWeek']} + {sc['window']['weeks']} weeks; money in IDR million per month; guardrails per channel ±30% of budget x historical share (Meridian default); planning range Rp0-10B per month")
     add()
     r_total = add("Total revenue / month (analysis window, IDR M)", round(sc["totalRevenueMonthly"] / M, 1))
     add()
@@ -409,7 +471,7 @@ def build_csv(data):
         ("Q2b Budget -10%, same mix (every channel -10%)", sc["q2Cut10"]["sameMix"]),
         ("Q3 Lowest budget for +10% incremental (optimal mix)", sc["q3Plus10Incremental"]),
         ("Q4/Q5 Same budget, optimal mix (max revenue = max ROAS)", sc["q4FixedBudget"]),
-        ("Q5b Flexible budget, target mROI = 1 (Meridian)", sc["q5MroiOne"]),
+        ("Q5b Flexible budget, target mROI = 1", sc["q5MroiOne"]),
     ]
     scen_rows = {}
     ch_first = 8  # column H
@@ -473,6 +535,12 @@ def build_csv(data):
             round(mc["alpha"], 3),
             f"=M{r}*((N{r}-1)/(N{r}+1))^(1/N{r})",
         )
+    add()
+    add("Data coverage (x current spend)", "Highest spend in data (p99)", "Highest planner spend at Rp10B", "Planner inside data?", "Break-even (Meridian)", "Break-even (truth)", "Planner below break-even?", "Hill EC posterior 90%", "Hill EC prior 90%")
+    for channel, cv in coverage(data).items():
+        r = len(rows) + 1
+        add(channel, round(cv["dataMax"], 2), round(cv["plannerMax"], 2), f'=IF(C{r}<=B{r},"Yes","No")', round(cv["breakEven"], 2), round(cv["truthBreakEven"], 2), f'=IF(C{r}<E{r},"Yes","No")',
+            f'{cv["ecPost"]["lo"]:.2f}-{cv["ecPost"]["hi"]:.2f}', f'{cv["ecPrior"]["lo"]:.2f}-{cv["ecPrior"]["hi"]:.2f}' if cv["ecPrior"] else "n/a")
     add()
     f_head = add("Budget frontier: budget change (%)", "Budget / month", "Incremental, optimal mix", "ROAS, optimal mix", "Incremental change, optimal (%)", "Incremental, same mix", "Incremental change, same mix (%)", *[f"{c} budget (optimal)" for c in channels])
     for item in sc["frontier"]:

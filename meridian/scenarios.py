@@ -4,12 +4,14 @@ Answers, for the analysis window (3 Apr 2026 + 20 weeks), expressed per month:
 1. How much can the budget be cut while keeping incremental revenue flat (0% growth)?
 2. What happens to revenue if the budget is cut 10%?
 3. How much budget is needed for +10% incremental revenue?
-4. Fixed budget: optimal allocation, incremental revenue and ROAS (budget frontier -30%..+60%).
+4. Fixed budget: optimal allocation, incremental revenue and ROAS (budget frontier -30% up to Rp10B/month).
 5. Maximum ROAS at a fixed budget, and Meridian's flexible-budget scenario (target mROI = 1).
 
-All optimizations use Meridian's own optimizer (BudgetOptimizer grid search on the posterior)
-with per-channel guardrails relative to current spend: at most -30% (business rule; deeper
-cuts should be phased) and at most +60% (the app's default).
+All optimizations run a dynamic program on Meridian's response grid (BudgetOptimizer grid, posterior mean)
+with Meridian's default per-channel spend constraints: each channel stays between (1 - 30%) and (1 + 30%)
+of budget x its historical share (`spend_constraint_lower/upper` = 0.3, Meridian's fixed-budget default).
+The flexible-budget scenario uses Meridian's flexible default (0% to 200% of current spend).
+Budgets go up to Rp10B per month, the planning range covered by the training data.
 
 Results are added to app/data/meridian_output.json under "scenarios".
 """
@@ -37,9 +39,10 @@ from app.data.meridian_input import HISTORY_WEEKS  # noqa: E402
 MODEL_PATH = ROOT / "meridian" / "output" / "xl_meridian_model.pkl"
 OUTPUT_PATH = ROOT / "app" / "data" / "meridian_output.json"
 MONEY = 1e6
-MAX_CUT = 0.30       # per-channel floor: -30% of current spend
-MAX_INCREASE = 0.60  # per-channel cap: +60% of current spend
-FRONTIER = [round(x, 2) for x in np.arange(-0.30, 0.601, 0.05)]
+MAX_CUT = 0.30       # per-channel floor: -30% of the channel's share (Meridian default)
+MAX_INCREASE = 0.30  # per-channel cap: +30% of the channel's share (Meridian default)
+PLANNING_CAP_MONTHLY = 10e9  # IDR per month
+FRONTIER = [round(x, 2) for x in np.arange(-0.30, 0.601, 0.05)] + [0.7, 0.8, 0.9, 1.0, 1.2, 1.4]
 
 
 class Scenarios:
@@ -49,15 +52,17 @@ class Scenarios:
         self.window = times[HISTORY_WEEKS:]
         self.months = len(self.window) * 7 / DAYS_PER_MONTH
         budget_optimizer = optimizer.BudgetOptimizer(mmm)
-        # One grid from 0% to 200% of current spend per channel; every scenario trims it.
+        # One grid from 0% to 330% of current spend per channel (covers +30% of the share at Rp10B/month); every scenario trims it.
         self.grid = budget_optimizer.create_optimization_grid(
-            selected_times=(self.window[0], self.window[-1]), spend_constraint_lower=1.0, spend_constraint_upper=1.0, gtol=1e-4
+            selected_times=(self.window[0], self.window[-1]), spend_constraint_lower=1.0, spend_constraint_upper=2.3, gtol=1e-4
         )
         self.channels = list(self.grid.channels)
         self.current = np.asarray(self.grid.historical_spend, dtype=float)
         self.budget0 = float(self.current.sum())
         spend_grid = np.asarray(self.grid.spend_grid, dtype=float)
         outcome_grid = np.asarray(self.grid.incremental_outcome_grid, dtype=float)
+        steps = np.diff(spend_grid[:, 0])
+        self.step = float(np.nanmin(steps[steps > 0]))
         self.curves = []
         for index in range(len(self.channels)):
             valid = ~np.isnan(spend_grid[:, index]) & ~np.isnan(outcome_grid[:, index])
@@ -73,22 +78,64 @@ class Scenarios:
     def incremental(self, allocation):
         return float(self.incremental_by_channel(allocation).sum())
 
+    def _channel_grid(self, index):
+        """Spend steps (IDR M) and posterior-mean incremental outcome for one channel."""
+        xs, ys = self.curves[index]
+        return xs, ys
+
+    def _bounds(self, budget=None):
+        """Meridian rule: (1 - lower) x budget x share .. (1 + upper) x budget x share."""
+        scale = 1.0 if budget is None else budget / self.budget0
+        return [((1 - MAX_CUT) * cur * scale, (1 + MAX_INCREASE) * cur * scale) for cur in self.current]
+
     def optimal(self, change):
-        """Meridian-optimal allocation at budget = current x (1 + change)."""
-        scale = 1 + change
-        lower = float(np.clip(1 - (1 - MAX_CUT) / scale, 0, 1))
-        upper = float(np.clip((1 + MAX_INCREASE) / scale - 1, 0, 1))
-        result = self.grid.optimize(
-            optimizer.FixedBudgetScenario(total_budget=self.budget0 * scale), spend_constraint_lower=lower, spend_constraint_upper=upper
-        )
-        allocation = np.array([float(result["optimized"].sel(channel=channel).values) for channel in self.channels])
+        """Best allocation at budget = current x (1 + change), by dynamic programming on the
+        Meridian response grid (exact for any curve shape; Meridian's built-in greedy grid search
+        assumes diminishing returns and is unreliable while curves are still S-shaped)."""
+        budget = self.budget0 * (1 + change)
+        step = self.step
+        total = int(round(budget / step))
+        value = np.full(total + 1, -np.inf)
+        value[0] = 0.0
+        choices = []
+        for index, (lo, hi) in enumerate(self._bounds(budget)):
+            xs, ys = self._channel_grid(index)
+            lo_i, hi_i = int(np.ceil(lo / step - 1e-9)), int(np.floor(hi / step + 1e-9))
+            outcome = np.interp(np.arange(hi_i + 1) * step, xs, ys)
+            new_value = np.full(total + 1, -np.inf)
+            pick = np.zeros(total + 1, dtype=int)
+            for k in range(lo_i, min(hi_i, total) + 1):
+                candidate = value[: total + 1 - k] + outcome[k]
+                better = candidate > new_value[k:]
+                new_value[k:][better] = candidate[better]
+                pick[k:][better] = k
+            choices.append(pick)
+            value = new_value
+        if not np.isfinite(value[total]):
+            raise ValueError(f"no feasible allocation at budget change {change:+.3f}")
+        allocation = np.zeros(len(self.channels))
+        remaining = total
+        for index in range(len(self.channels) - 1, -1, -1):
+            k = choices[index][remaining]
+            allocation[index] = k * step
+            remaining -= k
         return allocation
 
+    def cap_change(self):
+        """Budget change that reaches the Rp10B/month planning cap."""
+        return PLANNING_CAP_MONTHLY / self.monthly(self.budget0) - 1
+
     def flexible_mroi(self, target=1.0):
-        lower = MAX_CUT
-        upper = MAX_INCREASE
-        result = self.grid.optimize(optimizer.FlexibleBudgetScenario(target_metric="mroi", target_value=target), spend_constraint_lower=lower, spend_constraint_upper=upper)
-        return np.array([float(result["optimized"].sel(channel=channel).values) for channel in self.channels])
+        """Meridian-style flexible budget: each channel spends while the next Rp1 returns at least
+        `target`, within Meridian's flexible-budget default constraints (0% to 200% of current spend);
+        maximizes incremental revenue - target x spend."""
+        allocation = []
+        for index, (lo, hi) in enumerate([(0.0, 2.0 * cur) for cur in self.current]):
+            xs, ys = self._channel_grid(index)
+            grid = np.arange(lo, hi + self.step / 2, self.step)
+            gain = np.interp(grid, xs, ys) - target * grid
+            allocation.append(float(grid[int(np.argmax(gain))]))
+        return np.array(allocation)
 
     def search(self, target, low, high, steps=24):
         """Smallest budget change in [low, high] whose optimal incremental >= target (monotone)."""
@@ -151,21 +198,21 @@ def main():
         print(f"{change * 100:+5.0f}%  optimal incr {optimal['incrementalChangePct']:+6.2f}%  ROAS {optimal['roas']:.2f}  | same mix {proportional['incrementalChangePct']:+6.2f}%")
 
     flat = s.search(s.incr0, -MAX_CUT, 0.0)
-    q1 = s.describe("Lowest budget that keeps incremental revenue flat", s.optimal(flat), "Reallocation within -30%/+60% per channel") if flat is not None else None
+    q1 = s.describe("Lowest budget that keeps incremental revenue flat", s.optimal(flat), "Reallocation within ±30% of each channel's share (Meridian default)") if flat is not None else None
 
     cut10_optimal = s.describe("Budget -10%, optimal mix", s.optimal(-0.10))
     cut10_same = s.describe("Budget -10%, same mix (every channel -10%)", s.current * 0.90)
 
-    plus10 = s.search(s.incr0 * 1.10, 0.0, MAX_INCREASE)
+    plus10 = s.search(s.incr0 * 1.10, -MAX_CUT, s.cap_change())
     q3 = s.describe("Lowest budget for +10% incremental revenue", s.optimal(plus10)) if plus10 is not None else None
 
     fixed = s.describe("Same budget, optimal mix (max revenue = max ROAS)", s.optimal(0.0))
-    mroi1 = s.describe("Flexible budget: spend until mROI = 1 per channel", s.flexible_mroi(1.0), "Meridian FlexibleBudgetScenario(target mROI = 1), within -30%/+60%")
+    mroi1 = s.describe("Flexible budget: spend until mROI = 1 per channel", s.flexible_mroi(1.0), "Target mROI = 1 per channel, Meridian flexible-budget default (0-200% of current)")
 
     scenarios = {
         "window": {"firstWeek": s.window[0], "lastWeek": s.window[-1], "weeks": len(s.window), "months": s.months},
-        "guardrails": {"maxCutPct": MAX_CUT * 100, "maxIncreasePct": MAX_INCREASE * 100},
-        "engine": "Meridian BudgetOptimizer grid search (posterior mean incremental revenue)",
+        "guardrails": {"maxCutPct": MAX_CUT * 100, "maxIncreasePct": MAX_INCREASE * 100, "reference": "budget x historical share (Meridian default spend constraints)", "planningCapMonthly": PLANNING_CAP_MONTHLY},
+        "engine": "Dynamic programming on the Meridian response grid (posterior mean incremental revenue)",
         "totalRevenueMonthly": s.monthly(s.total_revenue),
         "current": current,
         "q1FlatIncremental": q1,

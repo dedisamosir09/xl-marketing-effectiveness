@@ -6,13 +6,14 @@ campaign names reconcile across pages.
 
 Business story encoded in the parameters (deterministic demo, not client data):
 
-* Google captures existing demand: highest observed (platform) ROAS, lowest
-  incrementality, and its current monthly budget sits above its efficient range.
-* Meta is the balanced full-funnel channel with headroom: current budget is below
-  its efficient range.
-* TikTok opens journeys: lowest observed ROAS but the highest incremental share;
-  current budget sits inside its efficient range.
-* X is a small test channel below its efficient range.
+* Platform (observed) ROAS: Google highest, then Meta, X, TikTok; incrementality is below 100%
+  for every channel (iROAS < observed ROAS).
+* Response curves are calibrated for a planning range of Rp0-10B per month (up to ~2.4x today's
+  budget; with Meridian's default +/-30% guardrails a channel reaches at most ~3.2x its current
+  spend). Average iROAS peaks at ~2-3x current spend and every channel's break-even (next Rp1
+  returning Rp1) sits at 5.5-6.5x current spend, inside the spend range covered by the Meridian
+  training data (geo tests up to ~7x), so the curves the app uses are estimated from data.
+  Meta has the highest return per rupiah, TikTok the lowest.
 """
 
 from datetime import date, timedelta
@@ -52,9 +53,9 @@ CHANNELS = {
         "placements": ["Search-CPC", "App Install-CPI-Android", "Performance Max-CPA", "YouTube-CPV"],
         # MMM response curve (monthly): Hill curve with S-shape, defined by
         # alpha, the monthly budget where average iROAS peaks and iROAS at current spend.
-        "alpha": 2.2,
-        "peak_monthly_spend": 1_400_000_000,
-        "iroas_at_current": 1.55,
+        "alpha": 1.5,
+        "peak_monthly_spend": 5_561_000_000,
+        "iroas_at_current": 1.8,
         "half_life_days": 4.2,
     },
     "Meta": {
@@ -71,9 +72,9 @@ CHANNELS = {
         "conversion_rate": 0.073,
         "view_rate": 0.42,
         "placements": ["App Engagement-CPA", "App Install-CPI-Android", "Video Views-CPV", "Traffic-CPC"],
-        "alpha": 2.0,
-        "peak_monthly_spend": 1_300_000_000,
-        "iroas_at_current": 1.95,
+        "alpha": 1.5,
+        "peak_monthly_spend": 2_097_000_000,
+        "iroas_at_current": 2.6,
         "half_life_days": 7.8,
     },
     "TikTok": {
@@ -90,9 +91,9 @@ CHANNELS = {
         "conversion_rate": 0.052,
         "view_rate": 0.54,
         "placements": ["Video Views-CPV", "App Install-CPI-Android", "App Engagement-CPA", "Traffic-CPC"],
-        "alpha": 2.0,
-        "peak_monthly_spend": 1_050_000_000,
-        "iroas_at_current": 1.35,
+        "alpha": 1.5,
+        "peak_monthly_spend": 3_134_000_000,
+        "iroas_at_current": 1.4,
         "half_life_days": 6.4,
     },
     "X": {
@@ -109,9 +110,9 @@ CHANNELS = {
         "conversion_rate": 0.085,
         "view_rate": 0.28,
         "placements": ["Website Traffic-CPC", "Video Views-CPV", "App Engagement-CPA"],
-        "alpha": 1.8,
-        "peak_monthly_spend": 120_000_000,
-        "iroas_at_current": 1.60,
+        "alpha": 1.5,
+        "peak_monthly_spend": 169_000_000,
+        "iroas_at_current": 2.2,
         "half_life_days": 3.1,
     },
 }

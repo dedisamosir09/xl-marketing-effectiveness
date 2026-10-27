@@ -7,6 +7,10 @@ checked against it:
 * National weekly spend per channel equals Campaign Performance spend wherever campaign
   rows exist (weeks starting 14 Nov 2025 onward). Earlier weeks are a synthetic history
   with budget flights, so the model sees each channel at several spend levels.
+* Geo experiments in the synthetic history: for each channel, four mid-size geos run 6-week
+  test blocks at 0x (holdout) to 7x their normal per-capita spend. They give the model data
+  across the whole planning range (up to ~3.2x current spend per channel at Rp10B/month) and
+  past each channel's break-even, so saturation is estimated from data rather than priors.
 * Revenue = baseline (trend, Ramadan / Lebaran, year-end, promo and competitor controls)
   + media effect + noise. The media effect per geo uses geometric adstock (channel
   half-life) followed by the master Hill curve on per-capita spend, with a geo-level
@@ -50,6 +54,10 @@ CHANNEL_GEO_TILT = {
     "TikTok": {"Jakarta": 0.85, "Medan": 1.15, "Makassar": 1.15, REST_GEO: 1.10},
     "X": {"Jakarta": 1.60, "Bandung": 1.15, REST_GEO: 0.60},
 }
+# Geo test design: per-capita spend multiple (x current) for each 6-week block, rotated across geos.
+TEST_BLOCKS = [(2, 8), (10, 16), (18, 24), (26, 32), (34, 40), (42, 48), (50, 56), (58, 64)]
+TEST_LEVELS = [0.0, 2.0, 4.0, 7.0, 1.5, 5.5, 3.0, 6.0]
+TEST_GEO_RANKS = range(3, 19)  # population ranks of the city geos used for tests (4 per channel)
 GEO_CPM_FACTOR = {"Jakarta": 1.22, "Surabaya": 1.08, "Bandung": 1.05, REST_GEO: 0.82}
 
 
@@ -80,24 +88,26 @@ def _synthetic_level(channel, week_index, week_start, rng):
     progress = week_index / HISTORY_WEEKS
     ramadan = _overlap_days(week_start, RAMADAN) + _overlap_days(week_start, LEBARAN)
     year_end = 1.0 if week_start.month == 12 else 0.0
+    # Flights are kept independent of Ramadan / promo timing so the model can separate media
+    # effects from seasonal controls.
     if channel == "Google":
-        level = 0.78 + 0.22 * progress + 0.30 * ramadan + 0.08 * year_end
+        level = 0.78 + 0.22 * progress + 0.05 * year_end
         if 18 <= week_index < 23 or 52 <= week_index < 56:
             level *= 0.55  # budget freezes
         if 38 <= week_index < 42:
             level *= 1.35  # always-on push
     elif channel == "Meta":
-        level = 0.50 + 0.45 * progress + 0.25 * ramadan
+        level = 0.55 + 0.40 * progress
         if week_index % 13 in (4, 5, 6):
             level *= 1.55  # launch bursts
         if 60 <= week_index < 64:
             level *= 0.5
     elif channel == "TikTok":
-        level = 0.65 + 0.40 * progress + 0.45 * ramadan + 0.10 * year_end
-        if 44 <= week_index < 49:
-            level *= 0.45
-        if week_index % 17 in (8, 9):
-            level *= 1.4
+        level = 0.70 + 0.35 * progress
+        if 8 <= week_index < 13 or 66 <= week_index < 70:
+            level *= 0.45  # paused flights
+        if week_index % 11 in (2, 3) or 44 <= week_index < 48:
+            level *= 1.6  # creator bursts
     else:  # X: intermittent test channel
         on = (week_index // 6) % 3 != 1
         level = (0.6 + 1.2 * rng.random()) if on else 0.0
@@ -152,6 +162,27 @@ def generate_meridian_input():
                 spend[channel][geo][t] = value
                 cpm = config["cpm"] * GEO_CPM_FACTOR.get(geo, 1.0) * math.exp(rng.gauss(0, 0.05))
                 impressions[channel][geo][t] = round(value / cpm * 1000)
+
+    # ---- geo experiments (synthetic history only) ----
+    tests = []
+    channel_names = list(CHANNELS)
+    for c_index, channel in enumerate(channel_names):
+        weekly_current = CHANNELS[channel]["spend"] / 144 * 7
+        tilt = CHANNEL_GEO_TILT[channel]
+        test_geos = [names[rank] for rank in TEST_GEO_RANKS][c_index::len(channel_names)]
+        for g_index, geo in enumerate(test_geos):
+            for b_index, (first, last) in enumerate(TEST_BLOCKS):
+                level = TEST_LEVELS[(b_index + 2 * g_index + c_index) % len(TEST_LEVELS)]
+                tests.append({"channel": channel, "geo": geo, "firstWeek": weeks[first].isoformat(), "weeks": last - first, "level": level})
+                for t in range(first, last):
+                    if source[t] != "synthetic":
+                        continue
+                    value = round(weekly_current * pop_share[geo] * tilt.get(geo, 1.0) * level * math.exp(rng.gauss(0, 0.07)))
+                    spend[channel][geo][t] = value
+                    cpm = CHANNELS[channel]["cpm"] * GEO_CPM_FACTOR.get(geo, 1.0) * math.exp(rng.gauss(0, 0.05))
+                    impressions[channel][geo][t] = round(value / cpm * 1000)
+        for t in range(N_WEEKS):
+            national[channel][t] = sum(spend[channel][geo][t] for geo in names)
 
     # ---- ground-truth media effect ----
     geo_efficiency = {}
@@ -223,6 +254,7 @@ def generate_meridian_input():
             "masterCurve": hill_parameters(channel),
         }
     truth["controlEffects"] = TRUE_CONTROL_EFFECTS
+    truth["geoTests"] = tests
 
     return {
         "meta": {

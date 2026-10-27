@@ -9,7 +9,9 @@
     budget: "Spend an available monthly budget across the selected channels. The planner moves money to the channels whose next rupiah returns the most, within the guardrails.",
     target: "Set a monthly revenue target (baseline + media). The planner finds the smallest budget across the selected channels that reaches it.",
   };
-  const SIGNAL_CLASS = { "Invest more": "invest", Hold: "hold", Reduce: "reduce", "Test & learn": "test" };
+  // Planning range: Rp0–10B per month, inside the spend levels the Meridian training data cover.
+  const planningCap = () => dataset.meta.planningCapMonthly || 10e9;
+  const SIGNAL_CLASS ={ "Invest more": "invest", Hold: "hold", Reduce: "reduce", "Test & learn": "test" };
 
   const state = {
     dateStart: "2026-04-03",
@@ -22,7 +24,7 @@
     selected: new Set(),
     locked: new Set(),
     maxDecrease: 30,
-    maxIncrease: 60,
+    maxIncrease: 30,
     hiatusChannel: "Meta",
     hiatusWeeks: 2,
     tolerance: 3,
@@ -191,6 +193,7 @@
         halfLife: channel.halfLifeDays,
         band: { low: bisect(peakSpend * 1e-3, peakSpend, true), high: bisect(peakSpend, peakSpend * 50, false), peakSpend, peakIroas: peak },
         breakEven,
+        observedMax: channel.observedMaxMonthlySpend || null,
       });
     });
   }
@@ -226,6 +229,7 @@
         incrementalShare: safeDivide(safeDivide(incr, monthly), observedRoas),
         band: curves[channel.name].band,
         breakEven: curves[channel.name].breakEven,
+        observedMax: curves[channel.name].observedMax,
         halfLife: curves[channel.name].halfLife,
       };
     });
@@ -247,16 +251,34 @@
   }
 
   // ---------- optimizer ----------
-  function guardrailBounds() {
+  // Meridian-style guardrails: each channel's limits follow its historical share of the new budget.
+  // share = new budget (minus locked channels) × channel reference ÷ reference of the unlocked channels;
+  // floor = (1 − max decrease) × share, ceiling = (1 + max increase) × share.
+  function lockedTotal() {
+    return sum(reference.channels.filter((c) => state.selected.has(c.name) && state.locked.has(c.name)), (c) => c.monthly);
+  }
+
+  function guardrailBounds(budget) {
     const bounds = {};
+    const locked = lockedTotal();
+    const flexibleRef = sum(reference.channels.filter((c) => state.selected.has(c.name) && !state.locked.has(c.name)), (c) => c.monthly);
+    const flexibleBudget = Math.max(0, budget - locked);
     reference.channels.forEach((channel) => {
       const selected = state.selected.has(channel.name);
-      const locked = selected && state.locked.has(channel.name);
-      if (!selected) bounds[channel.name] = { floor: 0, ceil: 0, selected, locked: false };
-      else if (locked) bounds[channel.name] = { floor: channel.monthly, ceil: channel.monthly, selected, locked };
-      else bounds[channel.name] = { floor: channel.monthly * (1 - state.maxDecrease / 100), ceil: channel.monthly * (1 + state.maxIncrease / 100), selected, locked };
+      const isLocked = selected && state.locked.has(channel.name);
+      if (!selected) bounds[channel.name] = { floor: 0, ceil: 0, share: 0, selected, locked: false };
+      else if (isLocked) bounds[channel.name] = { floor: channel.monthly, ceil: channel.monthly, share: channel.monthly, selected, locked: true };
+      else {
+        const share = flexibleRef ? flexibleBudget * channel.monthly / flexibleRef : 0;
+        bounds[channel.name] = { floor: share * (1 - state.maxDecrease / 100), ceil: share * (1 + state.maxIncrease / 100), share, selected, locked: false };
+      }
     });
     return bounds;
+  }
+
+  function planAt(budget, grid = 1000) {
+    const bounds = guardrailBounds(budget);
+    return { allocation: optimize(budget, bounds, grid), bounds };
   }
 
   // Global optimum for separable S-shaped curves: dynamic programming over the budget above the channel floors.
@@ -338,46 +360,46 @@
   }
 
   function planScenario() {
-    const bounds = guardrailBounds();
     const pool = poolReference();
-    const floorTotal = sum(Object.values(bounds), (bound) => bound.floor);
-    const ceilTotal = sum(Object.values(bounds), (bound) => bound.ceil);
-    const tolerance = Math.max(pool.budget * 0.001, 1);
+    const locked = lockedTotal();
     const notes = [];
-    let allocation;
+    let plan;
     let status = "optimized";
 
     if (state.mode === "budget") {
-      const budget = Math.max(0, (Number(state.primaryValue) || 0) * 1e9);
-      if (budget >= floorTotal - tolerance && budget <= ceilTotal + tolerance) {
-        allocation = optimize(budget, bounds);
+      const requested = Math.max(0, (Number(state.primaryValue) || 0) * 1e9);
+      const budget = Math.min(requested, planningCap());
+      if (requested > budget + 1) notes.push(`The planner covers Rp0–${rp(planningCap())}/month, the spend levels the Meridian training data cover. Showing the plan at ${rp(budget)}/month.`);
+      if (budget < locked - Math.max(pool.budget * 0.001, 1)) {
+        const bounds = guardrailBounds(budget);
+        plan = { allocation: proportional(budget, bounds).allocation, bounds };
+        status = "below";
+        notes.push(`The budget is below the locked channels (${rp(locked)}/month); only the locked channels are funded.`);
       } else {
-        const result = proportional(budget, bounds);
-        allocation = result.allocation;
-        status = budget < floorTotal ? "below" : "above";
+        plan = planAt(budget);
       }
     } else {
       const target = Math.max(0, (Number(state.primaryValue) || 0) * 1e9);
       const needed = target - reference.nonMedia;
-      const maxPlan = optimize(ceilTotal, bounds, 300);
-      if (needed <= mediaOf(optimize(floorTotal, bounds, 300))) {
-        allocation = optimize(floorTotal, bounds);
-        notes.push(`The target is already reached at the lowest budget the guardrails allow for ${pool.label} (${rp(floorTotal)}/month).`);
-      } else if (mediaOf(maxPlan) < needed) {
-        allocation = optimize(ceilTotal, bounds);
+      const cap = planningCap();
+      if (needed <= mediaOf(planAt(locked, 300).allocation)) {
+        plan = planAt(locked);
+        notes.push(`The target is already reached with the locked channels only (${rp(locked)}/month).`);
+      } else if (mediaOf(planAt(cap, 300).allocation) < needed) {
+        plan = planAt(cap);
         status = "unreachable";
-        notes.push(`The target needs ${rp(needed)}/month of incremental revenue from ${pool.label}, more than the curves can deliver within the guardrails (${rp(mediaOf(maxPlan))}/month). Showing the maximum-guardrail plan.`);
+        notes.push(`The target needs ${rp(needed)}/month of incremental revenue from ${pool.label}, more than the curves deliver at ${rp(cap)}/month. Showing the plan at ${rp(cap)}/month.`);
       } else {
-        let low = floorTotal;
-        let high = ceilTotal;
-        for (let i = 0; i < 22; i += 1) {
+        let low = locked;
+        let high = cap;
+        for (let i = 0; i < 32; i += 1) {
           const mid = (low + high) / 2;
-          if (mediaOf(optimize(mid, bounds, 200)) >= needed) high = mid; else low = mid;
+          if (mediaOf(planAt(mid, 200).allocation) >= needed) high = mid; else low = mid;
         }
-        allocation = optimize(high, bounds);
+        plan = planAt(high);
       }
     }
-    return evaluate(allocation, bounds, status, notes, pool);
+    return evaluate(plan.allocation, plan.bounds, status, notes, pool);
   }
 
   function position(channel, spend) {
@@ -392,10 +414,10 @@
   function guardLabel(channel, spend, bound) {
     if (!bound.selected) return "Not in pool";
     if (bound.locked) return "Locked";
-    const tolerance = Math.max(channel.monthly * 0.006, 1);
+    const tolerance = Math.max(bound.share * 0.006, channel.monthly * 0.006, 1);
     if (spend > bound.ceil + tolerance || spend < bound.floor - tolerance) return "Outside guardrail";
-    if (Math.abs(spend - bound.ceil) <= tolerance && spend > channel.monthly + tolerance) return `At +${state.maxIncrease}% cap`;
-    if (Math.abs(spend - bound.floor) <= tolerance && spend < channel.monthly - tolerance) return `At −${state.maxDecrease}% floor`;
+    if (Math.abs(spend - bound.ceil) <= tolerance && bound.ceil > bound.share + tolerance) return `At +${state.maxIncrease}% cap`;
+    if (Math.abs(spend - bound.floor) <= tolerance && bound.floor < bound.share - tolerance) return `At −${state.maxDecrease}% floor`;
     return "";
   }
 
@@ -425,6 +447,7 @@
       notes,
       plans,
       pool,
+      bounds,
       byName: Object.fromEntries(plans.map((plan) => [plan.name, plan])),
       budget,
       media,
@@ -491,7 +514,9 @@
     const ph = H - m.t - m.b;
     const plan = scenario?.byName[channel.name];
     const scenarioSpend = plan ? plan.scenario : null;
-    const xAxis = niceTicks(Math.max(channel.monthly * 1.9, channel.band.high * 1.5, (scenarioSpend || 0) * 1.15), 4);
+    // Show the curve up to break-even (and the loss zone after it), never far past the data.
+    const reach = channel.breakEven ? channel.breakEven * 1.12 : channel.band.high * 1.5;
+    const xAxis = niceTicks(Math.max(channel.monthly * 1.9, reach, (scenarioSpend || 0) * 1.15), 4);
     const xMax = xAxis.max;
     const samples = Array.from({ length: 141 }, (_, i) => {
       const spend = (xMax * i) / 140;
@@ -523,21 +548,27 @@
       const nearBox = bx <= bx2 + 8 && bx >= bx1 - 8;
       breakEvenMark = `<line x1="${bx}" x2="${bx}" y1="${m.t}" y2="${m.t + ph}" class="dr-be-line"/><text x="${right ? bx - 5 : bx + 5}" y="${nearBox ? m.t + 28 : m.t + 12}" text-anchor="${right ? "end" : "start"}" class="dr-be-label">${label}</text>`;
     }
+    let beyondData = "";
+    if (channel.observedMax && channel.observedMax < xMax) {
+      const ox = x(channel.observedMax);
+      beyondData = `<rect x="${ox}" y="${m.t}" width="${m.l + pw - ox}" height="${ph}" class="dr-beyond"/><text x="${m.l + pw - 5}" y="${m.t + ph - 22}" text-anchor="end" class="dr-beyond-label">Beyond model data</text>`;
+    }
     const cx = x(channel.monthly);
     const cy = y(channel.incr);
-    const current = `<line x1="${cx}" x2="${cx}" y1="${cy}" y2="${m.t + ph}" class="dr-current-line"/><circle cx="${cx}" cy="${cy}" r="5.5" class="dr-current-dot" data-tooltip-text="${escapeHtml(`Current budget ${rp(channel.monthly)}/month\nIncremental revenue ${rp(channel.incr)}/month\niROAS ${ratio(channel.iroas)} · next Rp1 ${ratio(channel.mroi)}`)}"/><text x="${cx}" y="${m.t + ph - 6}" text-anchor="middle" class="dr-marker-label current">Current ${rp(channel.monthly)} · mROI ${ratio(channel.mroi)}</text>`;
+    const current = `<line x1="${cx}" x2="${cx}" y1="${cy}" y2="${m.t + ph}" class="dr-current-line"/><circle cx="${cx}" cy="${cy}" r="5.5" class="dr-current-dot" data-tooltip-text="${escapeHtml(`Current budget ${rp(channel.monthly)}/month\nIncremental revenue ${rp(channel.incr)}/month\niROAS ${ratio(channel.iroas)} · next Rp1 ${ratio(channel.mroi)}`)}"/><text x="${cx < m.l + 90 ? cx + 6 : cx}" y="${m.t + ph - 6}" text-anchor="${cx < m.l + 90 ? "start" : "middle"}" class="dr-marker-label current">Current ${rp(channel.monthly)} · mROI ${ratio(channel.mroi)}</text>`;
     let scenarioMarker = "";
     if (plan && plan.inPool && Math.abs(plan.scenario - channel.monthly) > channel.monthly * 0.005) {
       const sx = x(plan.scenario);
       const sy = y(plan.scenarioIncr);
-      const labelY = Math.max(m.t + 24, sy - 12);
-      scenarioMarker = `<line x1="${sx}" x2="${sx}" y1="${sy}" y2="${m.t + ph}" class="dr-scenario-line"/><circle cx="${sx}" cy="${sy}" r="6.5" class="dr-scenario-dot" data-tooltip-text="${escapeHtml(`Scenario budget ${rp(plan.scenario)}/month (${signedPct(plan.deltaPct)})\nIncremental revenue ${rp(plan.scenarioIncr)}/month (${signedRp(plan.incrDelta)})\niROAS ${ratio(plan.scenarioIroas)} · next Rp1 ${ratio(plan.scenarioMroi)}`)}"/><text x="${sx}" y="${labelY}" text-anchor="middle" class="dr-marker-label scenario">Scenario ${rp(plan.scenario)} · mROI ${ratio(plan.scenarioMroi)}</text>`;
+      // Keep the scenario label clear of the current label (both sit low when budgets are small vs the curve).
+      const labelY = Math.min(Math.max(m.t + 24, sy - 12), m.t + ph - 24);
+      scenarioMarker = `<line x1="${sx}" x2="${sx}" y1="${sy}" y2="${m.t + ph}" class="dr-scenario-line"/><circle cx="${sx}" cy="${sy}" r="6.5" class="dr-scenario-dot" data-tooltip-text="${escapeHtml(`Scenario budget ${rp(plan.scenario)}/month (${signedPct(plan.deltaPct)})\nIncremental revenue ${rp(plan.scenarioIncr)}/month (${signedRp(plan.incrDelta)})\niROAS ${ratio(plan.scenarioIroas)} · next Rp1 ${ratio(plan.scenarioMroi)}`)}"/><text x="${sx < m.l + 90 ? sx + 8 : sx}" y="${labelY}" text-anchor="${sx < m.l + 90 ? "start" : "middle"}" class="dr-marker-label scenario">Scenario ${rp(plan.scenario)} · mROI ${ratio(plan.scenarioMroi)}</text>`;
     }
     return `<article class="mmm-panel mmm-dr-card" data-dr-channel="${channel.name}">
       <header><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span></header>
       <p class="mmm-dr-card-copy">Efficient range <strong>${rp(channel.band.low)}–${rp(channel.band.high)}</strong>/month · peak iROAS ${ratio(channel.band.peakIroas)} · ${channel.band.peakIroas < 1 ? '<em class="mmm-not-in-pool">iROAS below 1x at any budget</em>' : `break-even <strong>${channel.breakEven ? rp(channel.breakEven) : "—"}</strong>`} · mROI now <strong class="${channel.mroi < 1 ? "mmm-loss" : "mmm-gain"}">${ratio(channel.mroi)}</strong>${plan && !plan.inPool ? ' · <em class="mmm-not-in-pool">not in scenario pool</em>' : ""}</p>
       <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${channel.name} incremental revenue and iROAS by monthly budget" data-dr-svg="${channel.name}" data-xmax="${xMax}" data-ymax="${yMax}">
-        ${lossZone}${box}${grid}${xTicks}
+        ${lossZone}${beyondData}${box}${grid}${xTicks}
         <path d="${incrPath}" class="dr-incr" style="stroke:${channel.color}"/>
         <path d="${roasPath}" class="dr-roas" style="stroke:${channel.color}"/>
         ${breakEvenMark}${current}${scenarioMarker}
@@ -611,14 +642,14 @@
     el.modeCopy.textContent = MODE_COPY[state.mode];
     if (state.primaryValue === null) state.primaryValue = defaultPrimary();
     el.presets.hidden = state.mode !== "budget";
-    const bounds = guardrailBounds();
     const poolText = `Reference for ${pool.label}: ${rp(pool.budget)}/month${pool.excluded.length ? ` (all channels ${rp(reference.totalMonthly)})` : ""}.`;
     if (state.mode === "budget") {
       el.primaryLabel.textContent = "Available media budget per month";
       el.primarySuffix.textContent = "B / month";
       el.primary.step = "0.05";
+      el.primary.max = String(planningCap() / 1e9);
       el.primary.value = Number(state.primaryValue).toFixed(2);
-      el.primaryHelper.textContent = `${poolText} Guardrails allow ${rp(sum(Object.values(bounds), (b) => b.floor))}–${rp(sum(Object.values(bounds), (b) => b.ceil))}/month.`;
+      el.primaryHelper.textContent = `${poolText} Planning range Rp0–${rp(planningCap())}/month (covered by the model data); the budget is spent in full.`;
       root.querySelectorAll("[data-budget-multiplier]").forEach((button) => {
         button.classList.toggle("active", state.preset !== null && Number(button.dataset.budgetMultiplier) === state.preset);
       });
@@ -626,6 +657,7 @@
       el.primaryLabel.textContent = "Target KPI: revenue per month (baseline + media)";
       el.primarySuffix.textContent = "B / month";
       el.primary.step = "0.1";
+      el.primary.removeAttribute("max");
       el.primary.value = Number(state.primaryValue).toFixed(1);
       el.primaryHelper.textContent = `Current with ${pool.label}: ${rp(reference.nonMedia + pool.media)}/month = baseline & other drivers ${rp(reference.nonMedia)} + media ${rp(pool.media)}. ${poolText}`;
     }
@@ -636,16 +668,25 @@
 
     el.channels.innerHTML = `<div class="mmm-channel-table-head"><span>Channel</span><span>Reference / month</span><span>Allowed range / month</span><span>Include</span><span>Lock</span></div>` + reference.channels.map((channel) => {
       const selected = state.selected.has(channel.name);
-      const bound = bounds[channel.name];
-      const range = !selected ? "—" : bound.locked ? "Locked" : `${rp(bound.floor)}–${rp(bound.ceil)}`;
       return `<div class="mmm-channel-row${selected ? "" : " excluded"}">
         <span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span>
         <span>${rp(channel.monthly)}</span>
-        <span class="mmm-allowed-range">${range}</span>
+        <span class="mmm-allowed-range" data-allowed-range="${channel.name}">—</span>
         <label class="mmm-toggle"><input type="checkbox" data-include-channel="${channel.name}" ${selected ? "checked" : ""}><span class="sr-only">Include ${channel.name}</span></label>
         <label class="mmm-toggle lock"><input type="checkbox" data-lock-channel="${channel.name}" ${state.locked.has(channel.name) && selected ? "checked" : ""} ${selected ? "" : "disabled"}><span class="sr-only">Lock ${channel.name}</span></label>
       </div>`;
-    }).join("") + `<div class="mmm-channel-row total"><span>Reference · ${pool.names.length} selected</span><span>${rp(pool.budget)}</span><span class="mmm-allowed-range">${rp(sum(Object.values(bounds), (b) => b.floor))}–${rp(sum(Object.values(bounds), (b) => b.ceil))}</span><span></span><span></span></div>`;
+    }).join("") + `<div class="mmm-channel-row total"><span>Reference · ${pool.names.length} selected</span><span>${rp(pool.budget)}</span><span class="mmm-allowed-range" data-allowed-range="__total">—</span><span></span><span></span></div>`;
+  }
+
+  // Allowed ranges depend on the scenario budget, so they are filled in after each solve.
+  function renderAllowedRanges(s) {
+    reference.channels.forEach((channel) => {
+      const cell = el.channels.querySelector(`[data-allowed-range="${channel.name}"]`);
+      const bound = s.bounds[channel.name];
+      if (cell) cell.textContent = !bound.selected ? "—" : bound.locked ? "Locked" : `${rp(bound.floor)}–${rp(bound.ceil)}`;
+    });
+    const total = el.channels.querySelector('[data-allowed-range="__total"]');
+    if (total) total.textContent = `at ${rp(s.budget)} budget`;
   }
 
   // Every number in the result cards and table, with the inputs needed to recompute it.
@@ -688,7 +729,7 @@
   function renderPlannerOutput() {
     const s = scenario;
     const pool = s.pool;
-    el.resultTitle.textContent = s.status === "below" || s.status === "above" ? "Equal % change (outside guardrails)" : "Recommended channel mix";
+    el.resultTitle.textContent = s.status === "below" ? "Locked channels only" : "Recommended channel mix";
     el.horizonCopy.textContent = `${MODE_LABELS[s.mode]} · ${pool.label} · ${state.horizonMonths} month${state.horizonMonths === 1 ? "" : "s"} (${formatDate(state.horizonStart)} – ${formatDate(addMonths(state.horizonStart, state.horizonMonths))})`;
     const months = state.horizonMonths;
     const cards = [
@@ -716,6 +757,7 @@
 
   function solve({ pulse = false } = {}) {
     scenario = planScenario();
+    renderAllowedRanges(scenario);
     renderPlannerOutput();
     renderDiminishing();
     renderHiatus();
@@ -1057,7 +1099,7 @@
         selected: new Set(dataset.channels.map((c) => c.name)),
         locked: new Set(),
         maxDecrease: 30,
-        maxIncrease: 60,
+        maxIncrease: 30,
         hiatusChannel: "Meta",
         hiatusWeeks: 2,
         tolerance: 3,

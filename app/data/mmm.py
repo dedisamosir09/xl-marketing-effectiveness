@@ -36,6 +36,8 @@ from .master import (
 )
 
 SMALL_CHANNEL_SHARE = 0.05
+PLANNING_CAP_MONTHLY = 10_000_000_000  # planner range Rp0-10B per month (inside the spend range the data cover)
+GUARDRAIL_PCT = 30  # Meridian default spend constraint: +/-30% of each channel's share of the budget
 MERIDIAN_OUTPUT = Path(__file__).with_name("meridian_output.json")
 
 
@@ -116,6 +118,10 @@ def generate_mmm_dataset():
         observed_revenue = config["observed_roas"] * config["spend"]
         breakeven = break_even_spend(params)
         estimate = None
+        observed_max = None
+        if meridian and meridian["channels"][name].get("observedSpend"):
+            # Highest spend level the training data support (99th percentile of geo-week spend per capita).
+            observed_max = meridian["channels"][name]["observedSpend"]["p99"] * s0
         if meridian:
             fitted = meridian["channels"][name]
             estimate = {
@@ -148,6 +154,7 @@ def generate_mmm_dataset():
                     "peakIROAS": round(band["peakIroas"], 4),
                 },
                 "breakEvenMonthlySpend": round(breakeven) if breakeven else None,
+                "observedMaxMonthlySpend": round(observed_max) if observed_max else None,
                 "signal": signal,
                 "reason": reason,
             }
@@ -233,6 +240,8 @@ def generate_mmm_dataset():
             "grain": "Channel × Day",
             "daysPerMonth": DAYS_PER_MONTH,
             "efficientRangeShare": EFFICIENT_RANGE_SHARE,
+            "planningCapMonthly": PLANNING_CAP_MONTHLY,
+            "guardrailPct": GUARDRAIL_PCT,
             "smallChannelShare": SMALL_CHANNEL_SHARE,
             "responseCurve": "Monthly Hill curve fitted to the Meridian response curve: incremental = m × s^alpha / (s^alpha + k^alpha)",
         },

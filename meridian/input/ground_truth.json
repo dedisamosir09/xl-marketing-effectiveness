@@ -24,51 +24,949 @@
       "Google": {
         "halfLifeDays": 4.2,
         "windowSpend": 9114205167,
-        "windowIncremental": 14045617302,
-        "roi": 1.5411,
+        "windowIncremental": 16366145695,
+        "roi": 1.7957,
         "masterCurve": {
-          "alpha": 2.2,
-          "k": 1288654694.4894083,
-          "m": 4261476624.7715645
+          "alpha": 1.5,
+          "k": 8827537249.995157,
+          "m": 37118599622.05127
         }
       },
       "Meta": {
         "halfLifeDays": 7.8,
         "windowSpend": 4484782778,
-        "windowIncremental": 8661037241,
-        "roi": 1.9312,
+        "windowIncremental": 11590969090,
+        "roi": 2.5845,
         "masterCurve": {
-          "alpha": 2.0,
-          "k": 1300000000.0,
-          "m": 5282834649.357249
+          "alpha": 1.5,
+          "k": 3328780005.977314,
+          "m": 18532693624.005146
         }
       },
       "TikTok": {
         "halfLifeDays": 6.4,
         "windowSpend": 5035549862,
-        "windowIncremental": 6739951799,
-        "roi": 1.3385,
+        "windowIncremental": 7053968628,
+        "roi": 1.4008,
         "masterCurve": {
-          "alpha": 2.0,
-          "k": 1050000000.0,
-          "m": 2837445105.9945655
+          "alpha": 1.5,
+          "k": 4974914896.868337,
+          "m": 16381219426.817095
         }
       },
       "X": {
         "halfLifeDays": 3.1,
         "windowSpend": 309432511,
-        "windowIncremental": 483917947,
-        "roi": 1.5639,
+        "windowIncremental": 666888352,
+        "roi": 2.1552,
         "masterCurve": {
-          "alpha": 1.8,
-          "k": 135837644.532818,
-          "m": 489180785.41506785
+          "alpha": 1.5,
+          "k": 268270777.7826257,
+          "m": 1327101668.6419704
         }
       }
     },
     "controlEffects": {
       "promo_index": 0.08,
       "competitor_promo": -0.05
-    }
+    },
+    "geoTests": [
+      {
+        "channel": "Google",
+        "geo": "Medan",
+        "firstWeek": "2024-09-06",
+        "weeks": 6,
+        "level": 0.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Medan",
+        "firstWeek": "2024-11-01",
+        "weeks": 6,
+        "level": 2.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Medan",
+        "firstWeek": "2024-12-27",
+        "weeks": 6,
+        "level": 4.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Medan",
+        "firstWeek": "2025-02-21",
+        "weeks": 6,
+        "level": 7.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Medan",
+        "firstWeek": "2025-04-18",
+        "weeks": 6,
+        "level": 1.5
+      },
+      {
+        "channel": "Google",
+        "geo": "Medan",
+        "firstWeek": "2025-06-13",
+        "weeks": 6,
+        "level": 5.5
+      },
+      {
+        "channel": "Google",
+        "geo": "Medan",
+        "firstWeek": "2025-08-08",
+        "weeks": 6,
+        "level": 3.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Medan",
+        "firstWeek": "2025-10-03",
+        "weeks": 6,
+        "level": 6.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Palembang",
+        "firstWeek": "2024-09-06",
+        "weeks": 6,
+        "level": 4.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Palembang",
+        "firstWeek": "2024-11-01",
+        "weeks": 6,
+        "level": 7.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Palembang",
+        "firstWeek": "2024-12-27",
+        "weeks": 6,
+        "level": 1.5
+      },
+      {
+        "channel": "Google",
+        "geo": "Palembang",
+        "firstWeek": "2025-02-21",
+        "weeks": 6,
+        "level": 5.5
+      },
+      {
+        "channel": "Google",
+        "geo": "Palembang",
+        "firstWeek": "2025-04-18",
+        "weeks": 6,
+        "level": 3.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Palembang",
+        "firstWeek": "2025-06-13",
+        "weeks": 6,
+        "level": 6.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Palembang",
+        "firstWeek": "2025-08-08",
+        "weeks": 6,
+        "level": 0.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Palembang",
+        "firstWeek": "2025-10-03",
+        "weeks": 6,
+        "level": 2.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Pekanbaru",
+        "firstWeek": "2024-09-06",
+        "weeks": 6,
+        "level": 1.5
+      },
+      {
+        "channel": "Google",
+        "geo": "Pekanbaru",
+        "firstWeek": "2024-11-01",
+        "weeks": 6,
+        "level": 5.5
+      },
+      {
+        "channel": "Google",
+        "geo": "Pekanbaru",
+        "firstWeek": "2024-12-27",
+        "weeks": 6,
+        "level": 3.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Pekanbaru",
+        "firstWeek": "2025-02-21",
+        "weeks": 6,
+        "level": 6.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Pekanbaru",
+        "firstWeek": "2025-04-18",
+        "weeks": 6,
+        "level": 0.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Pekanbaru",
+        "firstWeek": "2025-06-13",
+        "weeks": 6,
+        "level": 2.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Pekanbaru",
+        "firstWeek": "2025-08-08",
+        "weeks": 6,
+        "level": 4.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Pekanbaru",
+        "firstWeek": "2025-10-03",
+        "weeks": 6,
+        "level": 7.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Denpasar",
+        "firstWeek": "2024-09-06",
+        "weeks": 6,
+        "level": 3.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Denpasar",
+        "firstWeek": "2024-11-01",
+        "weeks": 6,
+        "level": 6.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Denpasar",
+        "firstWeek": "2024-12-27",
+        "weeks": 6,
+        "level": 0.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Denpasar",
+        "firstWeek": "2025-02-21",
+        "weeks": 6,
+        "level": 2.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Denpasar",
+        "firstWeek": "2025-04-18",
+        "weeks": 6,
+        "level": 4.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Denpasar",
+        "firstWeek": "2025-06-13",
+        "weeks": 6,
+        "level": 7.0
+      },
+      {
+        "channel": "Google",
+        "geo": "Denpasar",
+        "firstWeek": "2025-08-08",
+        "weeks": 6,
+        "level": 1.5
+      },
+      {
+        "channel": "Google",
+        "geo": "Denpasar",
+        "firstWeek": "2025-10-03",
+        "weeks": 6,
+        "level": 5.5
+      },
+      {
+        "channel": "Meta",
+        "geo": "Bekasi",
+        "firstWeek": "2024-09-06",
+        "weeks": 6,
+        "level": 2.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Bekasi",
+        "firstWeek": "2024-11-01",
+        "weeks": 6,
+        "level": 4.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Bekasi",
+        "firstWeek": "2024-12-27",
+        "weeks": 6,
+        "level": 7.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Bekasi",
+        "firstWeek": "2025-02-21",
+        "weeks": 6,
+        "level": 1.5
+      },
+      {
+        "channel": "Meta",
+        "geo": "Bekasi",
+        "firstWeek": "2025-04-18",
+        "weeks": 6,
+        "level": 5.5
+      },
+      {
+        "channel": "Meta",
+        "geo": "Bekasi",
+        "firstWeek": "2025-06-13",
+        "weeks": 6,
+        "level": 3.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Bekasi",
+        "firstWeek": "2025-08-08",
+        "weeks": 6,
+        "level": 6.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Bekasi",
+        "firstWeek": "2025-10-03",
+        "weeks": 6,
+        "level": 0.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Semarang",
+        "firstWeek": "2024-09-06",
+        "weeks": 6,
+        "level": 7.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Semarang",
+        "firstWeek": "2024-11-01",
+        "weeks": 6,
+        "level": 1.5
+      },
+      {
+        "channel": "Meta",
+        "geo": "Semarang",
+        "firstWeek": "2024-12-27",
+        "weeks": 6,
+        "level": 5.5
+      },
+      {
+        "channel": "Meta",
+        "geo": "Semarang",
+        "firstWeek": "2025-02-21",
+        "weeks": 6,
+        "level": 3.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Semarang",
+        "firstWeek": "2025-04-18",
+        "weeks": 6,
+        "level": 6.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Semarang",
+        "firstWeek": "2025-06-13",
+        "weeks": 6,
+        "level": 0.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Semarang",
+        "firstWeek": "2025-08-08",
+        "weeks": 6,
+        "level": 2.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Semarang",
+        "firstWeek": "2025-10-03",
+        "weeks": 6,
+        "level": 4.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Bogor",
+        "firstWeek": "2024-09-06",
+        "weeks": 6,
+        "level": 5.5
+      },
+      {
+        "channel": "Meta",
+        "geo": "Bogor",
+        "firstWeek": "2024-11-01",
+        "weeks": 6,
+        "level": 3.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Bogor",
+        "firstWeek": "2024-12-27",
+        "weeks": 6,
+        "level": 6.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Bogor",
+        "firstWeek": "2025-02-21",
+        "weeks": 6,
+        "level": 0.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Bogor",
+        "firstWeek": "2025-04-18",
+        "weeks": 6,
+        "level": 2.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Bogor",
+        "firstWeek": "2025-06-13",
+        "weeks": 6,
+        "level": 4.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Bogor",
+        "firstWeek": "2025-08-08",
+        "weeks": 6,
+        "level": 7.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Bogor",
+        "firstWeek": "2025-10-03",
+        "weeks": 6,
+        "level": 1.5
+      },
+      {
+        "channel": "Meta",
+        "geo": "Malang",
+        "firstWeek": "2024-09-06",
+        "weeks": 6,
+        "level": 6.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Malang",
+        "firstWeek": "2024-11-01",
+        "weeks": 6,
+        "level": 0.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Malang",
+        "firstWeek": "2024-12-27",
+        "weeks": 6,
+        "level": 2.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Malang",
+        "firstWeek": "2025-02-21",
+        "weeks": 6,
+        "level": 4.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Malang",
+        "firstWeek": "2025-04-18",
+        "weeks": 6,
+        "level": 7.0
+      },
+      {
+        "channel": "Meta",
+        "geo": "Malang",
+        "firstWeek": "2025-06-13",
+        "weeks": 6,
+        "level": 1.5
+      },
+      {
+        "channel": "Meta",
+        "geo": "Malang",
+        "firstWeek": "2025-08-08",
+        "weeks": 6,
+        "level": 5.5
+      },
+      {
+        "channel": "Meta",
+        "geo": "Malang",
+        "firstWeek": "2025-10-03",
+        "weeks": 6,
+        "level": 3.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Depok",
+        "firstWeek": "2024-09-06",
+        "weeks": 6,
+        "level": 4.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Depok",
+        "firstWeek": "2024-11-01",
+        "weeks": 6,
+        "level": 7.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Depok",
+        "firstWeek": "2024-12-27",
+        "weeks": 6,
+        "level": 1.5
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Depok",
+        "firstWeek": "2025-02-21",
+        "weeks": 6,
+        "level": 5.5
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Depok",
+        "firstWeek": "2025-04-18",
+        "weeks": 6,
+        "level": 3.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Depok",
+        "firstWeek": "2025-06-13",
+        "weeks": 6,
+        "level": 6.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Depok",
+        "firstWeek": "2025-08-08",
+        "weeks": 6,
+        "level": 0.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Depok",
+        "firstWeek": "2025-10-03",
+        "weeks": 6,
+        "level": 2.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Makassar",
+        "firstWeek": "2024-09-06",
+        "weeks": 6,
+        "level": 1.5
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Makassar",
+        "firstWeek": "2024-11-01",
+        "weeks": 6,
+        "level": 5.5
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Makassar",
+        "firstWeek": "2024-12-27",
+        "weeks": 6,
+        "level": 3.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Makassar",
+        "firstWeek": "2025-02-21",
+        "weeks": 6,
+        "level": 6.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Makassar",
+        "firstWeek": "2025-04-18",
+        "weeks": 6,
+        "level": 0.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Makassar",
+        "firstWeek": "2025-06-13",
+        "weeks": 6,
+        "level": 2.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Makassar",
+        "firstWeek": "2025-08-08",
+        "weeks": 6,
+        "level": 4.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Makassar",
+        "firstWeek": "2025-10-03",
+        "weeks": 6,
+        "level": 7.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Bandar Lampung",
+        "firstWeek": "2024-09-06",
+        "weeks": 6,
+        "level": 3.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Bandar Lampung",
+        "firstWeek": "2024-11-01",
+        "weeks": 6,
+        "level": 6.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Bandar Lampung",
+        "firstWeek": "2024-12-27",
+        "weeks": 6,
+        "level": 0.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Bandar Lampung",
+        "firstWeek": "2025-02-21",
+        "weeks": 6,
+        "level": 2.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Bandar Lampung",
+        "firstWeek": "2025-04-18",
+        "weeks": 6,
+        "level": 4.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Bandar Lampung",
+        "firstWeek": "2025-06-13",
+        "weeks": 6,
+        "level": 7.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Bandar Lampung",
+        "firstWeek": "2025-08-08",
+        "weeks": 6,
+        "level": 1.5
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Bandar Lampung",
+        "firstWeek": "2025-10-03",
+        "weeks": 6,
+        "level": 5.5
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Samarinda",
+        "firstWeek": "2024-09-06",
+        "weeks": 6,
+        "level": 0.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Samarinda",
+        "firstWeek": "2024-11-01",
+        "weeks": 6,
+        "level": 2.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Samarinda",
+        "firstWeek": "2024-12-27",
+        "weeks": 6,
+        "level": 4.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Samarinda",
+        "firstWeek": "2025-02-21",
+        "weeks": 6,
+        "level": 7.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Samarinda",
+        "firstWeek": "2025-04-18",
+        "weeks": 6,
+        "level": 1.5
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Samarinda",
+        "firstWeek": "2025-06-13",
+        "weeks": 6,
+        "level": 5.5
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Samarinda",
+        "firstWeek": "2025-08-08",
+        "weeks": 6,
+        "level": 3.0
+      },
+      {
+        "channel": "TikTok",
+        "geo": "Samarinda",
+        "firstWeek": "2025-10-03",
+        "weeks": 6,
+        "level": 6.0
+      },
+      {
+        "channel": "X",
+        "geo": "Tangerang",
+        "firstWeek": "2024-09-06",
+        "weeks": 6,
+        "level": 7.0
+      },
+      {
+        "channel": "X",
+        "geo": "Tangerang",
+        "firstWeek": "2024-11-01",
+        "weeks": 6,
+        "level": 1.5
+      },
+      {
+        "channel": "X",
+        "geo": "Tangerang",
+        "firstWeek": "2024-12-27",
+        "weeks": 6,
+        "level": 5.5
+      },
+      {
+        "channel": "X",
+        "geo": "Tangerang",
+        "firstWeek": "2025-02-21",
+        "weeks": 6,
+        "level": 3.0
+      },
+      {
+        "channel": "X",
+        "geo": "Tangerang",
+        "firstWeek": "2025-04-18",
+        "weeks": 6,
+        "level": 6.0
+      },
+      {
+        "channel": "X",
+        "geo": "Tangerang",
+        "firstWeek": "2025-06-13",
+        "weeks": 6,
+        "level": 0.0
+      },
+      {
+        "channel": "X",
+        "geo": "Tangerang",
+        "firstWeek": "2025-08-08",
+        "weeks": 6,
+        "level": 2.0
+      },
+      {
+        "channel": "X",
+        "geo": "Tangerang",
+        "firstWeek": "2025-10-03",
+        "weeks": 6,
+        "level": 4.0
+      },
+      {
+        "channel": "X",
+        "geo": "Batam",
+        "firstWeek": "2024-09-06",
+        "weeks": 6,
+        "level": 5.5
+      },
+      {
+        "channel": "X",
+        "geo": "Batam",
+        "firstWeek": "2024-11-01",
+        "weeks": 6,
+        "level": 3.0
+      },
+      {
+        "channel": "X",
+        "geo": "Batam",
+        "firstWeek": "2024-12-27",
+        "weeks": 6,
+        "level": 6.0
+      },
+      {
+        "channel": "X",
+        "geo": "Batam",
+        "firstWeek": "2025-02-21",
+        "weeks": 6,
+        "level": 0.0
+      },
+      {
+        "channel": "X",
+        "geo": "Batam",
+        "firstWeek": "2025-04-18",
+        "weeks": 6,
+        "level": 2.0
+      },
+      {
+        "channel": "X",
+        "geo": "Batam",
+        "firstWeek": "2025-06-13",
+        "weeks": 6,
+        "level": 4.0
+      },
+      {
+        "channel": "X",
+        "geo": "Batam",
+        "firstWeek": "2025-08-08",
+        "weeks": 6,
+        "level": 7.0
+      },
+      {
+        "channel": "X",
+        "geo": "Batam",
+        "firstWeek": "2025-10-03",
+        "weeks": 6,
+        "level": 1.5
+      },
+      {
+        "channel": "X",
+        "geo": "Padang",
+        "firstWeek": "2024-09-06",
+        "weeks": 6,
+        "level": 6.0
+      },
+      {
+        "channel": "X",
+        "geo": "Padang",
+        "firstWeek": "2024-11-01",
+        "weeks": 6,
+        "level": 0.0
+      },
+      {
+        "channel": "X",
+        "geo": "Padang",
+        "firstWeek": "2024-12-27",
+        "weeks": 6,
+        "level": 2.0
+      },
+      {
+        "channel": "X",
+        "geo": "Padang",
+        "firstWeek": "2025-02-21",
+        "weeks": 6,
+        "level": 4.0
+      },
+      {
+        "channel": "X",
+        "geo": "Padang",
+        "firstWeek": "2025-04-18",
+        "weeks": 6,
+        "level": 7.0
+      },
+      {
+        "channel": "X",
+        "geo": "Padang",
+        "firstWeek": "2025-06-13",
+        "weeks": 6,
+        "level": 1.5
+      },
+      {
+        "channel": "X",
+        "geo": "Padang",
+        "firstWeek": "2025-08-08",
+        "weeks": 6,
+        "level": 5.5
+      },
+      {
+        "channel": "X",
+        "geo": "Padang",
+        "firstWeek": "2025-10-03",
+        "weeks": 6,
+        "level": 3.0
+      },
+      {
+        "channel": "X",
+        "geo": "Tasikmalaya",
+        "firstWeek": "2024-09-06",
+        "weeks": 6,
+        "level": 2.0
+      },
+      {
+        "channel": "X",
+        "geo": "Tasikmalaya",
+        "firstWeek": "2024-11-01",
+        "weeks": 6,
+        "level": 4.0
+      },
+      {
+        "channel": "X",
+        "geo": "Tasikmalaya",
+        "firstWeek": "2024-12-27",
+        "weeks": 6,
+        "level": 7.0
+      },
+      {
+        "channel": "X",
+        "geo": "Tasikmalaya",
+        "firstWeek": "2025-02-21",
+        "weeks": 6,
+        "level": 1.5
+      },
+      {
+        "channel": "X",
+        "geo": "Tasikmalaya",
+        "firstWeek": "2025-04-18",
+        "weeks": 6,
+        "level": 5.5
+      },
+      {
+        "channel": "X",
+        "geo": "Tasikmalaya",
+        "firstWeek": "2025-06-13",
+        "weeks": 6,
+        "level": 3.0
+      },
+      {
+        "channel": "X",
+        "geo": "Tasikmalaya",
+        "firstWeek": "2025-08-08",
+        "weeks": 6,
+        "level": 6.0
+      },
+      {
+        "channel": "X",
+        "geo": "Tasikmalaya",
+        "firstWeek": "2025-10-03",
+        "weeks": 6,
+        "level": 0.0
+      }
+    ]
   }
 }

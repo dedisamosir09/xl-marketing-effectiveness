@@ -53,3 +53,29 @@
   - +10% incremental revenue needs a +1.9% budget.
   - Same budget with the optimal mix: incremental revenue +8.8%, ROAS 1.71x → 1.86x.
   - The app planner gives a +9.1% gain with the same allocation as Meridian's optimizer.
+
+## v0.5.0 — Planning range up to Rp100B per month
+
+- **Demo curves recalibrated** (`app/data/master.py`): every channel's break-even (next Rp1 returns Rp1) now sits ~60x above its current monthly spend in the ground truth, so the planner never pushes a channel past break-even for total budgets up to Rp100B per month. iROAS at current: Google 1.8x, Meta 2.6x, TikTok 1.4x, X 2.2x (all below observed ROAS).
+- **Training data**: synthetic flights no longer coincide with Ramadan, so the model separates media from seasonality (TikTok is now recovered within its interval).
+- **Meridian refit** with saturation priors (Hill EC median 37x typical spend, slope median 1.3): R-hat 1.05, national R² 0.985. Estimated break-even: Google 38x, Meta 61x, TikTok 44x, X 74x current spend.
+- **Scenarios** use dynamic programming on Meridian's response grid. Same budget, optimal mix: incremental +15.6% (ROAS 1.99x → 2.30x). Budget −10% with optimal mix: incremental +3.3%. Same incremental with −11.5% budget. +10% incremental with −5.4% budget.
+- **Planner check**: budgets from Rp1B to Rp100B per month give no channel past break-even (validation and tests check break-even ≥ 25x current).
+- **UI**: Saved Scenario per-channel detail (hidden by default), break-even line and loss zone on curves, pause recovery window, calculation table, full-height Streamlit frame, MMM signal labels removed.
+
+## v0.5.1 — Meridian-style guardrails
+
+- **Guardrails follow Meridian's spend-constraint rule**: each channel stays within (1 − 30%) to (1 + 60%) × new budget × its historical share. Before, the limits were fixed around current spend, so budgets above ~Rp6.6B/month could not be optimized and fell back to an equal % change.
+- **Planner**: every available budget from Rp0 to Rp100B/month is optimized and spent in full. The "Allowed range / month" column updates with the scenario budget. Locked channels keep their reference spend; the rest share the remaining budget. Target KPI mode searches budgets up to Rp100B/month.
+- **Scenarios** re-run with the same rule (Meridian grid widened to 0–260% of current spend): same incremental with −10.9% budget; budget −10% with optimal mix gives incremental +1.3%; +10% incremental needs −3.9% budget; same budget optimal mix +15.6% (ROAS 1.99x → 2.30x). Because the floor follows the smaller budget, a channel can drop more than 30% vs current when the total budget is cut (e.g. Google −37% at budget −10%).
+
+## v0.6.0 — Rp0–10B planning range, fully estimated from data
+
+- **Planning range Rp0–10B per month** with **Meridian's default guardrails** (±30% of each channel's share of the budget). At Rp10B a channel reaches at most ~3.2x its current spend. Budgets above Rp10B are capped with a note.
+- **Training data cover the planning range**: geo tests in the synthetic history (four mid-size geos per channel, 6-week blocks at 0x to 7x normal per-capita spend). National spend still equals Campaign spend from 14 Nov 2025.
+- **Ground truth recalibrated** (`master.py`): Hill alpha 1.5; iROAS peaks at ~2–3x current spend; break-even at 5.5–6.5x current, inside the data.
+- **Priors**: ROI and adstock use Meridian defaults; weak, documented priors for Hill slope LogNormal(0.2, 0.4) and EC LogNormal(1.0, 0.7). Saturation is learned from the data: Meridian's half-saturation is within 7% of the truth for Google, Meta and TikTok, and break-even within 14%.
+- **Fit**: max R-hat 1.08, national R² 0.978. ROI: Google 1.61x (truth 1.80), Meta 3.02x (2.58), TikTok 1.69x (1.40), X 1.19x (2.16, wide interval 0.39–2.77; X is 1.6% of budget and labelled Test & learn).
+- **Diminishing-return charts** show the curve up to break-even and shade spend levels beyond the model data ("Beyond model data").
+- **Scenarios** (Meridian default ±30%): same incremental with −4.3% budget; budget −10% → incremental −7.2% (same mix −12.7%); +10% incremental needs +3.5% budget; same budget optimal mix +5.6% (ROAS 1.97x → 2.08x); Rp9.9B (+140%) → incremental +175%.
+- **Validation** (72 checks): planner spend at Rp10B stays inside the data and below Meridian break-even for every channel; half-saturation and break-even recovered within 25% of ground truth; new "Data coverage" tab in the workbook.

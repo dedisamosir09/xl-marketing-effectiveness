@@ -107,12 +107,12 @@ class DashboardRendererTest(unittest.TestCase):
         script = Path("app/static/js/mmm.js").read_text(encoding="utf-8")
         for snippet in ("function optimize(", "function proportional(", "function buildCurves(",
                         "Invest more", "Test & learn", "Revenue lost after restart",
-                        "Equal % change (outside guardrails)", "Past break-even",
+                        "function guardrailBounds(budget)", "Past break-even",
                         "xl-mmm-saved-scenarios-v3", "function poolReference(", "mmm-saved-table",
                         "Reference budget / month", "Not in pool"):
             self.assertIn(snippet, script)
         for removed in ("Channel breakdown", "Current reference", "channelInsight", "renderChannelMatrix", "renderDecomposition", "renderModelMetrics", "allocateRemaining",
-                        "Minimum iROAS", "Manual mix", "state.manual"):
+                        "Minimum iROAS", "Manual mix", "state.manual", "Equal % change (outside guardrails)"):
             self.assertNotIn(removed, script)
 
     def test_mmm_dataset_is_derived_from_campaign_spend(self):
@@ -126,7 +126,10 @@ class DashboardRendererTest(unittest.TestCase):
         signals = {channel["name"]: channel["signal"] for channel in dataset["channels"]}
         self.assertTrue(set(signals.values()) <= {"Invest more", "Hold", "Reduce", "Test & learn"})
         self.assertEqual(signals["X"], "Test & learn")  # small spend base
-        self.assertEqual(signals["Google"], "Reduce")  # above its efficient range in master truth and Meridian fit
+        for channel in dataset["channels"]:
+            # Planning range Rp0-10B/month, Meridian default +/-30% guardrails: no channel reaches break-even.
+            planner_max = dataset["meta"]["planningCapMonthly"] / sum(c["currentMonthlySpend"] for c in dataset["channels"]) * 1.3
+            self.assertGreater(channel["breakEvenMonthlySpend"], channel["currentMonthlySpend"] * planner_max)
         for channel in dataset["channels"]:
             self.assertLess(channel["incrementalShare"], 1)
             self.assertLess(channel["efficientRange"]["low"], channel["efficientRange"]["high"])
