@@ -589,7 +589,7 @@
     }
     return `<article class="mmm-panel mmm-dr-card" data-dr-channel="${channel.name}">
       <header><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${channel.color}"></i>${channel.name}</span></header>
-      <p class="mmm-dr-card-copy">${bound && bound.selected && !bound.locked ? `Allowed range <strong>${rp(bound.floor)}-${rp(bound.ceil)}</strong>/month at ${rp(scenario.budget)} budget · ` : bound && bound.locked ? "Locked at reference budget · " : ""}peak iROAS ${ratio(channel.band.peakIroas)} at ${rp(channel.band.peakSpend)} · ${channel.band.peakIroas < 1 ? '<em class="mmm-not-in-pool">iROAS below 1x at any budget</em>' : `break-even <strong>${channel.breakEven ? rp(channel.breakEven) : "-"}</strong>`} · mROI now <strong class="${channel.mroi < 1 ? "mmm-loss" : "mmm-gain"}">${ratio(channel.mroi)}</strong>${plan && !plan.inPool ? ' · <em class="mmm-not-in-pool">not in scenario pool</em>' : ""}</p>
+      <p class="mmm-dr-card-copy">${bound && bound.selected && !bound.locked ? `Allowed range <strong>${rp(bound.floor)} - ${rp(bound.ceil)}</strong>/month at ${rp(scenario.budget)} budget · ` : bound && bound.locked ? "Locked at reference budget · " : ""}peak iROAS ${ratio(channel.band.peakIroas)} at ${rp(channel.band.peakSpend)} · ${channel.band.peakIroas < 1 ? '<em class="mmm-not-in-pool">iROAS below 1x at any budget</em>' : `break-even <strong>${channel.breakEven ? rp(channel.breakEven) : "-"}</strong>`} · mROI now <strong class="${channel.mroi < 1 ? "mmm-loss" : "mmm-gain"}">${ratio(channel.mroi)}</strong>${plan && !plan.inPool ? ' · <em class="mmm-not-in-pool">not in scenario pool</em>' : ""}</p>
       <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${channel.name} incremental revenue and iROAS by monthly budget" data-dr-svg="${channel.name}" data-xmax="${xMax}" data-ymax="${yMax}">
         ${lossZone}${beyondData}${box}${grid}${xTicks}
         <path d="${incrPath}" class="dr-incr" style="stroke:${channel.color}"/>
@@ -715,7 +715,7 @@
     reference.channels.forEach((channel) => {
       const cell = el.channels.querySelector(`[data-allowed-range="${channel.name}"]`);
       const bound = s.bounds[channel.name];
-      if (cell) cell.textContent = !bound.selected ? "-" : bound.locked ? "Locked" : `${rp(bound.floor)}-${rp(bound.ceil)}`;
+      if (cell) cell.textContent = !bound.selected ? "-" : bound.locked ? "Locked" : `${rp(bound.floor)} - ${rp(bound.ceil)}`;
     });
     const total = el.channels.querySelector('[data-allowed-range="__total"]');
     if (total) total.textContent = `at ${rp(s.budget)} budget`;
@@ -772,16 +772,11 @@
     ];
     el.kpis.innerHTML = cards.map(([label, value, note, cls]) => `<div class="mmm-kpi ${cls}"><span>${label}</span><strong>${value}</strong><small>${note}</small></div>`).join("");
 
-    // Scenario cell: the allowed range as a band (same numbers as the setup table), the reference as a
-    // tick and the scenario as a dot, on each channel's own scale.
+    // Scenario cell: the recommended budget, with the allowed range (same numbers as the setup table) under it.
     const rangeBar = (plan) => {
       const bound = s.bounds[plan.name];
       if (!plan.inPool || !bound) return `<strong class="mmm-bar-value">-</strong>`;
-      const max = Math.max(bound.ceil, plan.monthly, plan.scenario, 1) * 1.08;
-      const at = (v) => `${clamp((v / max) * 100, 0, 100)}%`;
-      const band = bound.locked ? "" : `<span class="band" style="left:${at(bound.floor)};width:${clamp(((bound.ceil - bound.floor) / max) * 100, 0, 100)}%;background:${plan.color}"></span>`;
-      const tip = `Reference ${rp(plan.monthly)} · Allowed range ${bound.locked ? "locked" : `${rp(bound.floor)}-${rp(bound.ceil)}`} · Scenario ${rp(plan.scenario)}`;
-      return `<div class="mmm-range-bar" data-tooltip-text="${escapeHtml(tip)}"><span class="track"></span>${band}<span class="tick" style="left:${at(plan.monthly)}"></span><span class="dot" style="left:${at(plan.scenario)};background:${plan.color}"></span></div><strong class="mmm-bar-value">${rp(plan.scenario)}</strong><small class="mmm-range-note">${bound.locked ? "Locked" : `Allowed ${rp(bound.floor)}-${rp(bound.ceil)}`}</small>`;
+      return `<strong class="mmm-bar-value">${rp(plan.scenario)}</strong><small class="mmm-range-note">${bound.locked ? "Locked" : `Allowed ${rp(bound.floor)} - ${rp(bound.ceil)}`}</small>`;
     };
     el.allocation.innerHTML = s.plans.map((plan) => `<tr class="${plan.inPool ? "" : "excluded"}">
       <td><span class="mmm-channel-name"><i class="mmm-channel-dot" style="background:${plan.color}"></i>${plan.name}</span></td>

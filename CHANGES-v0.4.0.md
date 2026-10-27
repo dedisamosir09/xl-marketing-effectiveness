@@ -108,3 +108,7 @@
 - Start date and Duration sit side by side, End date on its own line (no overlap).
 - Every en dash, minus sign and em dash on all pages replaced by a plain hyphen "-"; signed numbers stay on one line.
 - Menu order: Campaign Performance, Geo Intelligence, MMM, MTA.
+
+## v0.6.5 - Scenario cell as numbers
+
+- Scenario result: the Scenario / month cell shows only the recommended budget and "Allowed Rp... - Rp..." under it; the band / tick / dot visual and its help cursor are removed. Ranges use a spaced hyphen ("Rp1.39B - Rp2.57B") in the setup table and section 02 too.
