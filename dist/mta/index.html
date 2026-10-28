@@ -112,32 +112,37 @@
       <div>
         <p class="mta-kicker">Observed customer flow</p>
         <h2 id="journey-explorer-title">End-to-End User Journey Explorer</h2>
-        <p data-journey-description>Explore how marketing touchpoints connect with app behavior and outcomes.</p>
-      </div>
-      <div class="journey-control-stack">
-        <div class="mta-segmented" role="tablist" aria-label="Journey type">
-          <button type="button" data-journey-type="marketing">Marketing to App</button>
-          <button type="button" data-journey-type="app">In-App Journey</button>
-          <button type="button" class="active" data-journey-type="endToEnd">End-to-End</button>
-        </div>
-        <div class="mta-segmented secondary" role="tablist" aria-label="Journey visualization">
-          <button type="button" class="active" data-journey-view="sankey">Sankey</button>
-          <button type="button" data-journey-view="paths">Top Paths</button>
-          <button type="button" data-journey-view="funnel">Journey Funnel</button>
-        </div>
+        <p>From the ad that brought the user in, to what they did inside MyXL, to the result.</p>
       </div>
     </div>
-    <div class="journey-selection-row">
-      <div class="journey-legend" data-journey-legend>
-        <span><i class="google"></i>Google</span>
-        <span><i class="meta"></i>Meta</span>
-        <span><i class="tiktok"></i>TikTok</span>
-        <span><i class="x"></i>X</span>
-        <span><i class="app"></i>App event</span>
+    <p class="journey-note">Tracking starts when a user arrives from an ad. Ad views without an app visit are in Campaign Performance.</p>
+    <div class="journey-visual" data-journey-visual>
+      <div class="journey-block">
+        <div class="journey-block-head">
+          <h3>1 · Journey funnel</h3>
+          <p>How many users continue at each step, and where they drop.</p>
+        </div>
+        <div class="journey-funnel-grid" data-journey-funnel></div>
       </div>
-      <button class="mta-clear-selection" type="button" data-clear-journey hidden>Clear journey selection</button>
+      <div class="journey-block">
+        <div class="journey-block-head">
+          <h3>2 · Full journey flow</h3>
+          <p>Click any step to filter the whole dashboard.</p>
+        </div>
+        <div class="journey-selection-row">
+          <div class="journey-legend" data-journey-legend></div>
+          <button class="mta-clear-selection" type="button" data-clear-journey hidden>Clear journey selection</button>
+        </div>
+        <div data-journey-sankey></div>
+      </div>
+      <div class="journey-block">
+        <div class="journey-block-head">
+          <h3>3 · Most common journeys</h3>
+          <p>Click a journey to filter the whole dashboard.</p>
+        </div>
+        <div data-journey-paths></div>
+      </div>
     </div>
-    <div class="journey-visual" data-journey-visual></div>
   </section>
 
   <div class="mta-two-column journey-health-grid">

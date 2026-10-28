@@ -23,22 +23,28 @@
     { key: "placement", label: "Placement", all: "All placements", field: "placement" },
     { key: "campaign", label: "Campaign", all: "All campaigns", field: "campaign" },
   ];
-  const JOURNEY_META = {
-    marketing: {
-      field: "marketingPath",
-      title: "Marketing to App",
-      description: "Follow observed channel sequences into the first recorded app entry.",
-    },
-    app: {
-      field: "appPath",
-      title: "In-App Journey",
-      description: "Inspect how users move from app entry through discovery, intent, and outcome.",
-    },
-    endToEnd: {
-      field: "endToEndPath",
-      title: "End-to-End",
-      description: "Connect marketing exposure with app behavior and the recorded conversion outcome.",
-    },
+  // One journey, shown in common MyXL marketing terms. Stage columns of the flow chart.
+  const JOURNEY_STAGES = ["First ad", "Last ad", "Arrive", "Browse", "Find package", "Result"];
+  const STEP_LABELS = {
+    "Deep Link": "Deep link",
+    "App Open": "Opened MyXL",
+    "App Install": "Installed MyXL",
+    "App Store": "App Store",
+    "Promo View": "Promo page",
+    "Promo Banner": "Promo banner",
+    "Package List": "Package list",
+    "Package Detail": "Package detail",
+    "Payment Success": "Bought package",
+    "Recharge Success": "Recharged",
+    "First Open": "Installed & opened",
+    "Payment Failed": "Payment failed",
+    "Exit": "Left without buying",
+    "Install Abandoned": "Install abandoned",
+  };
+  const EVENT_JOURNEYS = {
+    "Package Purchase": { title: "Package purchase", result: "Bought package" },
+    Recharge: { title: "Recharge", result: "Recharged" },
+    "App Install": { title: "App install", result: "Installed & opened" },
   };
 
   const state = {
@@ -57,10 +63,9 @@
     userType: "All",
     lookback: "30",
     targetEvent: "Package Purchase",
-    journeyType: "endToEnd",
-    journeyView: "sankey",
     pathNode: null,
     pathFilter: null,
+    pathPage: 1,
     search: "",
     page: 1,
   };
@@ -69,9 +74,11 @@
     status: root.querySelector("[data-mta-status]"),
     scorecards: root.querySelector("[data-mta-scorecards]"),
     chips: root.querySelector("[data-mta-filter-chips]"),
-    journeyDescription: root.querySelector("[data-journey-description]"),
     journeyLegend: root.querySelector("[data-journey-legend]"),
     journeyVisual: root.querySelector("[data-journey-visual]"),
+    journeyFunnel: root.querySelector("[data-journey-funnel]"),
+    journeySankey: root.querySelector("[data-journey-sankey]"),
+    journeyPaths: root.querySelector("[data-journey-paths]"),
     clearJourney: root.querySelector("[data-clear-journey]"),
     touchpointHealth: root.querySelector("[data-touchpoint-health]"),
     timeHealth: root.querySelector("[data-time-health]"),
@@ -231,11 +238,36 @@
     return `${formatCount(conversions)} observed ${profile.outcomeNoun}`;
   }
 
-  function pathFor(row) {
-    const path = row[JOURNEY_META[state.journeyType].field] || [];
-    const selectedChannel = state.filters.channel;
-    if (selectedChannel === "All" || state.journeyType === "app") return path;
-    return path.filter((node) => !CHANNELS.includes(node) || node === selectedChannel);
+  const stepLabel = (name) => STEP_LABELS[name] || name;
+
+  // Split the recorded path into: ads seen, how the user arrived, what they browsed, package viewed, result.
+  function journeyParts(row) {
+    const rest = (row.endToEndPath || []).slice((row.channels || []).length);
+    const result = stepLabel(rest[rest.length - 1] || "");
+    if (row.targetEvent === "App Install") return { arrive: "App Store", browse: null, view: null, result };
+    return {
+      arrive: stepLabel(rest[0] || ""),
+      browse: rest.length > 2 ? stepLabel(rest[1]) : null,
+      view: rest.length > 3 ? stepLabel(rest[2]) : null,
+      result,
+    };
+  }
+
+  // Flow-chart nodes, each fixed to its stage column.
+  function stageNodes(row) {
+    const channels = row.channels || [];
+    const parts = journeyParts(row);
+    const nodes = [[0, channels[0]], [1, channels[channels.length - 1]], [2, parts.arrive]];
+    if (parts.browse) nodes.push([3, parts.browse]);
+    if (parts.view) nodes.push([4, parts.view]);
+    nodes.push([5, parts.result]);
+    return nodes.filter(([, name]) => name);
+  }
+
+  // Full journey: every ad in order, then the in-app steps.
+  function fullPath(row) {
+    const parts = journeyParts(row);
+    return [...(row.channels || []), parts.arrive, parts.browse, parts.view, parts.result].filter(Boolean);
   }
 
   function visibleChannels() {
@@ -279,9 +311,8 @@
       if (state.targetEvent !== "All" && row.targetEvent !== state.targetEvent) return false;
       if (row.durationHours > Number(state.lookback) * 24) return false;
       if (!ignoreJourney) {
-        const path = pathFor(row);
-        if (state.pathNode && !path.includes(state.pathNode)) return false;
-        if (state.pathFilter && path.join(" → ") !== state.pathFilter) return false;
+        if (state.pathNode && !stageNodes(row).some(([, name]) => name === state.pathNode)) return false;
+        if (state.pathFilter && fullPath(row).join(" → ") !== state.pathFilter) return false;
       }
       return true;
     });
@@ -364,8 +395,6 @@
     state.userType = "All";
     state.lookback = "30";
     state.targetEvent = dataset.meta.defaultTargetEvent || "Package Purchase";
-    state.journeyType = "endToEnd";
-    state.journeyView = "sankey";
     state.search = "";
     state.page = 1;
     clearJourneySelection();
@@ -409,23 +438,6 @@
       render();
     });
 
-    root.querySelectorAll("[data-journey-type]").forEach((button) => {
-      button.addEventListener("click", () => {
-        state.journeyType = button.dataset.journeyType;
-        clearJourneySelection();
-        state.page = 1;
-        render();
-      });
-    });
-
-    root.querySelectorAll("[data-journey-view]").forEach((button) => {
-      button.addEventListener("click", () => {
-        state.journeyView = button.dataset.journeyView;
-        renderJourney();
-        updateJourneyTabs();
-      });
-    });
-
     elements.attributionSearch.addEventListener("input", () => {
       state.search = elements.attributionSearch.value.trim().toLowerCase();
       state.page = 1;
@@ -450,6 +462,14 @@
         state.pathFilter = null;
         state.page = 1;
         render();
+        return;
+      }
+      const pageButton = event.target.closest("button[data-path-page]");
+      if (pageButton) {
+        if (!pageButton.disabled) {
+          state.pathPage = Number(pageButton.dataset.pathPage);
+          renderTopPaths();
+        }
         return;
       }
       const path = event.target.closest("[data-path-index]");
@@ -561,30 +581,16 @@
     `).join("");
   }
 
-  function updateJourneyTabs() {
-    root.querySelectorAll("[data-journey-type]").forEach((button) => {
-      button.classList.toggle("active", button.dataset.journeyType === state.journeyType);
-    });
-    root.querySelectorAll("[data-journey-view]").forEach((button) => {
-      button.classList.toggle("active", button.dataset.journeyView === state.journeyView);
-    });
-    const selectedChannel = state.filters.channel;
-    const channelContext = selectedChannel === "All"
-      ? ""
-      : state.journeyType === "app"
-        ? ` Showing in-app journeys assigned to ${selectedChannel} campaigns.`
-        : ` Showing ${selectedChannel} journeys; other channel nodes are hidden in this view.`;
-    elements.journeyDescription.textContent = `${JOURNEY_META[state.journeyType].description}${channelContext}`;
-    const legendChannels = state.journeyType === "app" ? [] : visibleChannels();
-    elements.journeyLegend.innerHTML = `${legendChannels.map((channel) => `<span><i style="background:${CHANNEL_COLORS[channel]}"></i>${channel}</span>`).join("")}<span><i class="app"></i>App event</span>`;
+  function updateJourneyMeta() {
+    elements.journeyLegend.innerHTML = `${CHANNELS.map((channel) => `<span><i style="background:${CHANNEL_COLORS[channel]}"></i>${channel}</span>`).join("")}<span><i class="app"></i>In-app step</span><span><i class="good"></i>Converted</span><span><i class="bad"></i>Dropped</span>`;
     elements.clearJourney.hidden = !(state.pathNode || state.pathFilter);
   }
 
   function nodeColor(name) {
     if (CHANNEL_COLORS[name]) return CHANNEL_COLORS[name];
-    if (/Success|First Open/i.test(name)) return "#1b8c68";
-    if (/Failed|Abandoned|Exit/i.test(name)) return "#c34452";
-    if (/Checkout|Detail|Search/i.test(name)) return "#ec0a68";
+    if (/Bought|Recharged|opened/i.test(name)) return "#1b8c68";
+    if (/failed|abandoned|Left/i.test(name)) return "#c34452";
+    if (/detail|Search/i.test(name)) return "#ec0a68";
     if (/Install|Store/i.test(name)) return "#7a5be2";
     return "#9aa6be";
   }
@@ -593,16 +599,16 @@
     const nodes = new Map();
     const links = new Map();
     source.forEach((row) => {
-      const path = pathFor(row);
-      path.forEach((name, level) => {
+      const path = stageNodes(row);
+      path.forEach(([level, name], index) => {
         const key = `${level}|${name}`;
         if (!nodes.has(key)) nodes.set(key, { key, name, level, journeys: 0, conversions: 0, revenue: 0 });
         const node = nodes.get(key);
         node.journeys += row.journeys;
         node.conversions += row.conversions;
         node.revenue += row.revenue;
-        if (level < path.length - 1) {
-          const targetKey = `${level + 1}|${path[level + 1]}`;
+        if (index < path.length - 1) {
+          const targetKey = `${path[index + 1][0]}|${path[index + 1][1]}`;
           const linkKey = `${key}>>${targetKey}`;
           if (!links.has(linkKey)) links.set(linkKey, { source: key, target: targetKey, journeys: 0, conversions: 0, revenue: 0 });
           const link = links.get(linkKey);
@@ -642,17 +648,21 @@
   }
 
   function renderSankey() {
+    const target = elements.journeySankey;
     if (!currentRows.length) {
-      elements.journeyVisual.innerHTML = '<div class="journey-empty">No observed journeys match the selected filters.</div>';
+      target.innerHTML = '<div class="journey-empty">No observed journeys match the selected filters.</div>';
       return;
     }
     const data = aggregateSankey(currentRows);
-    const width = 1040;
-    const height = 360;
+    const width = 1180;
+    const height = 392;
     const marginX = 28;
-    const marginY = 18;
+    const marginRight = 150;
+    const marginTop = 40;
+    const marginBottom = 14;
     const nodeWidth = 15;
-    const maxLevel = Math.max(...data.nodes.map((node) => node.level), 1);
+    const maxLevel = JOURNEY_STAGES.length - 1;
+    const columnX = (level) => marginX + (width - marginX - marginRight - nodeWidth) * safeDivide(level, maxLevel);
     const byLevel = new Map();
     data.nodes.forEach((node) => {
       if (!byLevel.has(node.level)) byLevel.set(node.level, []);
@@ -662,18 +672,22 @@
     byLevel.forEach((levelNodes, level) => {
       levelNodes.sort((a, b) => b.journeys - a.journeys || a.name.localeCompare(b.name));
       const gap = 10;
-      const available = height - marginY * 2 - gap * Math.max(0, levelNodes.length - 1);
+      const available = height - marginTop - marginBottom - gap * Math.max(0, levelNodes.length - 1);
       const total = levelNodes.reduce((sum, node) => sum + node.journeys, 0) || 1;
-      const rawHeights = levelNodes.map((node) => Math.max(11, available * node.journeys / total));
+      const rawHeights = levelNodes.map((node) => Math.max(24, available * node.journeys / total));
       const scaleDown = Math.min(1, available / rawHeights.reduce((sum, value) => sum + value, 0));
-      let y = marginY;
+      let y = marginTop;
       levelNodes.forEach((node, index) => {
         const nodeHeight = rawHeights[index] * scaleDown;
-        const x = marginX + (width - marginX * 2 - nodeWidth) * safeDivide(level, maxLevel);
-        position.set(node.key, { x, y, height: nodeHeight, node, sourceOffset: 0, targetOffset: 0 });
+        position.set(node.key, { x: columnX(level), y, height: nodeHeight, node, sourceOffset: 0, targetOffset: 0 });
         y += nodeHeight + gap;
       });
     });
+
+    const headerSvg = JOURNEY_STAGES.map((label, level) => {
+      const x = columnX(level);
+      return `<text class="sankey-stage" x="${x}" y="18">${escapeHtml(label)}</text>`;
+    }).join("");
 
     const orderedLinks = [...data.links].sort((a, b) => b.journeys - a.journeys);
     const linkSvg = orderedLinks.map((link) => {
@@ -696,11 +710,10 @@
 
     const nodeSvg = data.nodes.map((node) => {
       const item = position.get(node.key);
-      const anchorRight = item.x > width - 170;
-      const labelX = anchorRight ? item.x - 7 : item.x + nodeWidth + 7;
-      const anchor = anchorRight ? "end" : "start";
+      const labelX = item.x + nodeWidth + 7;
+      const anchor = "start";
       const labelY = item.y + Math.min(item.height / 2, 12);
-      const tooltipHtml = `<strong>${escapeHtml(node.name)}</strong>${formatCount(node.journeys)} journeys · ${formatPercent(safeDivide(node.conversions, node.journeys) * 100)} CVR<br>${formatJourneyValue(node.revenue, node.conversions)}<br>Click to cross-filter the dashboard`;
+      const tooltipHtml = `<strong>${escapeHtml(JOURNEY_STAGES[node.level])}: ${escapeHtml(node.name)}</strong>${formatCount(node.journeys)} journeys · ${formatPercent(safeDivide(node.conversions, node.journeys) * 100)} CVR<br>${formatJourneyValue(node.revenue, node.conversions)}<br>Click to filter the dashboard`;
       return `
         <g class="sankey-node" data-journey-node="${encodeURIComponent(node.name)}" data-tooltip="${encodeURIComponent(tooltipHtml)}">
           <rect x="${item.x}" y="${item.y}" width="${nodeWidth}" height="${Math.max(4, item.height)}" rx="3" fill="${nodeColor(node.name)}"></rect>
@@ -709,14 +722,14 @@
         </g>`;
     }).join("");
 
-    elements.journeyVisual.innerHTML = `<div class="journey-scroll"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Observed ${escapeHtml(JOURNEY_META[state.journeyType].title)} Sankey diagram">${linkSvg}${nodeSvg}</svg></div>`;
+    target.innerHTML = `<div class="journey-scroll"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Full journey flow from first ad to result">${headerSvg}${linkSvg}${nodeSvg}</svg></div>`;
     bindTooltipTargets();
   }
 
   function getTopPaths() {
     const grouped = new Map();
     currentRows.forEach((row) => {
-      const nodes = pathFor(row);
+      const nodes = fullPath(row);
       const path = nodes.join(" → ");
       if (!grouped.has(path)) grouped.set(path, { path, nodes, journeys: 0, conversions: 0, revenue: 0 });
       const item = grouped.get(path);
@@ -724,71 +737,123 @@
       item.conversions += row.conversions;
       item.revenue += row.revenue;
     });
-    return [...grouped.values()].sort((a, b) => b.journeys - a.journeys).slice(0, 12);
+    return [...grouped.values()].sort((a, b) => b.journeys - a.journeys);
   }
+
+  const PATHS_PER_PAGE = 5;
 
   function renderTopPaths() {
     topPathContext = getTopPaths();
     if (!topPathContext.length) {
-      elements.journeyVisual.innerHTML = '<div class="journey-empty">No observed paths match the selected filters.</div>';
+      elements.journeyPaths.innerHTML = '<div class="journey-empty small">No observed journeys match the selected filters.</div>';
       return;
     }
+    const totalPages = Math.max(1, Math.ceil(topPathContext.length / PATHS_PER_PAGE));
+    state.pathPage = Math.min(Math.max(1, state.pathPage), totalPages);
+    const start = (state.pathPage - 1) * PATHS_PER_PAGE;
+    const pageItems = topPathContext.slice(start, start + PATHS_PER_PAGE);
+    const total = summarize(currentRows).journeys;
     const profile = eventMetricProfile();
-    elements.journeyVisual.innerHTML = `<div class="top-path-list">${topPathContext.map((item, index) => `
-      <button class="top-path-row" type="button" data-path-index="${index}">
-        <span class="top-path-nodes">${item.nodes.map((node, nodeIndex) => `${nodeIndex ? '<span class="path-arrow">→</span>' : ""}<span class="path-node">${escapeHtml(node)}</span>`).join("")}</span>
-        <span class="path-stat"><strong>${formatCount(item.journeys)}</strong>Journeys</span>
-        <span class="path-stat"><strong>${formatPercent(safeDivide(item.conversions, item.journeys) * 100)}</strong>CVR</span>
-        <span class="path-stat"><strong>${profile.creditKey === "revenue" ? formatCurrency(item.revenue) : formatCount(item.conversions)}</strong>${profile.pathLabel}</span>
+    const pageButtons = [];
+    pageButtons.push(`<button type="button" data-path-page="${state.pathPage - 1}"${state.pathPage === 1 ? " disabled" : ""} aria-label="Previous page">‹</button>`);
+    const firstPage = Math.max(1, Math.min(state.pathPage - 1, totalPages - 2));
+    for (let page = firstPage; page <= Math.min(totalPages, firstPage + 2); page += 1) {
+      pageButtons.push(`<button type="button" data-path-page="${page}" class="${page === state.pathPage ? "active" : ""}">${page}</button>`);
+    }
+    pageButtons.push(`<button type="button" data-path-page="${state.pathPage + 1}"${state.pathPage === totalPages ? " disabled" : ""} aria-label="Next page">›</button>`);
+    elements.journeyPaths.innerHTML = `<div class="top-path-list">
+      <div class="top-path-head"><span>Journey (ads → in-app steps → result)</span><span>Journeys</span><span>Share</span><span>${escapeHtml(profile.pathLabel)}</span></div>
+      ${pageItems.map((item, offset) => `
+      <button class="top-path-row" type="button" data-path-index="${start + offset}">
+        <span class="top-path-nodes"><span class="path-rank">${start + offset + 1}</span>${item.nodes.map((node, nodeIndex) => `${nodeIndex ? '<span class="path-arrow">→</span>' : ""}<span class="path-node" style="--node:${nodeColor(node)}">${escapeHtml(node)}</span>`).join("")}</span>
+        <span class="path-stat"><strong>${formatCount(item.journeys)}</strong></span>
+        <span class="path-stat"><strong>${formatPercent(safeDivide(item.journeys, total) * 100)}</strong></span>
+        <span class="path-stat"><strong>${profile.creditKey === "revenue" ? formatCurrency(item.revenue) : formatCount(item.conversions)}</strong></span>
       </button>
-    `).join("")}</div>`;
+    `).join("")}</div>
+    <div class="top-path-footer">
+      <span>Showing ${start + 1}-${start + pageItems.length} of ${formatCount(topPathContext.length)} journey ${topPathContext.length === 1 ? "path" : "paths"}, most common first</span>
+      ${totalPages > 1 ? `<div class="mta-pagination">${pageButtons.join("")}</div>` : ""}
+    </div>`;
+  }
+
+  // One funnel per conversion event in scope, all shown at once.
+  function funnelFor(event, source) {
+    const meta = EVENT_JOURNEYS[event] || { title: event, result: "Converted" };
+    const sum = (predicate, key = "journeys") => source.filter(predicate).reduce((total, row) => total + row[key], 0);
+    const journeys = sum(() => true);
+    const converted = sum(() => true, "conversions");
+    let stages;
+    let drops;
+    if (event === "App Install") {
+      stages = [["Reached App Store", journeys], [meta.result, converted]];
+      drops = [["Install abandoned", sum((row) => journeyParts(row).result === "Install abandoned")]];
+    } else {
+      const viewed = sum((row) => Boolean(journeyParts(row).view));
+      stages = [["Arrived in MyXL", journeys], ["Looked at packages", Math.min(journeys, viewed)], [meta.result, Math.min(viewed, converted)]];
+      drops = [
+        ["Left without buying", sum((row) => journeyParts(row).result === "Left without buying")],
+        ["Payment failed", sum((row) => journeyParts(row).result === "Payment failed")],
+      ];
+    }
+    let biggest = null;
+    stages.forEach((stage, index) => {
+      if (!index) return;
+      const lost = 1 - safeDivide(stage[1], stages[index - 1][1]);
+      if (!biggest || lost > biggest.lost) biggest = { from: stages[index - 1][0], to: stage[0], lost };
+    });
+    const lastAd = new Map();
+    source.forEach((row) => {
+      const channels = row.channels || [];
+      const channel = channels[channels.length - 1];
+      if (channel) lastAd.set(channel, (lastAd.get(channel) || 0) + row.journeys);
+    });
+    const mix = [...lastAd.entries()].sort((a, b) => b[1] - a[1]).map(([channel, value]) => ({ channel, share: safeDivide(value, journeys) * 100 }));
+    return { title: meta.title, journeys, stages, drops, biggest, mix };
   }
 
   function renderJourneyFunnel() {
-    const total = summarize(currentRows);
-    if (!total.journeys) {
-      elements.journeyVisual.innerHTML = '<div class="journey-empty">No journey funnel is available for the selected filters.</div>';
+    const target = elements.journeyFunnel;
+    const order = ["Package Purchase", "Recharge", "App Install"];
+    const events = order.filter((event) => currentRows.some((row) => row.targetEvent === event));
+    const funnels = events
+      .map((event) => funnelFor(event, currentRows.filter((row) => row.targetEvent === event)))
+      .filter((funnel) => funnel.journeys > 0);
+    if (!funnels.length) {
+      target.innerHTML = '<div class="journey-empty small">No journey funnel is available for the selected filters.</div>';
       return;
     }
-    const outcomeLabel = eventMetricProfile().outcomeLabel;
-    const stageDefinitions = state.journeyType === "marketing"
-      ? [
-        ["Marketing exposure", () => true],
-        ["Multi-touch", (row) => row.channels.length > 1],
-        ["App entry", (row) => row.marketingPath.length > row.channels.length],
-        [outcomeLabel, (row) => row.conversions > 0, true],
-      ]
-      : state.journeyType === "app"
-        ? [
-          ["App entry", () => true],
-          ["Discovery", (row) => row.appPath.some((node) => /Home|Promo|Package|Search/.test(node))],
-          ["Intent / checkout", (row) => row.appPath.some((node) => /Detail|Checkout|Install/.test(node))],
-          [outcomeLabel, (row) => row.conversions > 0, true],
-        ]
-        : [
-          ["Marketing exposure", () => true],
-          ["App entry", (row) => row.endToEndPath.some((node) => /Open|Link|Store|Install/.test(node))],
-          ["Product intent", (row) => row.endToEndPath.some((node) => /Detail|Search|Install/.test(node))],
-          [outcomeLabel, (row) => row.conversions > 0, true],
-        ];
-    let previous = total.journeys;
-    const stages = stageDefinitions.map(([label, predicate, conversionsOnly], index) => {
-      const raw = currentRows.filter(predicate).reduce((sum, row) => sum + (conversionsOnly ? row.conversions : row.journeys), 0);
-      const value = index === 0 ? total.journeys : Math.min(previous, raw);
-      previous = value;
-      return { label, value };
-    });
-    elements.journeyVisual.innerHTML = `<div class="journey-funnel">${stages.map((stage, index) => {
-      const width = Math.max(3, safeDivide(stage.value, stages[0].value) * 100);
-      const retained = index ? safeDivide(stage.value, stages[index - 1].value) * 100 : 100;
-      return `<div class="journey-funnel-row"><span class="journey-funnel-label">${stage.label}</span><div class="journey-funnel-track"><div class="journey-funnel-fill" style="width:${width.toFixed(1)}%">${width >= 18 ? formatPercent(retained) : ""}</div></div><span class="journey-funnel-value">${formatCount(stage.value)}</span></div>`;
-    }).join("")}</div>`;
+    target.classList.toggle("single", funnels.length === 1);
+    target.innerHTML = funnels.map((funnel) => {
+      const top = funnel.stages[0][1];
+      const rows = funnel.stages.map(([label, value], index) => {
+        const width = Math.max(2, safeDivide(value, top) * 100);
+        const kept = index ? `${formatPercent(safeDivide(value, funnel.stages[index - 1][1]) * 100)} continued` : "Start";
+        return `<div class="journey-funnel-row">
+          <span class="journey-funnel-label">${escapeHtml(label)}</span>
+          <span class="journey-funnel-value">${formatCount(value)}<small>${kept}</small></span>
+          <div class="journey-funnel-track"><div class="journey-funnel-fill" style="width:${width.toFixed(1)}%"></div></div>
+        </div>`;
+      }).join("");
+      const drops = funnel.drops.map(([label, value]) => `<span class="journey-drop"><strong>${formatCount(value)}</strong>${escapeHtml(label)}</span>`).join("");
+      const biggest = funnel.biggest
+        ? `<p class="journey-biggest"><strong>Biggest drop:</strong> ${escapeHtml(funnel.biggest.from)} → ${escapeHtml(funnel.biggest.to)} (${formatPercent(funnel.biggest.lost * 100)} did not continue)</p>`
+        : "";
+      const mix = funnel.mix.map((item) => `<span><i style="background:${CHANNEL_COLORS[item.channel] || "#9aa6be"}"></i>${escapeHtml(item.channel)} ${formatPercent(item.share)}</span>`).join("");
+      return `<article class="journey-funnel-card">
+        <header><h4>${escapeHtml(funnel.title)}</h4><span>${formatCount(funnel.journeys)} journeys</span></header>
+        <div class="journey-mix"><em>Brought in by (last ad)</em>${mix}</div>
+        <div class="journey-funnel">${rows}</div>
+        <div class="journey-drops">${drops}</div>
+        ${biggest}
+      </article>`;
+    }).join("");
   }
 
   function renderJourney() {
-    if (state.journeyView === "paths") renderTopPaths();
-    else if (state.journeyView === "funnel") renderJourneyFunnel();
-    else renderSankey();
+    renderJourneyFunnel();
+    renderSankey();
+    renderTopPaths();
   }
 
   function renderBarChart(target, items, valueAccessor, formatter, className = "") {
@@ -1001,6 +1066,7 @@
   function render() {
     refreshFilterOptions();
     currentRows = filteredRows();
+    state.pathPage = 1;
     const dateStart = root.querySelector('[data-mta-filter="dateStart"]');
     const dateEnd = root.querySelector('[data-mta-filter="dateEnd"]');
     dateStart.value = state.dateStart;
@@ -1010,7 +1076,7 @@
     root.querySelector('[data-mta-control="userType"]').value = state.userType;
     root.querySelector('[data-mta-control="lookback"]').value = state.lookback;
     root.querySelector('[data-mta-control="targetEvent"]').value = state.targetEvent;
-    updateJourneyTabs();
+    updateJourneyMeta();
     renderChips();
     renderScorecards();
     renderJourney();

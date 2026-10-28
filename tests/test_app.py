@@ -55,6 +55,19 @@ class DashboardRendererTest(unittest.TestCase):
         self.assertNotIn("Measurement reliability", page)
         self.assertNotIn("MTA Data Quality", page)
 
+    def test_journey_explorer_shows_all_views_without_tabs(self):
+        page = render_page("mta")
+        for hook in ("data-journey-funnel", "data-journey-sankey", "data-journey-paths"):
+            self.assertIn(hook, page)
+        for removed in ("data-journey-type", "data-journey-view", "Marketing to App", "In-App Journey"):
+            self.assertNotIn(removed, page)
+        self.assertIn("Ad views without an app visit are in Campaign Performance", page)
+        script = Path("app/static/js/mta.js").read_text(encoding="utf-8")
+        self.assertNotIn("JOURNEY_META", script)
+        self.assertIn('"Left without buying"', script)
+        self.assertIn("const PATHS_PER_PAGE = 5;", script)
+        self.assertIn("data-path-page", script)
+
     def test_campaign_page_contains_interactive_dashboard_regions(self):
         page = render_page("campaign-performance")
         self.assertIn('data-filter="channel"', page)

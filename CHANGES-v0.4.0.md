@@ -121,3 +121,14 @@
 ## v0.6.7 - MTA page trimmed
 
 - Removed the Channel Role Analysis and Attribution Model Comparison panels from the MTA page (little decision value for clients). The journey signals at the bottom still describe which channel opens, assists and closes journeys.
+
+## v0.6.8 - Journey Explorer without tabs
+
+- The End-to-End User Journey Explorer now shows one journey in MyXL terms, with no tabs or view buttons. The "Marketing to App", "In-App Journey" and "End-to-End" choices are removed.
+- Stages: First ad, Last ad, Arrive (deep link, opened or installed MyXL, App Store), Browse, Find package, Result (bought package, recharged, installed & opened, left without buying, payment failed, install abandoned).
+- Shown together, top to bottom:
+  1. Journey funnel, one card per conversion event in scope: users at each step, % that continued, drop-offs (left without buying, payment failed, install abandoned), the biggest drop, and the last ad that brought users in.
+  2. Full journey flow (Sankey) with a stage header on each column.
+  3. Most common journeys, 5 per page with pagination, most common first, with journeys, share and revenue or outcomes.
+- A note says tracking starts when a user arrives from an ad; ad views without an app visit are in Campaign Performance.
+- Clicking a flow step or a journey still filters the whole dashboard.
