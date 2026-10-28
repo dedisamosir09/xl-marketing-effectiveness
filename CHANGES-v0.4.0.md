@@ -117,3 +117,7 @@
 
 - The menu button in the top bar now also works on desktop: it hides the sidebar so the page uses the full width, and shows it again. The choice is remembered in the browser. On phones the button still opens the sidebar as an overlay.
 - Menu order: Campaign Performance, Geo Intelligence, MTA, MMM.
+
+## v0.6.7 - MTA page trimmed
+
+- Removed the Channel Role Analysis and Attribution Model Comparison panels from the MTA page (little decision value for clients). The journey signals at the bottom still describe which channel opens, assists and closes journeys.

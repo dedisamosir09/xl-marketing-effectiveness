@@ -75,8 +75,6 @@
     clearJourney: root.querySelector("[data-clear-journey]"),
     touchpointHealth: root.querySelector("[data-touchpoint-health]"),
     timeHealth: root.querySelector("[data-time-health]"),
-    channelRole: root.querySelector("[data-channel-role]"),
-    modelComparison: root.querySelector("[data-model-comparison]"),
     attributionSearch: root.querySelector("[data-attribution-search]"),
     attributionDescription: root.querySelector("[data-attribution-description]"),
     attributionConversionHeading: root.querySelector("[data-attribution-conversion-heading]"),
@@ -889,51 +887,6 @@
     return Object.values(result);
   }
 
-  function roleSignal(role) {
-    const values = [["Initiator", role.first], ["Assister", role.assist], ["Closer", role.last]];
-    values.sort((a, b) => b[1] - a[1]);
-    const total = role.first + role.assist + role.last;
-    if (total && values[0][1] / total < 0.46) return "Full-funnel";
-    return values[0][0];
-  }
-
-  function renderChannelRole() {
-    const allowedChannels = new Set(visibleChannels());
-    const roles = channelRoles(currentRows).filter((role) => allowedChannels.has(role.channel));
-    elements.channelRole.innerHTML = `
-      <div class="role-legend"><span><i class="role-first"></i>First touch</span><span><i class="role-assist"></i>Assist</span><span><i class="role-last"></i>Last touch</span></div>
-      ${roles.map((role) => {
-        const total = role.first + role.assist + role.last || 1;
-        return `<div class="role-row" data-channel-select="${role.channel}" role="button" tabindex="0">
-          <span class="role-channel">${role.channel}</span>
-          <div class="role-stack" aria-label="${role.channel} role distribution"><span class="role-first" style="width:${safeDivide(role.first, total) * 100}%"></span><span class="role-assist" style="width:${safeDivide(role.assist, total) * 100}%"></span><span class="role-last" style="width:${safeDivide(role.last, total) * 100}%"></span></div>
-          <span class="role-signal">${roleSignal(role)}</span>
-        </div>`;
-      }).join("")}`;
-  }
-
-  function renderModelComparison() {
-    const channels = visibleChannels();
-    const profile = eventMetricProfile();
-    const values = {};
-    MODEL_OPTIONS.forEach(([model]) => {
-      const items = attributionByChannel(currentRows, model);
-      const total = items.reduce((sum, item) => sum + item[profile.creditKey], 0) || 1;
-      values[model] = Object.fromEntries(items.map((item) => [item.channel, {
-        ...item,
-        share: safeDivide(item[profile.creditKey], total) * 100,
-      }]));
-    });
-    const max = Math.max(...MODEL_OPTIONS.flatMap(([model]) => channels.map((channel) => values[model][channel]?.share || 0)), 1);
-    elements.modelComparison.innerHTML = `<div class="comparison-table">
-      <div class="comparison-header"><span>Channel</span>${MODEL_OPTIONS.map(([, label]) => `<span>${escapeHtml(label)}</span>`).join("")}</div>
-      ${channels.map((channel) => `<div class="comparison-row"><span class="comparison-channel">${channel}</span>${MODEL_OPTIONS.map(([model]) => {
-        const value = values[model][channel] || { share: 0, conversions: 0, revenue: 0 };
-        return `<button type="button" class="comparison-cell${state.model === model ? " active" : ""}" data-model-select="${model}" aria-label="Use ${escapeHtml(modelLabel(model))} attribution"><i style="width:${safeDivide(value.share, max) * 100}%"></i><span>${formatPercent(value.share)}<small>${profile.formatCredit(value[profile.creditKey])}</small></span></button>`;
-      }).join("")}</div>`).join("")}
-    </div>`;
-  }
-
   function attributionDetails() {
     const grouped = new Map();
     const allowedChannels = new Set(visibleChannels());
@@ -1062,8 +1015,6 @@
     renderScorecards();
     renderJourney();
     renderJourneyHealth();
-    renderChannelRole();
-    renderModelComparison();
     renderAttributionTable();
     renderSignals();
   }
