@@ -27,7 +27,9 @@ function activateDashboardPage(routeKey, options = {}) {
     }
   });
 
+  const collapsed = document.body.classList.contains("sidebar-collapsed");
   document.body.className = page.dataset.bodyClass || "";
+  document.body.classList.toggle("sidebar-collapsed", collapsed);
   setSidebar(false);
 
   if (options.scroll !== false) {
@@ -37,10 +39,38 @@ function activateDashboardPage(routeKey, options = {}) {
   return true;
 }
 
+// Desktop: the menu button hides or shows the sidebar; the choice is remembered in this browser.
+const SIDEBAR_KEY = "xl-sidebar-collapsed";
+
+function setCollapsed(collapsed) {
+  document.body.classList.toggle("sidebar-collapsed", collapsed);
+  document.querySelectorAll("[data-menu-button]").forEach((button) => {
+    button.setAttribute("aria-expanded", String(!collapsed));
+    button.setAttribute("aria-label", collapsed ? "Show navigation" : "Hide navigation");
+  });
+  try { window.localStorage.setItem(SIDEBAR_KEY, collapsed ? "1" : "0"); } catch (_error) { /* optional */ }
+  // Charts size themselves to the page width: redraw once the slide has finished.
+  window.setTimeout(() => window.dispatchEvent(new Event("resize")), 220);
+}
+
+function restoreCollapsed() {
+  let collapsed = false;
+  try { collapsed = window.localStorage.getItem(SIDEBAR_KEY) === "1"; } catch (_error) { /* optional */ }
+  if (mobileBreakpoint.matches) {
+    document.querySelectorAll("[data-menu-button]").forEach((button) => {
+      button.setAttribute("aria-expanded", "false");
+      button.setAttribute("aria-label", "Open navigation");
+    });
+  } else if (collapsed) {
+    setCollapsed(true);
+  }
+}
+
 document.addEventListener("click", (event) => {
   const menuButton = event.target.closest("[data-menu-button]");
   if (menuButton) {
-    setSidebar(!document.body.classList.contains("sidebar-open"));
+    if (mobileBreakpoint.matches) setSidebar(!document.body.classList.contains("sidebar-open"));
+    else setCollapsed(!document.body.classList.contains("sidebar-collapsed"));
     return;
   }
 
@@ -62,3 +92,5 @@ document.addEventListener("keydown", (event) => {
 mobileBreakpoint.addEventListener("change", (event) => {
   if (!event.matches) setSidebar(false);
 });
+
+restoreCollapsed();

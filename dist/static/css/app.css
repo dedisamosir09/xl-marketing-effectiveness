@@ -173,7 +173,16 @@ a { color: inherit; text-decoration: none; }
 
 .status-dot { width: 0.48rem; height: 0.48rem; border-radius: 50%; background: #6d61e8; box-shadow: 0 0 0 0.25rem #efedff; }
 
-.main-area { min-height: 100vh; margin-left: var(--sidebar-width); }
+.main-area { min-height: 100vh; margin-left: var(--sidebar-width); transition: margin-left 200ms ease; }
+.sidebar { transition: transform 200ms ease; }
+.topbar { gap: 1rem; }
+.topbar .breadcrumb { margin-right: auto; }
+
+/* Desktop: the menu button hides and shows the sidebar */
+@media (min-width: 901px) {
+  body.sidebar-collapsed .sidebar { transform: translateX(-102%); }
+  body.sidebar-collapsed .main-area { margin-left: 0; }
+}
 
 .topbar {
   position: sticky;
@@ -191,7 +200,8 @@ a { color: inherit; text-decoration: none; }
 }
 
 .menu-button {
-  display: none;
+  display: inline-flex;
+  flex: 0 0 auto;
   width: 2.7rem;
   height: 2.7rem;
   align-items: center;

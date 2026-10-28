@@ -16,20 +16,20 @@ MENU_ITEMS = [
         "description": "Geographic performance patterns and market opportunity analysis.",
     },
     {
-        "key": "mmm",
-        "label": "Marketing Mix Modeling (MMM)",
-        "short_label": "Marketing Mix Modeling",
-        "path": "/mmm/",
-        "icon": "building",
-        "description": "Incremental business impact and channel effectiveness measurement.",
-    },
-    {
         "key": "mta",
         "label": "Multi Touch Attribution (MTA)",
         "short_label": "Multi Touch Attribution",
         "path": "/mta/",
         "icon": "journey",
         "description": "Customer journey and touchpoint contribution analysis.",
+    },
+    {
+        "key": "mmm",
+        "label": "Marketing Mix Modeling (MMM)",
+        "short_label": "Marketing Mix Modeling",
+        "path": "/mmm/",
+        "icon": "building",
+        "description": "Incremental business impact and channel effectiveness measurement.",
     },
 ]
 

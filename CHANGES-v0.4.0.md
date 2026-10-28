@@ -112,3 +112,8 @@
 ## v0.6.5 - Scenario cell as numbers
 
 - Scenario result: the Scenario / month cell shows only the recommended budget and "Allowed Rp... - Rp..." under it; the band / tick / dot visual and its help cursor are removed. Ranges use a spaced hyphen ("Rp1.39B - Rp2.57B") in the setup table and section 02 too.
+
+## v0.6.6 - Sidebar toggle and menu order
+
+- The menu button in the top bar now also works on desktop: it hides the sidebar so the page uses the full width, and shows it again. The choice is remembered in the browser. On phones the button still opens the sidebar as an overlay.
+- Menu order: Campaign Performance, Geo Intelligence, MTA, MMM.
