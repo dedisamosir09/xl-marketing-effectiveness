@@ -73,12 +73,45 @@ def _allocate(raw_values, target, caps=None):
     return allocated
 
 
-def _build_paths(archetype, target_event, converted):
+ENTRY_STEPS = ["Deep Link", "App Open", "App Install"]
+BROWSE_STEPS = ["Home", "Promo Banner", "Promo View", "Package List", "Search"]
+INTENT_STEPS = ["Package Detail", "Package List", "Search"]
+# Where a non-converting journey ends: right after arriving, while browsing,
+# after looking at packages, or at payment.
+DROP_POINTS = ["Bounce", "Browse Exit", "Package Exit", "Payment Failed"]
+
+
+def _pick(rng, preferred, options, preferred_weight):
+    """The archetype's usual step most of the time, otherwise another plausible step."""
+    others = [item for item in options if item != preferred]
+    if rng.random() < preferred_weight or not others:
+        return preferred
+    return rng.choice(others)
+
+
+def _in_app_route(archetype, seed, converted):
+    """Deterministic in-app route for one journey group, varied across days and groups.
+
+    Only the in-app steps vary; channels, journeys, conversions and revenue are untouched.
+    """
+    rng = random.Random(seed)
+    entry = _pick(rng, archetype["entry"], ENTRY_STEPS, 0.6)
+    engagement = _pick(rng, archetype["engagement"], BROWSE_STEPS, 0.45)
+    intent = _pick(rng, archetype["intent"], [step for step in INTENT_STEPS if step != engagement] or INTENT_STEPS, 0.6)
+    if intent == engagement:
+        intent = "Package Detail" if engagement != "Package Detail" else "Package List"
+    drop = None
+    if not converted:
+        weights = [0.15, 0.30, 0.20, 0.35] if archetype["drop"] == "Payment Failed" else [0.20, 0.38, 0.27, 0.15]
+        drop = rng.choices(DROP_POINTS, weights=weights)[0]
+    return entry, engagement, intent, drop
+
+
+def _build_paths(archetype, target_event, converted, seed):
     channels = archetype["channels"]
-    entry = archetype["entry"]
-    marketing_path = channels + [entry]
 
     if target_event == "App Install":
+        marketing_path = channels + ["App Install"]
         if converted:
             app_path = ["App Store", "App Install", "First Open"]
             end_path = channels + ["Ad Click", "App Store", "App Install", "First Open"]
@@ -87,19 +120,24 @@ def _build_paths(archetype, target_event, converted):
             end_path = channels + ["Ad Click", "App Store", "Install Abandoned"]
         return marketing_path, app_path, end_path
 
+    entry, engagement, intent, drop = _in_app_route(archetype, seed, converted)
+    marketing_path = channels + [entry]
     success = "Payment Success" if target_event == "Package Purchase" else "Recharge Success"
     if converted:
-        app_path = [entry, "Home", archetype["engagement"], archetype["intent"], "Checkout", success]
-        end_path = channels + [entry, archetype["engagement"], archetype["intent"], success]
+        app_path = [entry, "Home", engagement, intent, "Checkout", success]
+        end_path = channels + [entry, engagement, intent, success]
+    elif drop == "Bounce":
+        app_path = [entry, "Exit"]
+        end_path = channels + [entry, "Exit"]
+    elif drop == "Browse Exit":
+        app_path = [entry, "Home", engagement, "Exit"]
+        end_path = channels + [entry, engagement, "Exit"]
+    elif drop == "Package Exit":
+        app_path = [entry, "Home", engagement, intent, "Exit"]
+        end_path = channels + [entry, engagement, intent, "Exit"]
     else:
-        drop = archetype["drop"]
-        app_path = [entry, "Home", archetype["engagement"]]
-        if drop == "Payment Failed":
-            app_path += [archetype["intent"], "Checkout", drop]
-            end_path = channels + [entry, archetype["engagement"], archetype["intent"], drop]
-        else:
-            app_path += [drop]
-            end_path = channels + [entry, archetype["engagement"], drop]
+        app_path = [entry, "Home", engagement, intent, "Checkout", "Payment Failed"]
+        end_path = channels + [entry, engagement, intent, "Payment Failed"]
     return marketing_path, app_path, end_path
 
 
@@ -188,7 +226,8 @@ def generate_mta_dataset():
         for converted, count in ((True, converted_count), (False, journeys - converted_count)):
             if count <= 0:
                 continue
-            marketing_path, app_path, end_path = _build_paths(row["archetype"], row["targetEvent"], converted)
+            seed = 7_000_003 + index * 2 + (1 if converted else 0)
+            marketing_path, app_path, end_path = _build_paths(row["archetype"], row["targetEvent"], converted, seed)
             duration = row["durationHours"] * (0.72 if converted else 1.28)
             duration *= 0.55 if row["targetEvent"] == "App Install" else 1
             expanded.append(

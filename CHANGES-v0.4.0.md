@@ -132,3 +132,9 @@
   3. Most common journeys, 5 per page with pagination, most common first, with journeys, share and revenue or outcomes.
 - A note says tracking starts when a user arrives from an ad; ad views without an app visit are in Campaign Performance.
 - Clicking a flow step or a journey still filters the whole dashboard.
+- Demo data fix: each ad combination used to follow one fixed in-app route (for example every Google-only journey went Deep link → Promo page), so the flow kept the same numbers from start to end. In-app routes and drop points now vary by journey group:
+  - Ways in: deep link, opened MyXL, installed MyXL.
+  - Browse steps: Home, promo banner, promo page, package list, search.
+  - Drop points: left right away, left while browsing, left after viewing packages, payment failed.
+  - Channels, journeys, conversions, revenue and attribution are unchanged; validate_data.py checks the new variety (74 checks).
+- The funnel now has four steps: Arrived in MyXL → Browsed the app → Looked at packages → Bought package / Recharged.

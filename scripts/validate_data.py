@@ -92,6 +92,21 @@ def run_checks():
         check(f"MTA {channel}: last-touch revenue = 40% x Campaign", last_touch[channel][1] == expected_revenue, f"Rp{last_touch[channel][1]:,}")
     campaign_names = {item["campaign"] for item in campaign["campaigns"]}
     check("MTA campaigns all exist in Campaign list", all(row["campaign"] in campaign_names for row in mta["rows"]), "")
+    # Journey paths: each ad combination reaches the app in several ways and drops at several points.
+    route_mix = defaultdict(lambda: (set(), set(), set()))
+    for row in mta["rows"]:
+        if row["targetEvent"] == "App Install":
+            continue
+        rest = row["endToEndPath"][len(row["channels"]):]
+        entries, browses, results = route_mix[tuple(row["channels"])]
+        entries.add(rest[0])
+        if len(rest) > 2:
+            browses.add(rest[1])
+        results.add(rest[-1] if len(rest) > 2 else "Bounce")
+    check("MTA journeys: every ad combination has 2+ entry, 3+ browse and 4+ result steps",
+          all(len(e) >= 2 and len(b) >= 3 and len(r) >= 4 for e, b, r in route_mix.values()), f"{len(route_mix)} combinations")
+    check("MTA journeys: every journey ends converted or at one drop point",
+          all(row["conversions"] in (0, row["journeys"]) for row in mta["rows"]), "")
 
     # ---- Google Meridian training data and fit ----
     meridian_input = generate_meridian_input()

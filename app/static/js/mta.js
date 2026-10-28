@@ -789,10 +789,19 @@
       stages = [["Reached App Store", journeys], [meta.result, converted]];
       drops = [["Install abandoned", sum((row) => journeyParts(row).result === "Install abandoned")]];
     } else {
+      const browsed = sum((row) => Boolean(journeyParts(row).browse));
       const viewed = sum((row) => Boolean(journeyParts(row).view));
-      stages = [["Arrived in MyXL", journeys], ["Looked at packages", Math.min(journeys, viewed)], [meta.result, Math.min(viewed, converted)]];
+      stages = [
+        ["Arrived in MyXL", journeys],
+        ["Browsed the app", Math.min(journeys, browsed)],
+        ["Looked at packages", Math.min(browsed, viewed)],
+        [meta.result, Math.min(viewed, converted)],
+      ];
+      const left = (row) => journeyParts(row).result === "Left without buying";
       drops = [
-        ["Left without buying", sum((row) => journeyParts(row).result === "Left without buying")],
+        ["Left right away", sum((row) => left(row) && !journeyParts(row).browse)],
+        ["Left while browsing", sum((row) => left(row) && journeyParts(row).browse && !journeyParts(row).view)],
+        ["Left after viewing packages", sum((row) => left(row) && Boolean(journeyParts(row).view))],
         ["Payment failed", sum((row) => journeyParts(row).result === "Payment failed")],
       ];
     }
