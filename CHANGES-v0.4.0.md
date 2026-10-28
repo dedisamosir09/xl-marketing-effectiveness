@@ -138,3 +138,7 @@
   - Drop points: left right away, left while browsing, left after viewing packages, payment failed.
   - Channels, journeys, conversions, revenue and attribution are unchanged; validate_data.py checks the new variety (74 checks).
 - The funnel now has four steps: Arrived in MyXL → Browsed the app → Looked at packages → Bought package / Recharged.
+
+## v0.6.9 - Journey funnel full width
+
+- When only one conversion event is in scope, its funnel card now uses the full width of the panel.

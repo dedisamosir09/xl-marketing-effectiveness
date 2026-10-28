@@ -13,7 +13,7 @@ from app.streamlit_adapter import PAGE_ASSETS, build_streamlit_dashboard
 
 
 DEFAULT_MODULE = "campaign-performance"
-DEPLOY_MARKER = "journey-explorer-2026-10-28"
+DEPLOY_MARKER = "funnel-full-width-2026-10-28"
 
 
 def selected_module() -> str:

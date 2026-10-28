@@ -334,7 +334,7 @@
 .path-stat strong { display: block; color: #26324d; font-size: 0.78rem; }
 
 .journey-funnel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr)); gap: 0.85rem; }
-.journey-funnel-grid.single { grid-template-columns: minmax(0, 46rem); }
+.journey-funnel-grid.single { grid-template-columns: 1fr; }
 .journey-funnel-card { display: grid; align-content: start; gap: 0.7rem; padding: 0.95rem 1rem; border: 1px solid #e7e9f1; border-radius: 0.8rem; background: #fff; }
 .journey-funnel-card header { display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem; }
 .journey-funnel-card h4 { margin: 0; color: #24304b; font-size: 0.82rem; }
